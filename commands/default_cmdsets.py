@@ -31,14 +31,25 @@ from evennia.contrib.game_systems.gendersub import SetGender
 from evennia.contrib.game_systems.storage import StorageCmdSet
 from evennia.contrib.rpg.rpsystem import RPSystemCmdSet
 
-from .account_character_commands import CmdCharacterRoster, CmdLockedCharCreate, CmdLockedIC
+from .account_character_commands import (
+    CmdCharacterRoster,
+    CmdLockedCharCreate,
+    CmdLockedIC,
+)
 from .combat_admin import CmdAgentCombat
-from .combat_commands import CmdCombatAttack, CmdCombatSkill, CmdCombatFlee, CmdPick, CmdCast
+from .combat_commands import (
+    CmdCombatAttack,
+    CmdCombatSkill,
+    CmdCombatFlee,
+    CmdPick,
+    CmdCast,
+)
 from .combat_socket import CmdSocketGem
 from .equipment_admin import CmdAgentWeapon
 from .npc_admin import CmdAgentNPC
 from .object_admin import CmdAgentObject
 from .player_admin import CmdAgentPlayer
+from .player_commands import CmdStatus, CmdInventory, CmdEquipment
 from .account_admin import CmdAgentAccount
 from .quest_admin import CmdAgentQuest
 from .room_admin import CmdAgentRoom
@@ -96,6 +107,10 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAgentRoom())
         self.add(CmdAgentWeapon())
         self.add(CmdAgentMagic())
+
+        self.add(CmdStatus())
+        self.add(CmdInventory())
+        self.add(CmdEquipment())
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
