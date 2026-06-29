@@ -5,6 +5,7 @@ from world.equipment_tools import (
     EquipmentSpecError,
     add_equipment_magic_buff,
     add_equipment_stat,
+    clone_equipment,
     create_equipment,
     delete_equipment,
     move_equipment,
@@ -15,6 +16,12 @@ from world.equipment_tools import (
     set_equipment_stats,
     summarize_equipment,
     summarize_equipments,
+)
+from world.shop_tools import (
+    ShopSpecError,
+    remove_room_shop_stock,
+    set_room_shop_stock,
+    summarize_room_shop,
 )
 
 
@@ -39,6 +46,10 @@ class CmdAgentWeapon(MuxCommand):
       @agentweapon/dur 鐵劍=50/100
       @agentweapon/repair 鐵劍
       @agentweapon/repair 鐵劍=20
+      @agentweapon/clone 鐵劍=商店鐵劍樣板|迎賓大廳
+      @agentweapon/shop 迎賓大廳
+      @agentweapon/stock 鐵劍=迎賓大廳|30|5
+      @agentweapon/unstock 鐵劍=迎賓大廳
       @agentweapon/delete 鐵劍
 
     不帶 switch 時，等同於 list。
@@ -54,10 +65,23 @@ class CmdAgentWeapon(MuxCommand):
     locks = "cmd:perm(Admin) or perm(Developer)"
     help_category = "Admin"
     switch_options = (
-        "list", "status", "create", "move",
-        "stats", "addstat", "buff",
-        "alias", "desc", "dur", "repair",
-        "delete", "help",
+        "list",
+        "status",
+        "create",
+        "move",
+        "stats",
+        "addstat",
+        "buff",
+        "alias",
+        "desc",
+        "dur",
+        "repair",
+        "clone",
+        "shop",
+        "stock",
+        "unstock",
+        "delete",
+        "help",
     )
 
     def _msg(self, text):
@@ -77,6 +101,10 @@ class CmdAgentWeapon(MuxCommand):
             "  |w@agentweapon/desc 名稱=描述|n：更新描述。\n"
             "  |w@agentweapon/dur 名稱=50/100|n：設定耐用度（當前/上限）。\n"
             "  |w@agentweapon/repair 名稱[=amount]|n：修復（可指定數值）。\n"
+            "  |w@agentweapon/clone 名稱=新名稱|房間|n：複製一件新裝備樣板。\n"
+            "  |w@agentweapon/shop [房間]|n：查看房間商店清單。\n"
+            "  |w@agentweapon/stock 名稱=房間|價格|數量|n：把裝備樣板上架到房間商店。\n"
+            "  |w@agentweapon/unstock 名稱=房間|n：把裝備樣板從房間商店下架。\n"
             "  |w@agentweapon/delete 名稱|n：刪除裝備。\n\n"
             "slot 可用值：hat, top, bottom, cloak, shoes, gloves, glasses,\n"
             "             earring, ring, main_hand, off_hand, two_hand\n\n"
@@ -135,7 +163,11 @@ class CmdAgentWeapon(MuxCommand):
         room_name = params[0] if len(params) > 0 and params[0] else None
         desc = params[1] if len(params) > 1 and params[1] else None
         alias_str = params[2] if len(params) > 2 and params[2] else None
-        aliases = [a.strip() for a in alias_str.split(",") if a.strip()] if alias_str else None
+        aliases = (
+            [a.strip() for a in alias_str.split(",") if a.strip()]
+            if alias_str
+            else None
+        )
         stats_str = params[3] if len(params) > 3 and params[3] else None
         stats = {}
         if stats_str:
@@ -256,6 +288,48 @@ class CmdAgentWeapon(MuxCommand):
         result = repair_equipment(eq_key, amount)
         self._msg(result["message"])
 
+    def _handle_clone(self):
+        template_key = (self.lhs or "").strip()
+        raw = (self.rhs or "").strip()
+        if not template_key or not raw:
+            raise EquipmentSpecError("clone 格式：`名稱=新名稱|房間`")
+        params = [part.strip() for part in raw.split("|")]
+        new_key = params[0] if params else ""
+        room_name = params[1] if len(params) > 1 and params[1] else None
+        if not new_key:
+            raise EquipmentSpecError("clone 需要新的裝備名稱。")
+        result = clone_equipment(
+            template_key,
+            new_key=new_key,
+            room_name=room_name,
+            allow_duplicate_key=False,
+        )
+        self._msg(result["message"])
+
+    def _handle_shop(self):
+        room_name = (self.args or self.lhs or "").strip()
+        self._msg(summarize_room_shop(room_name or None, room=self.caller.location if not room_name else None))
+
+    def _handle_stock(self):
+        template_key = (self.lhs or "").strip()
+        raw = (self.rhs or "").strip()
+        if not template_key or not raw:
+            raise ShopSpecError("stock 格式：`名稱=房間|價格|數量`（數量 -1 代表無限）")
+        params = [part.strip() for part in raw.split("|")]
+        if len(params) < 3:
+            raise ShopSpecError("stock 格式：`名稱=房間|價格|數量`（數量 -1 代表無限）")
+        room_name, price, quantity = params[0], params[1], params[2]
+        result = set_room_shop_stock(template_key, room_name, price, quantity)
+        self._msg(result["message"])
+
+    def _handle_unstock(self):
+        template_key = (self.lhs or "").strip()
+        room_name = (self.rhs or "").strip()
+        if not template_key or not room_name:
+            raise ShopSpecError("unstock 格式：`名稱=房間`")
+        result = remove_room_shop_stock(template_key, room_name)
+        self._msg(result["message"])
+
     def _handle_delete(self):
         eq_key = (self.args or self.lhs or "").strip()
         result = delete_equipment(eq_key)
@@ -296,9 +370,21 @@ class CmdAgentWeapon(MuxCommand):
             if "repair" in self.switches:
                 self._handle_repair()
                 return
+            if "clone" in self.switches:
+                self._handle_clone()
+                return
+            if "shop" in self.switches:
+                self._handle_shop()
+                return
+            if "stock" in self.switches:
+                self._handle_stock()
+                return
+            if "unstock" in self.switches:
+                self._handle_unstock()
+                return
             if "delete" in self.switches:
                 self._handle_delete()
                 return
             self._handle_list()
-        except EquipmentSpecError as err:
+        except (EquipmentSpecError, ShopSpecError) as err:
             self._msg(f"|r{err}|n")

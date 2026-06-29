@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from evennia import create_object, search_object
 from evennia.objects.models import ObjectDB
-from evennia.utils.utils import inherits_from, make_iter
+from evennia.utils.utils import class_from_module, inherits_from, make_iter
 
 from typeclasses.equipment import Equipment
 
@@ -95,13 +95,40 @@ def _truncate(text, limit=160):
     return text[: limit - 1] + "…"
 
 
+def _clone_equipment_attributes(template):
+    """Build a new-equipment attribute payload from a template object."""
+    stats = dict(getattr(template.db, "stats", {}) or {})
+    magic_buffs = list(getattr(template.db, "magic_buffs", []) or [])
+    max_durability = getattr(template.db, "max_durability", 100) or 100
+    return [
+        ("desc", _clean_text(getattr(template.db, "desc", "")) or DEFAULT_EQUIPMENT_DESC),
+        ("equip_slot", getattr(template.db, "equip_slot", None)),
+        ("stats", stats),
+        ("max_durability", max_durability),
+        ("durability", max_durability),
+        ("two_handed", bool(getattr(template.db, "two_handed", False))),
+        ("magic_buffs", magic_buffs),
+        ("wear_style", getattr(template.db, "wear_style", "") or ""),
+        ("is_equipment", True),
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Equipment typeclass slots
 # ---------------------------------------------------------------------------
 VALID_SLOTS = (
-    "hat", "top", "bottom", "cloak",
-    "shoes", "gloves", "glasses", "earring",
-    "ring", "main_hand", "off_hand", "two_hand",
+    "hat",
+    "top",
+    "bottom",
+    "cloak",
+    "shoes",
+    "gloves",
+    "glasses",
+    "earring",
+    "ring",
+    "main_hand",
+    "off_hand",
+    "two_hand",
 )
 
 
@@ -270,6 +297,56 @@ def move_equipment(eq_key, room_name):
     }
 
 
+def clone_equipment(
+    eq_key,
+    new_key=None,
+    room_name=None,
+    location=None,
+    home=None,
+    allow_duplicate_key=False,
+):
+    """Clone an equipment object into a fresh instance.
+
+    Args:
+        eq_key: Existing equipment template name.
+        new_key: Optional new object key. Defaults to the template key.
+        room_name: Optional destination room name.
+        location: Optional direct location object. Overrides ``room_name``.
+        home: Optional home object for the clone.
+        allow_duplicate_key: Whether a duplicate ``new_key`` is allowed.
+
+    Returns:
+        dict: Clone result payload with the new equipment object and message.
+    """
+    template = _get_equipment_or_error(eq_key)
+    clone_key = _clean_text(new_key) or template.key
+    if not allow_duplicate_key and _find_exact_object(clone_key):
+        raise EquipmentSpecError(f"同名物件已存在：{clone_key}")
+
+    destination = location or (_get_room_or_error(room_name) if room_name else None)
+    clone_home = home or destination or getattr(template, "home", None) or getattr(template, "location", None)
+    aliases = list(template.aliases.all()) if hasattr(template, "aliases") else []
+
+    try:
+        typeclass = class_from_module(getattr(template, "typeclass_path", "typeclasses.equipment.Equipment"))
+    except Exception:
+        typeclass = Equipment
+
+    equipment = create_object(
+        typeclass,
+        key=clone_key,
+        location=destination,
+        home=clone_home,
+        aliases=aliases,
+        attributes=_clone_equipment_attributes(template),
+    )
+    location_str = getattr(destination, "key", None) or "無"
+    return {
+        "equipment": equipment,
+        "message": f"已複製 `{template.key}` 成為 `{equipment.key}`（位置：{location_str}）。",
+    }
+
+
 def set_equipment_stats(eq_key, stats_dict):
     """
     Set equipment stats. Replaces existing stats.
@@ -327,7 +404,10 @@ def set_equipment_alias(eq_key, alias):
     obj.db.player_alias = alias if alias else None
     obj.save()
     if alias:
-        return {"equipment": obj, "message": f"已將 `{obj.key}` 的暱稱設為「{alias}」。"}
+        return {
+            "equipment": obj,
+            "message": f"已將 `{obj.key}` 的暱稱設為「{alias}」。",
+        }
     return {"equipment": obj, "message": f"已清除 `{obj.key}` 的暱稱。"}
 
 

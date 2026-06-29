@@ -1,4 +1,4 @@
-"""Tests for player-facing status, inventory, and equipment commands."""
+"""Tests for player-facing status, inventory, equipment, and shop commands."""
 
 from __future__ import annotations
 
@@ -73,14 +73,15 @@ class FakeItem:
 class FakeCaller:
     """Character-like test double for command execution."""
 
-    def __init__(self, key="Hina", db_values=None, computed_stats=None, inventory=None, capacity=10, equipped=None):
-        """Create a fake caller with messages, stats, inventory, and equipment."""
+    def __init__(self, key="Hina", db_values=None, computed_stats=None, inventory=None, capacity=10, equipped=None, location=None):
+        """Create a fake caller with messages, stats, inventory, equipment, and location."""
         self.key = key
         self.db = FakeDB(**(db_values or {}))
         self._computed_stats = computed_stats or {}
         self._inventory = list(inventory or [])
         self._capacity = capacity
         self._equipped = dict(equipped or {})
+        self.location = location
         self.messages = []
 
     def get_stat(self, name):
@@ -199,6 +200,8 @@ default_cmdsets = importlib.import_module("commands.default_cmdsets")
 CmdStatus = player_commands.CmdStatus
 CmdInventory = player_commands.CmdInventory
 CmdEquipment = player_commands.CmdEquipment
+CmdShop = player_commands.CmdShop
+CmdBuy = player_commands.CmdBuy
 CharacterCmdSet = default_cmdsets.CharacterCmdSet
 
 
@@ -285,6 +288,54 @@ class TestPlayerCommands(unittest.TestCase):
         self.assertIn("帽子", output)
         self.assertIn("|x空|n", output)
 
+    def test_shop_command_uses_room_summary(self):
+        """Shop should render the room stock summary returned by shop_tools."""
+        shop_module = types.ModuleType("world.shop_tools")
+        setattr(shop_module, "ShopSpecError", type("ShopSpecError", (Exception,), {}))
+        setattr(
+            shop_module,
+            "summarize_room_shop_for_player",
+            lambda room: f"{room.key} 商店清單\n1. 鐵劍 - 30 Token（剩餘：2）",
+        )
+        setattr(
+            shop_module,
+            "buy_from_room_shop",
+            lambda caller, selection: {"message": f"你購買了 {selection}。"},
+        )
+        sys.modules["world.shop_tools"] = shop_module
+
+        room = types.SimpleNamespace(key="迎賓大廳")
+        caller = FakeCaller(location=room)
+        cmd = CmdShop()
+        cmd.caller = caller
+
+        cmd.func()
+
+        output = caller.messages[-1]
+        self.assertIn("迎賓大廳 商店清單", output)
+        self.assertIn("鐵劍 - 30 Token", output)
+
+    def test_buy_command_reports_purchase_result(self):
+        """Buy should surface the purchase result message from shop_tools."""
+        shop_module = types.ModuleType("world.shop_tools")
+        setattr(shop_module, "ShopSpecError", type("ShopSpecError", (Exception,), {}))
+        setattr(shop_module, "summarize_room_shop_for_player", lambda room: "unused")
+        setattr(
+            shop_module,
+            "buy_from_room_shop",
+            lambda caller, selection: {"message": f"你購買了 {selection}。"},
+        )
+        sys.modules["world.shop_tools"] = shop_module
+
+        caller = FakeCaller(location=types.SimpleNamespace(key="迎賓大廳"))
+        cmd = CmdBuy()
+        cmd.caller = caller
+        cmd.args = "鐵劍"
+
+        cmd.func()
+
+        self.assertEqual(caller.messages[-1], "你購買了 鐵劍。")
+
     def test_command_metadata_exposes_expected_aliases(self):
         """Commands should keep the expected bilingual aliases."""
         self.assertEqual(CmdStatus.key, "status")
@@ -294,22 +345,26 @@ class TestPlayerCommands(unittest.TestCase):
         self.assertIn("背包", CmdInventory.aliases)
         self.assertEqual(CmdEquipment.key, "equipment")
         self.assertIn("裝備", CmdEquipment.aliases)
+        self.assertEqual(CmdShop.key, "shop")
+        self.assertIn("商店", CmdShop.aliases)
+        self.assertEqual(CmdBuy.key, "buy")
+        self.assertIn("購買", CmdBuy.aliases)
 
 
 class TestPlayerCommandRegistration(unittest.TestCase):
     """Verify that player-facing commands are actually registered live."""
 
-    def test_character_cmdset_registers_status_inventory_and_equipment(self):
-        """CharacterCmdSet should include all three player-facing commands."""
+    def test_character_cmdset_registers_player_commands(self):
+        """CharacterCmdSet should include all player-facing commands."""
         cmdset = CharacterCmdSet()
         cmdset.at_cmdset_creation()
 
         keys = sorted(
             cmd.key
             for cmd in cmdset.commands
-            if hasattr(cmd, "key") and cmd.key in {"status", "inventory", "equipment"}
+            if hasattr(cmd, "key") and cmd.key in {"status", "inventory", "equipment", "shop", "buy"}
         )
-        self.assertEqual(keys, ["equipment", "inventory", "status"])
+        self.assertEqual(keys, ["buy", "equipment", "inventory", "shop", "status"])
 
 
 if __name__ == "__main__":

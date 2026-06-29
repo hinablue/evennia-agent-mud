@@ -1,4 +1,4 @@
-"""Player-facing commands for status and inventory."""
+"""Player-facing commands for status, inventory, equipment, and shopping."""
 
 from commands.command import MuxCommand
 from evennia.utils import utils
@@ -181,3 +181,54 @@ class CmdEquipment(MuxCommand):
         lines.append(f"└{'─' * 30}┘")
 
         caller.msg("\n".join(lines))
+
+
+class CmdShop(MuxCommand):
+    """顯示目前房間的商店清單。"""
+
+    key = "shop"
+    aliases = ["商店", "store"]
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        """Show the current room's available stock."""
+        caller = self.caller
+        room = getattr(caller, "location", None)
+        if not room:
+            caller.msg("⚠️ 你現在不在任何房間裡。")
+            return
+
+        from world.shop_tools import ShopSpecError, summarize_room_shop_for_player
+
+        try:
+            caller.msg(summarize_room_shop_for_player(room))
+        except ShopSpecError as err:
+            caller.msg(f"⚠️ {err}")
+
+
+class CmdBuy(MuxCommand):
+    """從目前房間商店購買一件商品。"""
+
+    key = "buy"
+    aliases = ["購買"]
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        """Buy one item by stock index or template name."""
+        caller = self.caller
+        selection = (self.args or "").strip()
+        if not selection:
+            caller.msg("用法：buy <商品編號或名稱>")
+            return
+
+        from world.shop_tools import ShopSpecError, buy_from_room_shop
+
+        try:
+            result = buy_from_room_shop(caller, selection)
+        except ShopSpecError as err:
+            caller.msg(f"⚠️ {err}")
+            return
+
+        caller.msg(result["message"])

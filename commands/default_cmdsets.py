@@ -49,7 +49,7 @@ from .equipment_admin import CmdAgentWeapon
 from .npc_admin import CmdAgentNPC
 from .object_admin import CmdAgentObject
 from .player_admin import CmdAgentPlayer
-from .player_commands import CmdStatus, CmdInventory, CmdEquipment
+from .player_commands import CmdStatus, CmdInventory, CmdEquipment, CmdShop, CmdBuy
 from .account_admin import CmdAgentAccount
 from .quest_admin import CmdAgentQuest
 from .room_admin import CmdAgentRoom
@@ -111,6 +111,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdStatus())
         self.add(CmdInventory())
         self.add(CmdEquipment())
+        self.add(CmdShop())
+        self.add(CmdBuy())
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
