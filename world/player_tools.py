@@ -72,7 +72,11 @@ def _find_exact_account(account_name):
     account_name = _clean_text(account_name)
     if not account_name:
         return None
-    matches = [account for account in search_account(account_name) if account.key.lower() == account_name.lower()]
+    matches = [
+        account
+        for account in search_account(account_name)
+        if account.key.lower() == account_name.lower()
+    ]
     return matches[0] if matches else None
 
 
@@ -99,7 +103,11 @@ def _player_accounts(obj):
 
 
 def _is_player_character(obj):
-    return bool(obj) and inherits_from(obj, "typeclasses.characters.Character") and not getattr(obj.db, "is_npc", False)
+    return (
+        bool(obj)
+        and inherits_from(obj, "typeclasses.characters.Character")
+        and not getattr(obj.db, "is_npc", False)
+    )
 
 
 def _get_player_or_error(char_key):
@@ -159,9 +167,15 @@ def _truncate(text, limit=160):
 
 def _apply_character_owner_locks(character, owners):
     owners = list(dict.fromkeys(owner for owner in owners if owner))
-    puppet_parts = [f"id({character.id})"] + [f"pid({owner.id})" for owner in owners] + ["perm(Developer)", "pperm(Developer)"]
+    puppet_parts = (
+        [f"id({character.id})"]
+        + [f"pid({owner.id})" for owner in owners]
+        + ["perm(Developer)", "pperm(Developer)"]
+    )
     delete_parts = [f"id({owner.id})" for owner in owners] + ["perm(Admin)"]
-    character.locks.add(f"puppet:{' or '.join(puppet_parts)};delete:{' or '.join(delete_parts)}")
+    character.locks.add(
+        f"puppet:{' or '.join(puppet_parts)};delete:{' or '.join(delete_parts)}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +188,9 @@ def summarize_player(char_key):
     owners = _player_accounts(obj)
     lines = [f"Player：{obj.key}"]
     lines.append(f"- 房間：{_find_room_name_for_obj(obj)}")
-    lines.append(f"- home：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}")
+    lines.append(
+        f"- home：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}"
+    )
     lines.append(f"- aliases：{_format_list(_current_aliases(obj))}")
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
     lines.append(f"- 擁有帳號：{_format_list(account.key for account in owners)}")
@@ -214,7 +230,9 @@ def summarize_players(room_name=None):
 # ---------------------------------------------------------------------------
 
 
-def create_player(char_key, room_name, desc=None, aliases=None, account_name=None):
+def create_player(
+    char_key, room_name, desc=None, aliases=None, account_name=None, caller=None
+):
     char_key = _clean_text(char_key)
     if not char_key:
         raise PlayerSpecError("create 需要角色名稱。")
@@ -225,6 +243,19 @@ def create_player(char_key, room_name, desc=None, aliases=None, account_name=Non
     aliases = _normalize_aliases(aliases)
     desc = _clean_text(desc) or DEFAULT_PLAYER_DESC
     account = _get_account_or_error(account_name) if account_name else None
+
+    # --- Kingdom/King logic ---
+    king_char = None
+    nationality = ""
+    if caller and hasattr(caller, "db") and getattr(caller.db, "is_king", False):
+        king_char = caller
+        # 驗證 home_room 是否屬於自國
+        kingdom = getattr(king_char.db, "kingdom", None)
+        if kingdom and not room.tags.has(
+            f"kingdom:{kingdom.key}", category="ownership"
+        ):
+            raise PlayerSpecError("King 只能在自國範圍內建立角色。")
+        nationality = kingdom.key if kingdom else ""
 
     if account:
         character, errs = account.create_character(
@@ -251,14 +282,19 @@ def create_player(char_key, room_name, desc=None, aliases=None, account_name=Non
     character.db.desc = desc
     if aliases:
         _set_aliases(character, aliases)
+    # 設定國籍與 King 參照
+    character.db.nationality = nationality
+    if king_char:
+        character.db.king = king_char
     owners = _player_accounts(character)
     _apply_character_owner_locks(character, owners)
     character.save()
 
     owner_note = f"，已綁定帳號 `{account.key}`" if account else "，目前未綁帳號"
+    king_note = f"（{nationality} 國籍）" if nationality else ""
     return {
         "player": character,
-        "message": f"已建立 Player `{char_key}`，目前位於 `{room.key}`{owner_note}。這是 live 世界變更。",
+        "message": f"已建立 Player `{char_key}`，目前位於 `{room.key}`{owner_note}{king_note}。這是 live 世界變更。",
     }
 
 

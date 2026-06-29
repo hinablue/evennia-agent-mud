@@ -52,9 +52,26 @@ class CmdAgentPlayer(MuxCommand):
 
     key = "@agentplayer"
     aliases = ["@agentchar", "@playerworld", "@player"]
-    locks = "cmd:perm(Admin) or perm(Developer)"
+    locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
     help_category = "Admin"
-    switch_options = ("list", "status", "create", "move", "home", "sendhome", "summon", "rename", "desc", "aliases", "addaliases", "delaliases", "bind", "unbind", "delete", "help")
+    switch_options = (
+        "list",
+        "status",
+        "create",
+        "move",
+        "home",
+        "sendhome",
+        "summon",
+        "rename",
+        "desc",
+        "aliases",
+        "addaliases",
+        "delaliases",
+        "bind",
+        "unbind",
+        "delete",
+        "help",
+    )
 
     def _msg(self, text):
         self.caller.msg(text)
@@ -100,7 +117,14 @@ class CmdAgentPlayer(MuxCommand):
         room_name, desc, alias_part = parts[:3]
         aliases = [alias.strip() for alias in alias_part.split(",") if alias.strip()]
         account_name = parts[3] if len(parts) > 3 and parts[3] else None
-        result = create_player(char_key, room_name=room_name, desc=desc, aliases=aliases, account_name=account_name)
+        result = create_player(
+            char_key,
+            room_name=room_name,
+            desc=desc,
+            aliases=aliases,
+            account_name=account_name,
+            caller=self.caller,
+        )
         self._msg(result["message"])
 
     def _handle_move(self):
@@ -152,7 +176,9 @@ class CmdAgentPlayer(MuxCommand):
 
     def _handle_aliases(self):
         char_key = (self.lhs or "").strip()
-        aliases = [alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()]
+        aliases = [
+            alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()
+        ]
         if not char_key or not aliases:
             raise PlayerSpecError("aliases 格式需要 `名稱=alias1,alias2`。")
         result = set_player_aliases(char_key, aliases)
@@ -160,7 +186,9 @@ class CmdAgentPlayer(MuxCommand):
 
     def _handle_addaliases(self):
         char_key = (self.lhs or "").strip()
-        aliases = [alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()]
+        aliases = [
+            alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()
+        ]
         if not char_key or not aliases:
             raise PlayerSpecError("addaliases 格式需要 `名稱=alias1,alias2`。")
         result = add_player_aliases(char_key, aliases)
@@ -168,7 +196,9 @@ class CmdAgentPlayer(MuxCommand):
 
     def _handle_delaliases(self):
         char_key = (self.lhs or "").strip()
-        aliases = [alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()]
+        aliases = [
+            alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()
+        ]
         if not char_key or not aliases:
             raise PlayerSpecError("delaliases 格式需要 `名稱=alias1,alias2`。")
         result = remove_player_aliases(char_key, aliases)
