@@ -4,6 +4,7 @@ from commands.command import MuxCommand
 from world.account_tools import (
     AccountSpecError,
     add_account_permission,
+    appoint_king,
     create_account,
     delete_account,
     list_accounts,
@@ -26,6 +27,7 @@ class CmdAgentAccount(MuxCommand):
       @agentaccount/setpuppet <帳號>=<角色>
       @agentaccount/addperm <帳號>=<King|Player>
       @agentaccount/delperm <帳號>=<King|Player>
+      @agentaccount/appoint <帳號>=<角色>  (GM 指定該帳號角色為 King)
       @agentaccount/delete <帳號>
     """
 
@@ -40,6 +42,7 @@ class CmdAgentAccount(MuxCommand):
         "setpuppet",
         "addperm",
         "delperm",
+        "appoint",
         "delete",
         "help",
     )
@@ -57,6 +60,7 @@ class CmdAgentAccount(MuxCommand):
             "  |w@agentaccount/setpuppet <帳號>=<角色>|n：強制切換最後使用角色。\n"
             "  |w@agentaccount/addperm <帳號>=<King|Player>|n：追加層級權限。\n"
             "  |w@agentaccount/delperm <帳號>=<King|Player>|n：移除層級權限。\n"
+            "  |w@agentaccount/appoint <帳號>=<角色>|n：GM 指定該帳號角色為 King（單一國家只能有一個 King）。\n"
             "  |w註：GM 請改用 @agentworld/role <帳號>=GM|n。\n"
             "  |w@agentaccount/delete <帳號>|n：刪除 Account。\n"
         )
@@ -110,6 +114,14 @@ class CmdAgentAccount(MuxCommand):
         result = remove_account_permission(acc_key, perm_name)
         self._msg(result["message"])
 
+    def _handle_appoint(self):
+        if not self.lhs or not self.rhs:
+            raise AccountSpecError("appoint 格式需要 `帳號=角色`。")
+        acc_key = self.lhs.strip()
+        char_key = self.rhs.strip()
+        result = appoint_king(acc_key, char_key)
+        self._msg(result["message"])
+
     def _handle_delete(self):
         acc_key = (self.args or self.lhs or "").strip()
         if not acc_key:
@@ -139,6 +151,9 @@ class CmdAgentAccount(MuxCommand):
                 return
             if "delperm" in self.switches:
                 self._handle_delperm()
+                return
+            if "appoint" in self.switches:
+                self._handle_appoint()
                 return
             if "delete" in self.switches:
                 self._handle_delete()
