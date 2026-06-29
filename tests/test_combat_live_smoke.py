@@ -25,7 +25,9 @@ class CombatLiveSmokeTests(EvenniaTest):
     def setUp(self):
         """Create a fresh combat sandbox for each test case."""
         super().setUp()
-        self.turn_timer_patcher = patch.object(CombatSession, "_start_turn_timer", autospec=True, return_value=None)
+        self.turn_timer_patcher = patch.object(
+            CombatSession, "_start_turn_timer", autospec=True, return_value=None
+        )
         self.turn_timer_patcher.start()
         self.room = self.room1
         self.room.key = "訓練廳"
@@ -232,7 +234,11 @@ class CombatLiveSmokeTests(EvenniaTest):
             self.alpha.execute_cmd("attack SmokeCaseBetaTmp")
         alpha_tail = self.tail(self.alpha)
         self.assertTrue(
-            any("只能使用 attack、skill 或 flee" in line or "只能使用 attack 或 skill" in line for line in alpha_tail)
+            any(
+                "只能使用 attack、skill 或 flee" in line
+                or "只能使用 attack 或 skill" in line
+                for line in alpha_tail
+            )
         )
         self.assertEqual(self.beta.db.hp, 0)
         self.assertNotIn(session.session_id, manager.sessions)
@@ -284,7 +290,12 @@ class CombatLiveSmokeTests(EvenniaTest):
         manager.start_combat([self.alpha, self.beta])
         self.alpha.execute_cmd("skill heavy_strike 阿法")
         alpha_tail = self.tail(self.alpha)
-        self.assertTrue(any("自己" in line or "自身" in line or "不認識" in line for line in alpha_tail))
+        self.assertTrue(
+            any(
+                "自己" in line or "自身" in line or "不認識" in line
+                for line in alpha_tail
+            )
+        )
 
     def test_insufficient_mp(self):
         """Using a skill without MP should report a helpful error."""
@@ -323,8 +334,13 @@ class CombatLiveSmokeTests(EvenniaTest):
         self.alpha.execute_cmd("attack SmokeCaseBetaTmp")
         self.assertTrue(any("不能被攻擊" in line for line in self.tail(self.alpha)))
 
-        set_npc_combat_flags(self.beta.key, attackable=True, retaliates=False, can_die=False)
-        set_npc_stats(self.beta.key, {"str": 22, "hp": 15, "max_hp": 15, "mp": 9, "max_mp": 9, "spd": 7})
+        set_npc_combat_flags(
+            self.beta.key, attackable=True, retaliates=False, can_die=False
+        )
+        set_npc_stats(
+            self.beta.key,
+            {"str": 22, "hp": 15, "max_hp": 15, "mp": 9, "max_mp": 9, "spd": 7},
+        )
         set_npc_skills(self.beta.key, ["heavy_strike"])
         self.assertEqual(self.beta.db.base_str, 22)
         self.assertEqual(self.beta.db.max_hp, 15)
@@ -346,7 +362,11 @@ class CombatLiveSmokeTests(EvenniaTest):
         self.beta.db.hp = 14
         session = manager.start_combat([self.alpha, self.beta])
         script_key = f"combat_{session.session_id}"
-        scripts = [row for row in search_script(script_key) if getattr(row, "key", None) == script_key]
+        scripts = [
+            row
+            for row in search_script(script_key)
+            if getattr(row, "key", None) == script_key
+        ]
         self.assertTrue(bool(scripts))
         script = scripts[0]
         script._session = session
@@ -365,7 +385,12 @@ class CombatLiveSmokeTests(EvenniaTest):
     def test_npc_loot_drop(self):
         """NPC death should award tokens and emit a loot message."""
         self.beta.db.npc_loot_table = [
-            {"typeclass": "typeclasses.equipment.Equipment", "key": "生鏽鐵劍", "chance": 1.0, "stats": {"atk": 3}}
+            {
+                "typeclass": "typeclasses.equipment.Equipment",
+                "key": "生鏽鐵劍",
+                "chance": 1.0,
+                "stats": {"atk": 3},
+            }
         ]
         self.beta.save()
         self.alpha.db.base_str = 100
@@ -378,7 +403,12 @@ class CombatLiveSmokeTests(EvenniaTest):
             self.alpha.execute_cmd("attack SmokeCaseBetaTmp")
         alpha_tail = self.tail(self.alpha, 20)
         self.assertEqual(self.beta.db.hp, 0)
-        self.assertTrue(any("撿到" in s or "拾取" in s or "掉落" in s for s in map(str, alpha_tail)), alpha_tail)
+        self.assertTrue(
+            any(
+                "撿到" in s or "拾取" in s or "掉落" in s for s in map(str, alpha_tail)
+            ),
+            alpha_tail,
+        )
         self.assertGreater(self.alpha.db.tokens, 0)
 
     def test_exp_broadcast_on_combat_end(self):
@@ -411,7 +441,9 @@ class CombatLiveSmokeTests(EvenniaTest):
         order = [obj.key for obj in session.turn_order]
         self.assertEqual(order[0], self.alpha.key, order)
 
-        self.beta.db.sockets = {"slot1": {"name": "綠寶石", "stats": {"agility": 3, "spd": 1}}}
+        self.beta.db.sockets = {
+            "slot1": {"name": "綠寶石", "stats": {"agility": 3, "spd": 1}}
+        }
         self.beta.save()
         manager.end_combat(session.session_id)
         manager.sessions.clear()
@@ -433,4 +465,7 @@ class CombatLiveSmokeTests(EvenniaTest):
         session.next_turn()
         self.assertEqual(session.get_current_actor(), self.alpha)
         alpha_tail = self.tail(self.alpha, 18)
-        self.assertTrue(any("SmokeCaseGammaTmp 使用 普通攻擊" in line for line in alpha_tail), alpha_tail)
+        self.assertTrue(
+            any("SmokeCaseGammaTmp 使用 普通攻擊" in line for line in alpha_tail),
+            alpha_tail,
+        )

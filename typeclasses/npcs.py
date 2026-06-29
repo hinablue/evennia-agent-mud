@@ -8,9 +8,9 @@ from .llm_npc import DEFAULT_PROMPT_PREFIX, LocalLLMNPC
 
 # 等級屬性倍率表：等級 N 的屬性 = base * (1 + (N-1) * scale)
 LEVEL_SCALING = {
-    "hp": 0.15,       # 每級 +15%
-    "mp": 0.10,       # 每級 +10%
-    "str": 0.05,      # 每級 +5%
+    "hp": 0.15,  # 每級 +15%
+    "mp": 0.10,  # 每級 +10%
+    "str": 0.05,  # 每級 +5%
     "def": 0.05,
     "spirit": 0.05,
     "intel": 0.05,
@@ -22,9 +22,18 @@ LEVEL_SCALING = {
 
 # 等級預設屬性
 BASE_STATS_BY_LEVEL = {
-    "str": 10, "def": 10, "spirit": 10, "intel": 10,
-    "agility": 10, "stamina": 10, "spd": 10, "atk": 10,
-    "hp": 100, "max_hp": 100, "mp": 30, "max_mp": 30,
+    "str": 10,
+    "def": 10,
+    "spirit": 10,
+    "intel": 10,
+    "agility": 10,
+    "stamina": 10,
+    "spd": 10,
+    "atk": 10,
+    "hp": 100,
+    "max_hp": 100,
+    "mp": 30,
+    "max_mp": 30,
 }
 
 
@@ -52,8 +61,8 @@ class NPC(Character):
         self.db.base_level = 1
 
         # 冷卻與重生
-        self.db.npc_cooldown = 60       # 重生冷卻（秒）
-        self.db.npc_death_time = None   # 死亡時間戳
+        self.db.npc_cooldown = 60  # 重生冷卻（秒）
+        self.db.npc_death_time = None  # 死亡時間戳
 
         # Token 系統
         self.db.npc_token_min = 1
@@ -61,7 +70,7 @@ class NPC(Character):
         self.db.npc_always_drops_tokens = True
 
         # Loot 系統
-        self.db.npc_loot_table = []      # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        self.db.npc_loot_table = []  # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
         self.db.npc_always_drops_loot = False
 
         # 逃跑系統
@@ -90,9 +99,21 @@ class NPC(Character):
             for stat_key in BASE_STATS_BY_LEVEL:
                 base_val = BASE_STATS_BY_LEVEL[stat_key]
                 new_val = scale_stat(base_val, level, stat_key)
-                attr_name = f"base_{stat_key}" if stat_key in {
-                    "str", "def", "spirit", "intel", "agility", "stamina", "spd", "atk"
-                } else stat_key
+                attr_name = (
+                    f"base_{stat_key}"
+                    if stat_key
+                    in {
+                        "str",
+                        "def",
+                        "spirit",
+                        "intel",
+                        "agility",
+                        "stamina",
+                        "spd",
+                        "atk",
+                    }
+                    else stat_key
+                )
                 current = getattr(self.db, attr_name, base_val)
                 # 只往上加，不覆寫管理者手動設的更高值
                 if current < new_val:
@@ -131,6 +152,7 @@ class NPC(Character):
         if self.db.npc_death_time is None:
             return False
         import time
+
         elapsed = time.time() - self.db.npc_death_time
         return elapsed < self.db.npc_cooldown
 
@@ -139,6 +161,7 @@ class NPC(Character):
         if self.db.npc_death_time is None:
             return 0
         import time
+
         elapsed = time.time() - self.db.npc_death_time
         remaining = self.db.npc_cooldown - elapsed
         return max(0, int(remaining))
@@ -146,6 +169,7 @@ class NPC(Character):
     def enter_cooldown(self, from_death=True):
         """進入冷卻狀態。"""
         import time
+
         self.db.npc_death_time = time.time()
         self.db.npc_flee_countdown = 0
 
@@ -179,20 +203,22 @@ class NPC(Character):
         return True  # 逃跑成功
 
     def drop_loot(self, player):
-        """NPC 死亡時根據 loot_table 掉落裝備/物品給玩家或丟在地上。"""
+        """NPC 死亡時根據 loot_table 直接把掉落物生成在房間地上。"""
         import random
         from evennia import create_object
         from evennia.utils.utils import class_from_module
-        
+
         loot_table = getattr(self.db, "npc_loot_table", [])
         if not loot_table:
             return
-        
+
+        location = getattr(self, "location", None)
+        home = location
         for entry in loot_table:
             chance = entry.get("chance", 0.0)
             if random.random() >= chance:
                 continue
-            
+
             typeclass_path = entry.get("typeclass", "typeclasses.equipment.Equipment")
             key = entry.get("key", "戰利品")
             aliases = entry.get("aliases", [])
@@ -200,44 +226,35 @@ class NPC(Character):
             stats = entry.get("stats", {})
             slot = entry.get("equip_slot", None)
             max_durability = entry.get("max_durability", 100)
-            
+            two_handed = bool(entry.get("two_handed", False))
+            magic_buffs = list(entry.get("magic_buffs", []) or [])
+            wear_style = entry.get("wear_style", "") or ""
+
             try:
                 typeclass = class_from_module(typeclass_path)
             except Exception:
                 typeclass = class_from_module("typeclasses.equipment.Equipment")
-            
-            # 嘗試放入玩家背包，失敗則丟在地上
-            location = None
-            home = None
-            if player and hasattr(player, "add_to_inventory"):
-                success = player.add_to_inventory(
-                    create_object(typeclass, key=key, aliases=aliases, attributes=[
-                        ("desc", desc),
-                        ("stats", stats),
-                        ("equip_slot", slot),
-                        ("max_durability", max_durability),
-                        ("durability", max_durability),
-                        ("is_equipment", True),
-                    ])
-                )
-                if success:
-                    player.msg(f"💎 你撿到了 {key}！")
-                    continue
-            
-            # 放不進背包或沒有玩家，丟在當前房間
-            location = getattr(self, "location", None)
-            home = location
-            item = create_object(
-                typeclass, key=key, location=location, home=home,
-                aliases=aliases, attributes=[
+
+            create_object(
+                typeclass,
+                key=key,
+                location=location,
+                home=home,
+                aliases=aliases,
+                attributes=[
                     ("desc", desc),
                     ("stats", stats),
                     ("equip_slot", slot),
                     ("max_durability", max_durability),
                     ("durability", max_durability),
+                    ("two_handed", two_handed),
+                    ("magic_buffs", magic_buffs),
+                    ("wear_style", wear_style),
                     ("is_equipment", True),
-                ]
+                ],
             )
+            if player:
+                player.msg(f"💎 {key} 掉在地上了。")
             if location:
                 location.msg_contents(f"💎 {key} 從 {self.key} 身上掉落在地上。")
 
@@ -269,7 +286,7 @@ class LLMNPC(LocalLLMNPC):
         self.db.npc_always_drops_tokens = True
 
         # Loot 系統
-        self.db.npc_loot_table = []      # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        self.db.npc_loot_table = []  # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
         self.db.npc_always_drops_loot = False
 
         # 逃跑系統

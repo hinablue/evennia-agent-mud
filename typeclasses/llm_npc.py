@@ -81,13 +81,17 @@ class QuietHTTP11ClientFactory(_HTTP11ClientFactory):
 
 
 class OpenAICompatibleLLMClient:
-    def __init__(self, hostname=None, pathname=None, custom_api_key=None, custom_model=None):
+    def __init__(
+        self, hostname=None, pathname=None, custom_api_key=None, custom_model=None
+    ):
         self._conn_pool = HTTPConnectionPool(reactor)
         self._conn_pool._factory = QuietHTTP11ClientFactory
         self.hostname = hostname or getattr(settings, "LLM_HOST", DEFAULT_LLM_HOST)
         self.pathname = pathname or getattr(settings, "LLM_PATH", DEFAULT_LLM_PATH)
         self.headers = getattr(settings, "LLM_HEADERS", DEFAULT_LLM_HEADERS)
-        self.request_body = getattr(settings, "LLM_REQUEST_BODY", DEFAULT_LLM_REQUEST_BODY)
+        self.request_body = getattr(
+            settings, "LLM_REQUEST_BODY", DEFAULT_LLM_REQUEST_BODY
+        )
         self.prompt_keyname = getattr(settings, "LLM_PROMPT_KEYNAME", "prompt")
         self.api_format = getattr(settings, "LLM_API_FORMAT", DEFAULT_LLM_API_FORMAT)
         self._custom_api_key = custom_api_key
@@ -118,7 +122,9 @@ class OpenAICompatibleLLMClient:
                 request_body["model"] = self._custom_model
         else:
             if isinstance(prompt, list):
-                prompt = "\n".join(msg.get("content", "") for msg in prompt if isinstance(msg, dict))
+                prompt = "\n".join(
+                    msg.get("content", "") for msg in prompt if isinstance(msg, dict)
+                )
             else:
                 prompt = "\n".join(make_iter(prompt))
             request_body[self.prompt_keyname] = prompt
@@ -155,8 +161,15 @@ class OpenAICompatibleLLMClient:
         if not text:
             return ""
         text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"^\s*thinking\s*:\s*.*?(?=\n\n|$)", "", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(
+            r"<thinking>.*?</thinking>", "", text, flags=re.DOTALL | re.IGNORECASE
+        )
+        text = re.sub(
+            r"^\s*thinking\s*:\s*.*?(?=\n\n|$)",
+            "",
+            text,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
         text = re.sub(r"(?m)^\s*//-\s*lathought-\d+\s*$", "", text)
         text = re.sub(r"(?m)^\s*[|:]{2,}\s*$", "", text)
         return text.strip()
@@ -196,7 +209,11 @@ class OpenAICompatibleLLMClient:
             return text or self._extract_from_reasoning(str(reasoning or ""))
 
         text = choice.get("text", "")
-        reasoning = choice.get("reasoning_content") or choice.get("thinking") or payload.get("reasoning_content")
+        reasoning = (
+            choice.get("reasoning_content")
+            or choice.get("thinking")
+            or payload.get("reasoning_content")
+        )
         if reasoning and isinstance(text, str) and reasoning in text:
             text = text.replace(reasoning, "")
         text = self._strip_thinking(text)
@@ -243,6 +260,7 @@ class LocalLLMNPC(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPChar
             if custom_host:
                 # Extract hostname and pathname from custom URL
                 import urllib.parse
+
                 parsed = urllib.parse.urlparse(custom_host)
                 client_kwargs["hostname"] = f"{parsed.scheme}://{parsed.netloc}"
                 client_kwargs["pathname"] = parsed.path or DEFAULT_LLM_PATH
@@ -263,7 +281,11 @@ class LocalLLMNPC(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPChar
     def llm_prompt_prefix(self):
         return self.attributes.get(
             "prompt_prefix",
-            default=getattr(settings, "LLM_PROMPT_PREFIX", self.prompt_prefix or DEFAULT_PROMPT_PREFIX),
+            default=getattr(
+                settings,
+                "LLM_PROMPT_PREFIX",
+                self.prompt_prefix or DEFAULT_PROMPT_PREFIX,
+            ),
         )
 
     def _add_to_memory(self, character, who_talked, speech):
@@ -337,23 +359,29 @@ class LocalLLMNPC(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPChar
                     from_obj=self,
                 )
             else:
-                character.msg(f"{self.get_display_name(character)} 對你說：{response_text}")
+                character.msg(
+                    f"{self.get_display_name(character)} 對你說：{response_text}"
+                )
 
         def _echo_thinking_message():
-            thinking_message = choice(make_iter(self.db.thinking_messages or self.thinking_messages))
+            thinking_message = choice(
+                make_iter(self.db.thinking_messages or self.thinking_messages)
+            )
             if character.location:
                 thinking_message = thinking_message.format(name="$You()")
                 character.location.msg_contents(thinking_message, from_obj=self)
             else:
-                thinking_message = thinking_message.format(name=self.get_display_name(character))
+                thinking_message = thinking_message.format(
+                    name=self.get_display_name(character)
+                )
                 character.msg(thinking_message)
 
         def _handle_cancel_error(failure):
             failure.trap(CancelledError)
 
-        thinking_defer = task.deferLater(reactor, self.thinking_timeout, _echo_thinking_message).addErrback(
-            _handle_cancel_error
-        )
+        thinking_defer = task.deferLater(
+            reactor, self.thinking_timeout, _echo_thinking_message
+        ).addErrback(_handle_cancel_error)
         self._add_to_memory(character, character, speech)
         prompt_or_messages = (
             self.build_messages(character)

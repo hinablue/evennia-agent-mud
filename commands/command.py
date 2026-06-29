@@ -65,6 +65,7 @@ class MuxCommand(Command):
     used by Evennia to create the automatic help entry for
     the command, so make sure to document consistently here.
     """
+
     def has_perm(self, srcobj):
         """
         This is called by the cmdhandler to determine
@@ -147,19 +148,19 @@ class MuxCommand(Command):
             switches = args[1:].split(None, 1)
             if len(switches) > 1:
                 switches, args = switches
-                switches = switches.split('/')
+                switches = switches.split("/")
             else:
                 args = ""
-                switches = switches[0].split('/')
+                switches = switches[0].split("/")
         arglist = [arg.strip() for arg in args.split()]
 
         # check for arg1, arg2, ... = argA, argB, ... constructs
         lhs, rhs = args, None
-        lhslist, rhslist = [arg.strip() for arg in args.split(',')], []
-        if args and '=' in args:
-            lhs, rhs = [arg.strip() for arg in args.split('=', 1)]
-            lhslist = [arg.strip() for arg in lhs.split(',')]
-            rhslist = [arg.strip() for arg in rhs.split(',')]
+        lhslist, rhslist = [arg.strip() for arg in args.split(",")], []
+        if args and "=" in args:
+            lhs, rhs = [arg.strip() for arg in args.split("=", 1)]
+            lhslist = [arg.strip() for arg in lhs.split(",")]
+            rhslist = [arg.strip() for arg in rhs.split(",")]
 
         # save to object properties:
         self.raw = raw
@@ -176,11 +177,15 @@ class MuxCommand(Command):
         # a special property "character" for the puppeted object, if any. This
         # is convenient for commands defined on the Account only.
         if hasattr(self, "account_caller") and self.account_caller:
-            if utils.inherits_from(self.caller, "evennia.objects.objects.DefaultObject"):
+            if utils.inherits_from(
+                self.caller, "evennia.objects.objects.DefaultObject"
+            ):
                 # caller is an Object/Character
                 self.character = self.caller
                 self.caller = self.caller.account
-            elif utils.inherits_from(self.caller, "evennia.accounts.accounts.DefaultAccount"):
+            elif utils.inherits_from(
+                self.caller, "evennia.accounts.accounts.DefaultAccount"
+            ):
                 # caller was already an Account
                 self.character = self.caller.get_puppet(self.session)
             else:

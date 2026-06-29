@@ -10,16 +10,18 @@ from world.npc_tools import (
     set_llm_config,
     set_llm_prompt,
     set_llm_thinking,
+    set_npc_aggro,
     set_npc_aliases,
     set_npc_combat_flags,
-    set_npc_desc,
-    set_npc_level,
     set_npc_cooldown,
-    set_npc_tokens,
+    set_npc_desc,
+    set_npc_equipment,
     set_npc_flee,
-    set_npc_aggro,
+    set_npc_level,
+    set_npc_loot_table,
     set_npc_skills,
     set_npc_stats,
+    set_npc_tokens,
     summarize_npc,
     summarize_npcs,
 )
@@ -42,6 +44,8 @@ class CmdAgentNPC(MuxCommand):
       @agentnpc/flags 守門員=attackable:on,retaliates:off,can_die:on
       @agentnpc/stats 守門員=str=18,def=12,hp=120,mp=20,spd=14
       @agentnpc/skills 守門員=heavy_strike,stun_bash
+      @agentnpc/equip 守門員=main_hand:鐵劍,top:皮甲,ring:舊銀戒
+      @agentnpc/loot 守門員=鐵劍:1,舊銀戒:0.35
       @agentnpc/llm 檔案員?base_url=https://api.example.com&model=gpt-4&api_key=sk-xxx
       @agentnpc/prompt 檔案員=新的 prompt prefix
       @agentnpc/thinking 檔案員=2.5|她安靜地想了一下。|她把你的問題在心裡翻了一遍。
@@ -60,7 +64,29 @@ class CmdAgentNPC(MuxCommand):
     aliases = ["@npcworld", "@npc"]
     locks = "cmd:perm(Admin) or perm(Developer)"
     help_category = "Admin"
-    switch_options = ("list", "status", "create", "move", "desc", "aliases", "flags", "stats", "skills", "llm", "prompt", "thinking", "delete", "level", "cooldown", "tokens", "flee", "aggro", "help")
+    switch_options = (
+        "list",
+        "status",
+        "create",
+        "move",
+        "desc",
+        "aliases",
+        "flags",
+        "stats",
+        "skills",
+        "equip",
+        "loot",
+        "llm",
+        "prompt",
+        "thinking",
+        "delete",
+        "level",
+        "cooldown",
+        "tokens",
+        "flee",
+        "aggro",
+        "help",
+    )
 
     def _msg(self, text):
         self.caller.msg(text)
@@ -81,9 +107,11 @@ class CmdAgentNPC(MuxCommand):
             "  |w@agentnpc/move 名稱=房間|n：移動 NPC。\n"
             "  |w@agentnpc/desc 名稱=描述|n：更新描述。\n"
             "  |w@agentnpc/aliases 名稱=alias1,alias2|n：覆寫 aliases。\n"
-            "  |w@agentnpc/flags 名稱=attackable:on,retaliates:off,can_die:on|n：設定戰鬥旗標。\n"
-            "  |w@agentnpc/stats 名稱=str=18,def=12,hp=120,mp=20,spd=14|n：設定戰鬥數值。\n"
-            "  |w@agentnpc/skills 名稱=heavy_strike,stun_bash|n：覆寫 NPC 技能清單。\n"
+            "  |w@agentnpc/flags 守門員=attackable:on,retaliates:off,can_die:on|n：設定戰鬥旗標。\n"
+            "  |w@agentnpc/stats 守門員=str=18,def=12,hp=120,mp=20,spd=14|n：設定戰鬥數值。\n"
+            "  |w@agentnpc/skills 守門員=heavy_strike,stun_bash|n：覆寫 NPC 技能清單。\n"
+            "  |w@agentnpc/equip 守門員=main_hand:鐵劍,top:皮甲|n：直接把既有裝備掛到 NPC 身上。\n"
+            "  |w@agentnpc/loot 守門員=鐵劍:1,舊銀戒:0.35|n：直接覆寫 NPC 掉落表。\n"
             "  |w@agentnpc/llm 名稱?base_url=...&model=...&api_key=...|n：設定 LLM 參數。\n"
             "  |w@agentnpc/prompt 名稱=prompt prefix|n：更新 LLMNPC prompt。\n"
             "  |w@agentnpc/thinking 名稱=秒數|訊息1|訊息2...|n：更新 LLMNPC thinking 設定。\n"
@@ -120,7 +148,14 @@ class CmdAgentNPC(MuxCommand):
         room_name, desc, alias_part = parts[:3]
         aliases = [alias.strip() for alias in alias_part.split(",") if alias.strip()]
         prompt_prefix = "|".join(parts[3:]).strip() if len(parts) > 3 else None
-        result = create_npc(kind, npc_key, room_name=room_name, desc=desc, aliases=aliases, prompt_prefix=prompt_prefix)
+        result = create_npc(
+            kind,
+            npc_key,
+            room_name=room_name,
+            desc=desc,
+            aliases=aliases,
+            prompt_prefix=prompt_prefix,
+        )
         self._msg(result["message"])
 
     def _handle_move(self):
@@ -141,7 +176,9 @@ class CmdAgentNPC(MuxCommand):
 
     def _handle_aliases(self):
         npc_key = (self.lhs or "").strip()
-        aliases = [alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()]
+        aliases = [
+            alias.strip() for alias in (self.rhs or "").split(",") if alias.strip()
+        ]
         if not npc_key or not aliases:
             raise NPCSpecError("aliases 格式需要 `名稱=alias1,alias2`。")
         result = set_npc_aliases(npc_key, aliases)
@@ -154,18 +191,60 @@ class CmdAgentNPC(MuxCommand):
             if not chunk:
                 continue
             if ":" not in chunk:
-                raise NPCSpecError("flags 格式需要 `attackable:on,retaliates:off,can_die:on`。")
+                raise NPCSpecError(
+                    "flags 格式需要 `attackable:on,retaliates:off,can_die:on`。"
+                )
             key, value = [part.strip().lower() for part in chunk.split(":", 1)]
             if value not in {"on", "off", "true", "false", "1", "0"}:
                 raise NPCSpecError(f"不支援的布林值：{value}")
             result[key] = value in {"on", "true", "1"}
         return result
 
+    def _parse_equipment_map(self, raw):
+        result = {}
+        for chunk in (raw or "").split(","):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            if ":" not in chunk:
+                raise NPCSpecError("equip 格式需要 `名稱=main_hand:鐵劍,top:皮甲`。")
+            slot, item_key = [part.strip() for part in chunk.split(":", 1)]
+            if not slot or not item_key:
+                raise NPCSpecError("equip 格式需要 `名稱=main_hand:鐵劍,top:皮甲`。")
+            result[slot] = item_key
+        return result
+
+    def _parse_loot_specs(self, raw):
+        loot_specs = []
+        normalized = (raw or "").strip()
+        if normalized.lower() in {"clear", "none", "空"}:
+            return loot_specs
+        for chunk in normalized.split(","):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            item_key = chunk
+            chance = 1.0
+            if ":" in chunk:
+                item_key, chance_text = [part.strip() for part in chunk.rsplit(":", 1)]
+                try:
+                    chance = float(chance_text)
+                except (TypeError, ValueError) as exc:
+                    raise NPCSpecError(
+                        "loot 格式需要 `名稱=鐵劍:1,舊銀戒:0.35`。"
+                    ) from exc
+            if not item_key:
+                raise NPCSpecError("loot 每一筆都需要裝備名稱。")
+            loot_specs.append({"item_key": item_key, "chance": chance})
+        return loot_specs
+
     def _handle_flags(self):
         npc_key = (self.lhs or "").strip()
         flag_map = self._parse_boolish_map(self.rhs)
         if not npc_key or not flag_map:
-            raise NPCSpecError("flags 格式需要 `名稱=attackable:on,retaliates:off,can_die:on`。")
+            raise NPCSpecError(
+                "flags 格式需要 `名稱=attackable:on,retaliates:off,can_die:on`。"
+            )
         result = set_npc_combat_flags(
             npc_key,
             attackable=flag_map.get("attackable"),
@@ -194,7 +273,9 @@ class CmdAgentNPC(MuxCommand):
         raw = (self.args or "").strip()
         if not raw:
             self._msg("llm 格式：@agentnpc/llm 名稱?base_url=...&model=...&api_key=...")
-            self._msg("範例：@agentnpc/llm 檔案員?base_url=https://api.openai.com/v1,model=gpt-4,api_key=sk-xxx")
+            self._msg(
+                "範例：@agentnpc/llm 檔案員?base_url=https://api.openai.com/v1,model=gpt-4,api_key=sk-xxx"
+            )
             self._msg("所有參數可單獨設定，無需全部給定。")
             return
         if "?" in raw:
@@ -216,7 +297,9 @@ class CmdAgentNPC(MuxCommand):
                         api_key = v
             if not npc_key:
                 raise NPCSpecError("llm 需要提供 NPC 名稱。")
-            result = set_llm_config(npc_key, base_url=base_url, model=model, api_key=api_key)
+            result = set_llm_config(
+                npc_key, base_url=base_url, model=model, api_key=api_key
+            )
             self._msg(result["message"])
         else:
             npc_key = raw.strip()
@@ -233,6 +316,28 @@ class CmdAgentNPC(MuxCommand):
         result = set_npc_skills(npc_key, skills)
         self._msg(result["message"])
 
+    def _handle_equip(self):
+        npc_key = (self.lhs or "").strip()
+        equipment_map = self._parse_equipment_map(self.rhs)
+        if not npc_key or not equipment_map:
+            raise NPCSpecError("equip 格式需要 `名稱=main_hand:鐵劍,top:皮甲`。")
+        result = set_npc_equipment(npc_key, equipment_map)
+        self._msg(result["message"])
+
+    def _handle_loot(self):
+        npc_key = (self.lhs or "").strip()
+        if not npc_key:
+            raise NPCSpecError("loot 格式需要 `名稱=鐵劍:1,舊銀戒:0.35`。")
+        loot_specs = self._parse_loot_specs(self.rhs)
+        if not loot_specs and (self.rhs or "").strip().lower() not in {
+            "clear",
+            "none",
+            "空",
+        }:
+            raise NPCSpecError("loot 格式需要 `名稱=鐵劍:1,舊銀戒:0.35`。")
+        result = set_npc_loot_table(npc_key, loot_specs)
+        self._msg(result["message"])
+
     def _handle_prompt(self):
         npc_key = (self.lhs or "").strip()
         prompt_prefix = (self.rhs or "").strip()
@@ -243,7 +348,9 @@ class CmdAgentNPC(MuxCommand):
 
     def _handle_thinking(self):
         npc_key = (self.lhs or "").strip()
-        parts = self._parse_pipe_segments(1, "thinking 格式需要 `名稱=秒數|訊息1|訊息2...`。")
+        parts = self._parse_pipe_segments(
+            1, "thinking 格式需要 `名稱=秒數|訊息1|訊息2...`。"
+        )
         if not npc_key:
             raise NPCSpecError("thinking 格式需要 `名稱=秒數|訊息1|訊息2...`。")
         timeout = parts[0]
@@ -282,7 +389,9 @@ class CmdAgentNPC(MuxCommand):
         npc_key = (self.lhs or "").strip()
         flee_str = (self.rhs or "").strip()
         if not npc_key or not flee_str:
-            raise NPCSpecError("flee 格式需要 `名稱=開關,fail_chance`，例如 `守門員=on,0.3`。")
+            raise NPCSpecError(
+                "flee 格式需要 `名稱=開關,fail_chance`，例如 `守門員=on,0.3`。"
+            )
         parts = flee_str.split(",")
         enable = parts[0].strip().lower()
         fail_chance = float(parts[1].strip()) if len(parts) > 1 else None
@@ -293,7 +402,9 @@ class CmdAgentNPC(MuxCommand):
         npc_key = (self.lhs or "").strip()
         chance_str = (self.rhs or "").strip()
         if not npc_key or not chance_str:
-            raise NPCSpecError("aggro 格式需要 `名稱=機率`，機率範圍 0~1，例如 `0.15`。")
+            raise NPCSpecError(
+                "aggro 格式需要 `名稱=機率`，機率範圍 0~1，例如 `0.15`。"
+            )
         result = set_npc_aggro(npc_key, chance_str)
         self._msg(result["message"])
 
@@ -330,6 +441,12 @@ class CmdAgentNPC(MuxCommand):
                 return
             if "skills" in self.switches:
                 self._handle_skills()
+                return
+            if "equip" in self.switches:
+                self._handle_equip()
+                return
+            if "loot" in self.switches:
+                self._handle_loot()
                 return
             if "llm" in self.switches:
                 self._handle_llm()

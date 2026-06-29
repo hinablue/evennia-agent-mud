@@ -135,13 +135,13 @@ class CombatScript(DefaultScript):
 
     def at_script_creation(self):
         """Called once when the script is first created."""
-        self.db.combatant_ids = []     # list of object dbrefs
+        self.db.combatant_ids = []  # list of object dbrefs
         self.db.session_id = None
-        self.db.session_state = {}     # serialized CombatSession state (dict)
+        self.db.session_state = {}  # serialized CombatSession state (dict)
         self.db.round_count = 1
         self.db.current_turn_index = 0
-        self.interval = 0              # no timer
-        self.repeats = 0               # infinite (ends via is_valid())
+        self.interval = 0  # no timer
+        self.repeats = 0  # infinite (ends via is_valid())
         self.persistent = True
 
     def is_valid(self) -> bool:
@@ -150,11 +150,11 @@ class CombatScript(DefaultScript):
             return False
         # Reconstruct minimally to call has_ended()
         from world.combat_manager import CombatSession
+
         state = self.db.session_state
         # Check if any combatants have hp > 0
         living = [
-            cid for cid in state.get("combatants_ids", [])
-            if self._get_hp(cid) > 0
+            cid for cid in state.get("combatants_ids", []) if self._get_hp(cid) > 0
         ]
         return len(living) > 1  # valid while 2+ combatants alive
 
@@ -215,6 +215,7 @@ class CombatScript(DefaultScript):
             cid_str = str(cid).lstrip("#")
             try:
                 from evennia.objects.models import ObjectDB
+
                 obj = ObjectDB.objects.get(id=int(cid_str))
                 # Re-fetch from actual DB to get current state
                 combatants.append(obj)
@@ -255,6 +256,7 @@ class CombatScript(DefaultScript):
     def at_stop(self):
         """Called when script is stopped/deleted. Remove from manager.sessions."""
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         if sid and sid in manager.sessions:
             del manager.sessions[sid]
@@ -272,6 +274,7 @@ class CombatScript(DefaultScript):
 
     def next_turn(self):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         if not session:
@@ -283,6 +286,7 @@ class CombatScript(DefaultScript):
 
     def process_status_effects(self):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         if session:
@@ -292,24 +296,28 @@ class CombatScript(DefaultScript):
 
     def has_ended(self):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         return session.has_ended() if session else True
 
     def living_combatants(self):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         return session.living_combatants() if session else []
 
     def get_current_actor(self):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         return session.get_current_actor() if session else None
 
     def trigger_ai_turn(self, actor):
         from world.combat_manager import manager
+
         sid = self.db.session_id or getattr(self, "dbref", None)
         session = manager.sessions.get(sid)
         if session:

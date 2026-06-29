@@ -53,7 +53,7 @@ def _scriptdb_to_spell_dict(scr):
         "target_self": getattr(scr.db, "target_self", False),
         "target_enemy": getattr(scr.db, "target_enemy", True),
         "spell_level": getattr(scr.db, "spell_level", 1),
-        "mult": 1.5,   # default multiplier if not specified
+        "mult": 1.5,  # default multiplier if not specified
     }
 
 
@@ -63,7 +63,9 @@ def _apply_status_effect(target, status):
         return
     target.db.combat_status = status
     if status in {"stunned", "frozen"}:
-        target.db.combat_status_duration = max(1, int(getattr(target.db, "combat_status_duration", 1) or 1))
+        target.db.combat_status_duration = max(
+            1, int(getattr(target.db, "combat_status_duration", 1) or 1)
+        )
 
 
 def _apply_stat_effect(recipient, stat_key, amount, duration, is_debuff=False):
@@ -91,7 +93,11 @@ def _apply_stat_effect(recipient, stat_key, amount, duration, is_debuff=False):
 
 
 def is_player_character(obj):
-    return bool(obj) and inherits_from(obj, "typeclasses.characters.Character") and not getattr(obj.db, "is_npc", False)
+    return (
+        bool(obj)
+        and inherits_from(obj, "typeclasses.characters.Character")
+        and not getattr(obj.db, "is_npc", False)
+    )
 
 
 def room_allows_pvp(room):
@@ -106,16 +112,26 @@ def validate_combat_target(attacker, target):
     if getattr(target.db, "hp", 0) <= 0:
         return False, "目標已經倒下了。"
 
+    attacker_session = getattr(attacker.db, "combat_session", None)
+    target_locked = manager.is_combatant_locked_by_session(
+        target, exclude_session_id=attacker_session
+    )
+
     if getattr(target.db, "is_npc", False):
         if not getattr(target.db, "npc_attackable", True):
             return False, f"{target.key} 目前不能被攻擊。"
 
-        # 檢查 NPC 是否已被其他戰鬥鎖定
-        attacker_session = getattr(attacker.db, "combat_session", None)
-        if manager.is_npc_locked_by_session(target, exclude_session_id=attacker_session):
+        if target_locked:
             return False, f"{target.key} 正在與其他敵人戰鬥中，無法同時被多人攻擊。"
 
-    if is_player_character(attacker) and is_player_character(target) and not room_allows_pvp(getattr(attacker, "location", None)):
+    elif target_locked:
+        return False, f"{target.key} 正在與其他敵人戰鬥中，無法同時被多人攻擊。"
+
+    if (
+        is_player_character(attacker)
+        and is_player_character(target)
+        and not room_allows_pvp(getattr(attacker, "location", None))
+    ):
         return False, "這個房間不是 PVP 房，玩家不能互相攻擊。"
 
     return True, None
@@ -131,9 +147,15 @@ def find_open_world_target(caller, target_name):
         for candidate in getattr(location, "contents", []) or []:
             if candidate == caller:
                 continue
-            candidate_names = {str(candidate.key).lower(), str(getattr(candidate, 'id', '')).lower(), f"#{getattr(candidate, 'id', '')}".lower()}
+            candidate_names = {
+                str(candidate.key).lower(),
+                str(getattr(candidate, "id", "")).lower(),
+                f"#{getattr(candidate, 'id', '')}".lower(),
+            }
             try:
-                candidate_names.update(str(alias).lower() for alias in candidate.aliases.all())
+                candidate_names.update(
+                    str(alias).lower() for alias in candidate.aliases.all()
+                )
             except Exception:
                 pass
             if wanted in candidate_names:
@@ -180,7 +202,7 @@ def find_session_target(session, target_name):
 
 def execute_combat_action(actor, action_type, target, skill_key=None):
     """Execute one combat action for an actor.
-    
+
     P0-1: Cancels the turn timeout timer on every player action.
     P0-2: Reads spell metadata dynamically from magic_tools.py (ScriptDB).
     """
@@ -249,7 +271,9 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
         recipient = actor if target_self else target
 
         if is_heal:
-            heal_amount = random.randint(heal_min, heal_max) if heal_min < heal_max else heal_min
+            heal_amount = (
+                random.randint(heal_min, heal_max) if heal_min < heal_max else heal_min
+            )
             recipient.db.hp = min(
                 recipient.db.hp + heal_amount,
                 getattr(recipient.db, "max_hp", recipient.db.hp + heal_amount),
@@ -261,9 +285,16 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
         if buff_stat and buff_duration > 0:
             amount = spell.get("buff_max", 0)
             if spell.get("buff_min", 0) < spell.get("buff_max", 0):
-                amount = random.randint(spell.get("buff_min", 0), spell.get("buff_max", 0))
-            _apply_stat_effect(recipient, buff_stat, amount, buff_duration, is_debuff=False)
-            broadcast_msg(actor, f"✨ {recipient.key} 的 {buff_stat} 獲得了 {amount} 點增益，持續 {buff_duration} 回合。")
+                amount = random.randint(
+                    spell.get("buff_min", 0), spell.get("buff_max", 0)
+                )
+            _apply_stat_effect(
+                recipient, buff_stat, amount, buff_duration, is_debuff=False
+            )
+            broadcast_msg(
+                actor,
+                f"✨ {recipient.key} 的 {buff_stat} 獲得了 {amount} 點增益，持續 {buff_duration} 回合。",
+            )
             session_next_turn(actor)
             return
 
@@ -288,12 +319,22 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
             if debuff_stat and buff_duration > 0 and not resisted:
                 amount = spell.get("debuff_max", 0)
                 if spell.get("debuff_min", 0) < spell.get("debuff_max", 0):
-                    amount = random.randint(spell.get("debuff_min", 0), spell.get("debuff_max", 0))
-                _apply_stat_effect(target, debuff_stat, amount, buff_duration, is_debuff=True)
-                broadcast_msg(actor, f"⚠️ {target.key} 的 {debuff_stat} 被削弱了 {amount} 點，持續 {buff_duration} 回合。")
+                    amount = random.randint(
+                        spell.get("debuff_min", 0), spell.get("debuff_max", 0)
+                    )
+                _apply_stat_effect(
+                    target, debuff_stat, amount, buff_duration, is_debuff=True
+                )
+                broadcast_msg(
+                    actor,
+                    f"⚠️ {target.key} 的 {debuff_stat} 被削弱了 {amount} 點，持續 {buff_duration} 回合。",
+                )
 
             if resisted:
-                broadcast_msg(actor, f"🛡️ {target.key} 憑藉強大的精神力抵抗了 {skill_name} 的效果！")
+                broadcast_msg(
+                    actor,
+                    f"🛡️ {target.key} 憑藉強大的精神力抵抗了 {skill_name} 的效果！",
+                )
 
             apply_result(actor, target, damage, skill_name, final_status)
             return
@@ -305,7 +346,11 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
 def apply_result(actor, target, damage, action_name, status):
     """Apply damage and optional status effect to the target."""
     raw_hp = max(0, getattr(target.db, "hp", 0) - damage)
-    prevented_death = bool(getattr(target.db, "is_npc", False) and not getattr(target.db, "npc_can_die", True) and raw_hp <= 0)
+    prevented_death = bool(
+        getattr(target.db, "is_npc", False)
+        and not getattr(target.db, "npc_can_die", True)
+        and raw_hp <= 0
+    )
     target.db.hp = 1 if prevented_death else raw_hp
 
     msg = f"⚔️ {actor.key} 使用 {action_name} 攻擊 {target.key}，造成 {damage} 點傷害！"
@@ -490,6 +535,7 @@ class CmdCombatSkill(Command):
         execute_combat_action(caller, "skill", target, skill_key=skill_id)
         return
 
+
 class CmdCombatFlee(Command):
     """嘗試從戰鬥中逃跑。"""
 
@@ -579,7 +625,9 @@ class CmdPick(Command):
             matches = [item_key] + [str(a).lower() for a in item.aliases.all()]
             if target_name in matches:
                 if not caller.add_to_inventory(item):
-                    caller.msg(f"⚠️ 背包已滿，無法撿起 {item.get_display_name(caller)}！")
+                    caller.msg(
+                        f"⚠️ 背包已滿，無法撿起 {item.get_display_name(caller)}！"
+                    )
                     return
                 item.location = caller
                 item.save()
@@ -649,13 +697,17 @@ class CmdCast(Command):
         # MP 檢查
         current_mp = getattr(caller.db, "mp", 0)
         if current_mp < mp_cost:
-            caller.msg(f"⚠️ 你的法力不足以施放 {spell_display_name}（需要 {mp_cost} MP，你只有 {current_mp} MP）。")
+            caller.msg(
+                f"⚠️ 你的法力不足以施放 {spell_display_name}（需要 {mp_cost} MP，你只有 {current_mp} MP）。"
+            )
             return
 
         # 等級檢查
         caller_level = getattr(caller.db, "level", 1)
         if caller_level < spell_level_req:
-            caller.msg(f"⚠️ 你的等級不足，無法施放 {spell_display_name}（需要等級 {spell_level_req}）。")
+            caller.msg(
+                f"⚠️ 你的等級不足，無法施放 {spell_display_name}（需要等級 {spell_level_req}）。"
+            )
             return
 
         # 自我施法：heal / buff 類型，或者 target_str == "self"
@@ -672,6 +724,7 @@ class CmdCast(Command):
                     caller.msg(f"{spell_display_name} 沒有治療效果。")
                     return
                 import random
+
                 heal_amount = random.randint(int(heal_min), int(heal_max))
                 actual = caller.heal_self(heal_amount, heal_amount)
             elif magic_type == "buff" and buff_stat:
@@ -679,17 +732,30 @@ class CmdCast(Command):
                     caller.msg(f"{spell_display_name} 沒有 buff 效果。")
                     return
                 import random
+
                 amount = random.randint(int(buff_min), int(buff_max))
                 # 自我施放需要消耗一回合
                 if caller.db.combat_state == "fighting":
                     # 在戰鬥中施放 buff：套用並推進回合
-                    caller.apply_buff(buff_stat, amount, int(buff_duration) if buff_duration > 0 else 3)
-                    caller.msg(f"✨ 你對自己施放了 {spell_display_name}，{buff_stat} +{amount}（持續 {buff_duration or 3} 回合）。")
+                    caller.apply_buff(
+                        buff_stat,
+                        amount,
+                        int(buff_duration) if buff_duration > 0 else 3,
+                    )
+                    caller.msg(
+                        f"✨ 你對自己施放了 {spell_display_name}，{buff_stat} +{amount}（持續 {buff_duration or 3} 回合）。"
+                    )
                     session_next_turn(caller)
                 else:
                     # 非戰鬥中施放 buff
-                    caller.apply_buff(buff_stat, amount, int(buff_duration) if buff_duration > 0 else 3)
-                    caller.msg(f"✨ 你對自己施放了 {spell_display_name}，{buff_stat} +{amount}（持續 {buff_duration or 3} 回合）。")
+                    caller.apply_buff(
+                        buff_stat,
+                        amount,
+                        int(buff_duration) if buff_duration > 0 else 3,
+                    )
+                    caller.msg(
+                        f"✨ 你對自己施放了 {spell_display_name}，{buff_stat} +{amount}（持續 {buff_duration or 3} 回合）。"
+                    )
             else:
                 caller.msg(f"{spell_display_name} 無法对自己施放。")
                 return
@@ -701,13 +767,23 @@ class CmdCast(Command):
 
         # 對敵人施放
         if not target_str:
-            caller.msg(f"用法: cast <法術名稱> <目標>（{spell_display_name} 是攻擊法術，需要指定目標）")
+            caller.msg(
+                f"用法: cast <法術名稱> <目標>（{spell_display_name} 是攻擊法術，需要指定目標）"
+            )
             return
 
-        target = find_open_world_target(caller, target_str) if caller.db.combat_state != "fighting" else None
+        target = (
+            find_open_world_target(caller, target_str)
+            if caller.db.combat_state != "fighting"
+            else None
+        )
         if not target:
             # 在戰鬥中查找目標
-            session = manager.sessions.get(caller.db.combat_session) if caller.db.combat_state == "fighting" else None
+            session = (
+                manager.sessions.get(caller.db.combat_session)
+                if caller.db.combat_state == "fighting"
+                else None
+            )
             if session:
                 target = find_session_target(session, target_str)
             if not target:
@@ -735,9 +811,22 @@ class CmdCast(Command):
         intel = caller.get_stat("intel")
         atk_power = intel * 1.5 + caller.get_stat("str") * 0.5
         def_power = target.get_stat("def") + (target.get_stat("stamina") // 4)
-        damage = int(max(1, atk_power * 0.8 + random.randint(int(dmg_min), int(dmg_max)) - def_power))
+        damage = int(
+            max(
+                1,
+                atk_power * 0.8
+                + random.randint(int(dmg_min), int(dmg_max))
+                - def_power,
+            )
+        )
 
-        apply_result(caller, target, damage, spell_display_name, getattr(spell.db, "status_effect", None))
+        apply_result(
+            caller,
+            target,
+            damage,
+            spell_display_name,
+            getattr(spell.db, "status_effect", None),
+        )
 
 
 class CmdCombatNoMatch(Command):

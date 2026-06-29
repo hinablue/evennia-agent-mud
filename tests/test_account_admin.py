@@ -31,7 +31,9 @@ def _install_evennia_stubs():
     sys.modules["evennia.accounts.models"] = accounts_models
 
     utils_utils = ModuleType("evennia.utils.utils")
-    utils_utils.make_iter = lambda value: value if isinstance(value, (list, tuple, set)) else [value]
+    utils_utils.make_iter = lambda value: (
+        value if isinstance(value, (list, tuple, set)) else [value]
+    )
     sys.modules["evennia.utils.utils"] = utils_utils
 
     commands_command = ModuleType("commands.command")
@@ -138,7 +140,10 @@ class CmdAgentAccountTests(unittest.TestCase):
         cmd.switches = ["delete"]
         cmd.args = "hinablue"
 
-        with patch("commands.account_admin.delete_account", return_value={"message": "刪除完成"}) as deleter:
+        with patch(
+            "commands.account_admin.delete_account",
+            return_value={"message": "刪除完成"},
+        ) as deleter:
             cmd.func()
 
         deleter.assert_called_once_with("hinablue")

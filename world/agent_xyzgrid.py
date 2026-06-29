@@ -177,7 +177,6 @@ def _get_exact_object(key: str):
     return matches[0]
 
 
-
 def _ensure_tag(obj, value: str, category: str) -> bool:
     current = obj.tags.get(category=category, return_list=False)
     if current == str(value):
@@ -188,7 +187,6 @@ def _ensure_tag(obj, value: str, category: str) -> bool:
     return True
 
 
-
 def _ensure_aliases(obj, aliases) -> bool:
     current = set(obj.aliases.all())
     changed = False
@@ -197,7 +195,6 @@ def _ensure_aliases(obj, aliases) -> bool:
             obj.aliases.add(alias)
             changed = True
     return changed
-
 
 
 def _ensure_room_xyz(room, xyz) -> dict[str, bool]:
@@ -217,14 +214,15 @@ def _ensure_room_xyz(room, xyz) -> dict[str, bool]:
     return changed
 
 
-
 def _find_room_exit(source_room, exit_key, dest_room):
     from evennia.objects.models import ObjectDB
 
     source_id = getattr(source_room, "id", None) or getattr(source_room, "pk", None)
     dest_id = getattr(dest_room, "id", None) or getattr(dest_room, "pk", None)
     if source_id is None or dest_id is None:
-        raise RuntimeError(f"出口查詢失敗：{source_room.key} 或 {dest_room.key} 尚未有資料庫 ID")
+        raise RuntimeError(
+            f"出口查詢失敗：{source_room.key} 或 {dest_room.key} 尚未有資料庫 ID"
+        )
 
     matches = list(
         ObjectDB.objects.filter(
@@ -254,8 +252,9 @@ def _find_room_exit(source_room, exit_key, dest_room):
     raise RuntimeError(f"找不到出口：{source_room.key} --{exit_key}--> {dest_room.key}")
 
 
-
-def _ensure_exit_xyz(exit_obj, source_room, dest_room, source_xyz, dest_xyz, expected_key, aliases) -> dict[str, bool]:
+def _ensure_exit_xyz(
+    exit_obj, source_room, dest_room, source_xyz, dest_xyz, expected_key, aliases
+) -> dict[str, bool]:
     sx, sy = source_xyz
     dx, dy = dest_xyz
     changed = {
@@ -288,7 +287,6 @@ def _ensure_exit_xyz(exit_obj, source_room, dest_room, source_xyz, dest_xyz, exp
     if changed["data"] or changed["tags"]:
         exit_obj.save()
     return changed
-
 
 
 def migrate_existing_world_to_xyzgrid(spawn: bool = True):

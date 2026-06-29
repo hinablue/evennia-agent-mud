@@ -214,13 +214,19 @@ def _bootstrap_default_spells():
         return False
 
     for spec in DEFAULT_SPELL_DEFS:
-        existing = [row for row in search_script(spec["spell_key"]) if getattr(row, "key", None) == spec["spell_key"]]
+        existing = [
+            row
+            for row in search_script(spec["spell_key"])
+            if getattr(row, "key", None) == spec["spell_key"]
+        ]
         if existing:
             row = existing[0]
             if not _is_spell_script(row):
                 _apply_spell_fields(row, spec)
             continue
-        row = create_script("typeclasses.scripts.Script", key=spec["spell_key"], persistent=True)
+        row = create_script(
+            "typeclasses.scripts.Script", key=spec["spell_key"], persistent=True
+        )
         _apply_spell_fields(row, spec)
     return True
 
@@ -231,7 +237,11 @@ def _get_spell_or_error(spell_key):
     if not spell_key:
         raise MagicSpecError("請提供法術名稱。")
 
-    results = [row for row in search_script(spell_key) if getattr(row, "key", None) == spell_key]
+    results = [
+        row
+        for row in search_script(spell_key)
+        if getattr(row, "key", None) == spell_key
+    ]
     for result in results:
         if _is_spell_script(result):
             return result
@@ -269,7 +279,9 @@ def _format_spell(spell):
     lines.append(f"- 描述：{_clean_text(getattr(spell.db, 'desc', '') or '無')}")
     lines.append(f"- 消耗 MP：{getattr(spell.db, 'mp_cost', 0)}")
     lines.append(f"- 屬性：{getattr(spell.db, 'magic_type', 'physical')}")
-    lines.append(f"- 傷害：{getattr(spell.db, 'dmg_min', 0)}~{getattr(spell.db, 'dmg_max', 0)}")
+    lines.append(
+        f"- 傷害：{getattr(spell.db, 'dmg_min', 0)}~{getattr(spell.db, 'dmg_max', 0)}"
+    )
     lines.append(
         f"- 增幅：{getattr(spell.db, 'buff_stat', '無')} "
         f"{getattr(spell.db, 'buff_min', 0)}~{getattr(spell.db, 'buff_max', 0)} "
@@ -279,10 +291,14 @@ def _format_spell(spell):
         f"- 削弱：{getattr(spell.db, 'debuff_stat', '無')} "
         f"{getattr(spell.db, 'debuff_min', 0)}~{getattr(spell.db, 'debuff_max', 0)}"
     )
-    if getattr(spell.db, 'is_heal', False):
-        lines.append(f"- 治療：{getattr(spell.db, 'heal_min', 0)}~{getattr(spell.db, 'heal_max', 0)}")
-    if getattr(spell.db, 'status_effect', None):
-        lines.append(f"- 狀態：{spell.db.status_effect}（命中率 {getattr(spell.db, 'chance', 0.8):.0%}）")
+    if getattr(spell.db, "is_heal", False):
+        lines.append(
+            f"- 治療：{getattr(spell.db, 'heal_min', 0)}~{getattr(spell.db, 'heal_max', 0)}"
+        )
+    if getattr(spell.db, "status_effect", None):
+        lines.append(
+            f"- 狀態：{spell.db.status_effect}（命中率 {getattr(spell.db, 'chance', 0.8):.0%}）"
+        )
     lines.append(f"- 等級需求：{getattr(spell.db, 'spell_level', 1)}")
     return "\n".join(lines)
 
@@ -480,7 +496,9 @@ def list_spells():
         mp = getattr(spell.db, "mp_cost", 0)
         dmg = f"{getattr(spell.db, 'dmg_min', 0)}~{getattr(spell.db, 'dmg_max', 0)}"
         aliases = _format_aliases(getattr(spell.db, "aliases", []) or [])
-        lines.append(f"- {spell_id}｜{name}｜屬性：{spell_type}｜MP：{mp}｜傷害：{dmg}｜別名：{aliases}")
+        lines.append(
+            f"- {spell_id}｜{name}｜屬性：{spell_type}｜MP：{mp}｜傷害：{dmg}｜別名：{aliases}"
+        )
     return "\n".join(lines)
 
 

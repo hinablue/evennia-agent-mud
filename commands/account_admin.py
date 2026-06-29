@@ -11,6 +11,7 @@ from world.account_tools import (
     summarize_account,
 )
 
+
 class CmdAgentAccount(MuxCommand):
     """
     管理 Account 帳號。
@@ -29,7 +30,15 @@ class CmdAgentAccount(MuxCommand):
     aliases = ["@account"]
     locks = "cmd:perm(Admin) or perm(Developer)"
     help_category = "Admin"
-    switch_options = ("list", "status", "setpuppet", "addperm", "delperm", "delete", "help")
+    switch_options = (
+        "list",
+        "status",
+        "setpuppet",
+        "addperm",
+        "delperm",
+        "delete",
+        "help",
+    )
 
     def _msg(self, text):
         self.caller.msg(text)

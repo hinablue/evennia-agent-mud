@@ -4,7 +4,11 @@ from django.conf import settings
 
 from evennia import CmdSet, Command, syscmdkeys
 from evennia.utils.evmenu import EvMenu
-from evennia.utils.utils import callables_from_module, class_from_module, random_string_from_module
+from evennia.utils.utils import (
+    callables_from_module,
+    class_from_module,
+    random_string_from_module,
+)
 
 _CONNECTION_SCREEN_MODULE = settings.CONNECTION_SCREEN_MODULE
 _GUEST_ENABLED = settings.GUEST_ENABLED
@@ -12,7 +16,9 @@ _ACCOUNT = class_from_module(settings.BASE_ACCOUNT_TYPECLASS)
 _GUEST = class_from_module(settings.BASE_GUEST_TYPECLASS)
 
 _ACCOUNT_HELP = "輸入新的或既有的登入名稱。"
-_PASSWORD_HELP = "密碼至少需要 8 個字元，建議更長，並可包含英文字母、空白、數字與 @ . + - _ ' /。"
+_PASSWORD_HELP = (
+    "密碼至少需要 8 個字元，建議更長，並可包含英文字母、空白、數字與 @ . + - _ ' /。"
+)
 
 _ERROR_TRANSLATIONS = {
     "Username and/or password is incorrect.": "帳號或密碼不正確。",
@@ -90,7 +96,10 @@ def node_enter_username(caller, raw_text, **kwargs):
     options = (
         {"key": "", "goto": "node_enter_username"},
         {"key": ("quit", "q"), "goto": "node_quit_or_login"},
-        {"key": ("help", "h"), "goto": (_show_help, {"help_entry": _ACCOUNT_HELP, **kwargs})},
+        {
+            "key": ("help", "h"),
+            "goto": (_show_help, {"help_entry": _ACCOUNT_HELP, **kwargs}),
+        },
         {"key": "_default", "goto": _check_input},
     )
     return text, options
@@ -139,7 +148,10 @@ def node_enter_password(caller, raw_string, **kwargs):
     options = (
         {"key": "", "goto": _restart_login},
         {"key": ("quit", "q"), "goto": "node_quit_or_login"},
-        {"key": ("help", "h"), "goto": (_show_help, {"help_entry": _PASSWORD_HELP, **kwargs})},
+        {
+            "key": ("help", "h"),
+            "goto": (_show_help, {"help_entry": _PASSWORD_HELP, **kwargs}),
+        },
         {"key": "_default", "goto": (_check_input, kwargs)},
     )
     return text, options

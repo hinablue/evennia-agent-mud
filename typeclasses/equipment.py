@@ -33,15 +33,34 @@ class Equipment(ObjectParent, DefaultObject):
     SLOT_TWO_HAND = "two_hand"
 
     VALID_SLOTS = (
-        SLOT_HAT, SLOT_TOP, SLOT_BOTTOM, SLOT_CLOAK,
-        SLOT_SHOES, SLOT_GLOVES, SLOT_GLASSES, SLOT_EARRING,
-        SLOT_RING, SLOT_MAIN_HAND, SLOT_OFF_HAND, SLOT_TWO_HAND,
+        SLOT_HAT,
+        SLOT_TOP,
+        SLOT_BOTTOM,
+        SLOT_CLOAK,
+        SLOT_SHOES,
+        SLOT_GLOVES,
+        SLOT_GLASSES,
+        SLOT_EARRING,
+        SLOT_RING,
+        SLOT_MAIN_HAND,
+        SLOT_OFF_HAND,
+        SLOT_TWO_HAND,
     )
 
     # Valid stat names that equipment can modify
     VALID_STATS = (
-        "str", "def", "intel", "agi", "spirit", "stamina",
-        "spd", "atk", "hp", "mp", "max_hp", "max_mp",
+        "str",
+        "def",
+        "intel",
+        "agi",
+        "spirit",
+        "stamina",
+        "spd",
+        "atk",
+        "hp",
+        "mp",
+        "max_hp",
+        "max_mp",
     )
 
     def at_object_creation(self):

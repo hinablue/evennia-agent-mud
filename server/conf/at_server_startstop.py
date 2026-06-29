@@ -38,7 +38,9 @@ def _current_rss_mb() -> float | None:
                 if len(parts) >= 2:
                     return float(parts[1]) / 1000.0
     except Exception as err:
-        logger.log_warn(f"Idmapper RSS check skipped; could not read /proc/self/status: {err}")
+        logger.log_warn(
+            f"Idmapper RSS check skipped; could not read /proc/self/status: {err}"
+        )
     return None
 
 
@@ -67,7 +69,9 @@ def _patch_idmapper_conditional_flush():
             idmapper_models.LAST_FLUSH = now
             return
 
-        if ((now - idmapper_models.LAST_FLUSH) < idmapper_models.AUTO_FLUSH_MIN_INTERVAL) and not force:
+        if (
+            (now - idmapper_models.LAST_FLUSH) < idmapper_models.AUTO_FLUSH_MIN_INTERVAL
+        ) and not force:
             logger.log_warn(
                 "Warning: Idmapper flush called more than once in %s min interval. Check memory usage."
                 % (idmapper_models.AUTO_FLUSH_MIN_INTERVAL / 60.0)
@@ -111,14 +115,12 @@ def at_server_init():
     _patch_idmapper_conditional_flush()
 
 
-
 def at_server_start():
     """
     This is called every time the server starts up, regardless of
     how it was shut down.
     """
     _patch_idmapper_conditional_flush()
-
 
 
 def at_server_stop():
@@ -129,13 +131,11 @@ def at_server_stop():
     pass
 
 
-
 def at_server_reload_start():
     """
     This is called only when server starts back up after a reload.
     """
     pass
-
 
 
 def at_server_reload_stop():
@@ -145,14 +145,12 @@ def at_server_reload_stop():
     pass
 
 
-
 def at_server_cold_start():
     """
     This is called only when the server starts "cold", i.e. after a
     shutdown or a reset.
     """
     pass
-
 
 
 def at_server_cold_stop():

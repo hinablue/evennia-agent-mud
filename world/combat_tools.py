@@ -1,16 +1,21 @@
 """Admin helpers for controlling combat and AI states."""
+
 from __future__ import annotations
 from evennia import search_object
 from dataclasses import dataclass
 
+
 @dataclass
 class CombatSpecError(ValueError):
     message: str
+
     def __str__(self):
         return self.message
 
+
 def _clean_text(value):
     return (value or "").strip()
+
 
 def _get_object_or_error(obj_key):
     obj_key = _clean_text(obj_key)
@@ -20,6 +25,7 @@ def _get_object_or_error(obj_key):
     if not matches:
         raise CombatSpecError(f"找不到物件：{obj_key}")
     return matches[0]
+
 
 def stop_combat(char_key):
     char = _get_object_or_error(char_key)
@@ -32,11 +38,13 @@ def stop_combat(char_key):
     char.save()
     return {"message": f"已強行終止 `{char.key}` 的所有戰鬥狀態。"}
 
+
 def force_win(char_key):
     char = _get_object_or_error(char_key)
     char.db.combat_result = "victory"
     char.save()
     return {"message": f"已強制將 `{char.key}` 設為戰鬥獲勝狀態。"}
+
 
 def set_npc_state(npc_key, state):
     npc = _get_object_or_error(npc_key)

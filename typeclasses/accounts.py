@@ -8,7 +8,9 @@ as Characters) in order to actually participate in the game world.
 """
 
 from evennia.accounts.accounts import DefaultGuest
-from evennia.contrib.rpg.character_creator.character_creator import ContribChargenAccount
+from evennia.contrib.rpg.character_creator.character_creator import (
+    ContribChargenAccount,
+)
 
 
 class Account(ContribChargenAccount):

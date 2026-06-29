@@ -38,15 +38,19 @@ def _stub_evennia():
     evennia.Command = type("Command", (), {})
     evennia.CmdSet = type("CmdSet", (), {"add": lambda s, *a, **k: None})
     evennia.default_cmds = types.SimpleNamespace(
-        CharacterCmdSet=type("CS", (), {}), AccountCmdSet=type("AS", (), {}))
+        CharacterCmdSet=type("CS", (), {}), AccountCmdSet=type("AS", (), {})
+    )
     evennia.logger = types.SimpleNamespace(
-        log_info=lambda *a, **k: None, log_err=lambda *a, **k: None,
-        log_warn=lambda *a, **k: None)
+        log_info=lambda *a, **k: None,
+        log_err=lambda *a, **k: None,
+        log_warn=lambda *a, **k: None,
+    )
     sys.modules["evennia"] = evennia
     utils_pkg = types.ModuleType("evennia.utils")
     utils_mod = types.ModuleType("evennia.utils.utils")
-    utils_mod.inherits_from = lambda obj, path: not getattr(
-        getattr(obj, "db", object()), "is_npc", False)
+    utils_mod.inherits_from = lambda obj, path: (
+        not getattr(getattr(obj, "db", object()), "is_npc", False)
+    )
     utils_mod.class_from_module = lambda *a, **k: None
     utils_mod.make_iter = lambda x: x if isinstance(x, (list, tuple)) else [x]
     utils_pkg.utils = utils_mod
@@ -76,6 +80,7 @@ def _stub_evennia():
     sys.modules["evennia.scripts"] = types.ModuleType("evennia.scripts")
     sys.modules["evennia.scripts.models"] = scr_mod
 
+
 _stub_evennia()
 
 
@@ -92,6 +97,7 @@ CombatSession = combat_manager.CombatSession
 # Test-double combatants
 # ---------------------------------------------------------------------------
 
+
 class FakeDB:
     def __init__(self, **kw):
         for k, v in kw.items():
@@ -101,28 +107,60 @@ class FakeDB:
 class FakeCombatant:
     _id = 0
 
-    def __init__(self, key="C", account=True, is_npc=False, hp=100, mp=30,
-                 str_=10, def_=10, intel=10, agility=10, stamina=10,
-                 spd=10, spirit=10, **extra_db):
+    def __init__(
+        self,
+        key="C",
+        account=True,
+        is_npc=False,
+        hp=100,
+        mp=30,
+        str_=10,
+        def_=10,
+        intel=10,
+        agility=10,
+        stamina=10,
+        spd=10,
+        spirit=10,
+        **extra_db,
+    ):
         FakeCombatant._id += 1
         self.id = FakeCombatant._id
+        self.pk = self.id
         self.key = key
         self.account = account
         self.messages = []
         self.exp_gained = 0
         self.tokens_gained = 0
         self._stats = {
-            "str": str_, "def": def_, "intel": intel, "agility": agility,
-            "stamina": stamina, "spd": spd, "spirit": spirit,
+            "str": str_,
+            "def": def_,
+            "intel": intel,
+            "agility": agility,
+            "stamina": stamina,
+            "spd": spd,
+            "spirit": spirit,
         }
         defaults = dict(
-            hp=hp, mp=mp, combat_state="idle", combat_session=None,
-            combat_status="normal", is_npc=is_npc, npc_attackable=True,
-            npc_retaliates=True, npc_can_die=True, skills=[],
-            npc_cooldown=60, npc_death_time=None,
-            npc_token_min=1, npc_token_max=5,
-            npc_can_flee=True, npc_flee_chance=0.20, npc_flee_countdown=0,
-            npc_aggro_chance=0.0, active_buffs={}, active_debuffs={},
+            hp=hp,
+            mp=mp,
+            combat_state="idle",
+            combat_session=None,
+            combat_status="normal",
+            is_npc=is_npc,
+            npc_attackable=True,
+            npc_retaliates=True,
+            npc_can_die=True,
+            skills=[],
+            npc_cooldown=60,
+            npc_death_time=None,
+            npc_token_min=1,
+            npc_token_max=5,
+            npc_can_flee=True,
+            npc_flee_chance=0.20,
+            npc_flee_countdown=0,
+            npc_aggro_chance=0.0,
+            active_buffs={},
+            active_debuffs={},
         )
         defaults.update(extra_db)
         self.db = FakeDB(**defaults)
@@ -147,10 +185,12 @@ class FakeCombatant:
         if self.db.npc_death_time is None:
             return False
         import time
+
         return time.time() - self.db.npc_death_time < self.db.npc_cooldown
 
     def get_tokens_for_drop(self):
         import random
+
         lvl = max(1, getattr(self.db, "level", 1) or 1)
         tmin = max(1, int(getattr(self.db, "npc_token_min", 1) or 1))
         tmax = max(1, int(getattr(self.db, "npc_token_max", 5) or 5))
@@ -158,6 +198,7 @@ class FakeCombatant:
 
     def attempt_flee(self):
         import random
+
         if not getattr(self.db, "npc_can_flee", False):
             return False
         fail = float(getattr(self.db, "npc_flee_chance", 0.20) or 0.20)
@@ -165,6 +206,7 @@ class FakeCombatant:
 
     def enter_cooldown(self, from_death=True):
         import time
+
         self.db.npc_death_time = time.time()
 
     def add_to_inventory(self, item):
@@ -175,7 +217,11 @@ class FakeCombatant:
             return False
         self.inventory.append(item)
         # Send message like real implementation
-        key = getattr(item, "key", "物品") if hasattr(item, "key") else item.get("key", "物品")
+        key = (
+            getattr(item, "key", "物品")
+            if hasattr(item, "key")
+            else item.get("key", "物品")
+        )
         self.msg(f"💎 你撿到了 {key}！")
         return True
 
@@ -199,9 +245,13 @@ class FakeCombatant:
         if duration <= 0:
             return
         import time
+
         buffs = dict(getattr(self.db, "active_buffs", {}))
-        buffs[stat] = {"amount": int(amount), "duration": int(duration),
-                       "applied_at": time.time()}
+        buffs[stat] = {
+            "amount": int(amount),
+            "duration": int(duration),
+            "applied_at": time.time(),
+        }
         self.db.active_buffs = buffs
 
     def get_buff_bonus(self, stat_name):
@@ -213,6 +263,7 @@ class FakeCombatant:
 # ---------------------------------------------------------------------------
 # Tests: CombatSession — turn ordering
 # ---------------------------------------------------------------------------
+
 
 class CombatSessionSortOrder(unittest.TestCase):
     def test_higher_agility_spd_first(self):
@@ -232,6 +283,7 @@ class CombatSessionSortOrder(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Tests: CombatSession — has_ended / living_combatants
 # ---------------------------------------------------------------------------
+
 
 class CombatSessionHasEnded(unittest.TestCase):
     def test_not_ended_two_living(self):
@@ -263,11 +315,12 @@ class CombatSessionHasEnded(unittest.TestCase):
 # This is a bug that the Phase 2 refactor must fix.
 # ---------------------------------------------------------------------------
 
+
 class CombatSessionNextTurn(unittest.TestCase):
     def test_next_turn_checks_first_actor_first(self):
         """FIXED: With Bug-A fixed, first call returns turn_order[0] (not [1])."""
-        npc    = FakeCombatant("N", account=None, hp=100, spd=20, agility=20)
-        player = FakeCombatant("P", account=True,  hp=100, spd=5,  agility=5)
+        npc = FakeCombatant("N", account=None, hp=100, spd=20, agility=20)
+        player = FakeCombatant("P", account=True, hp=100, spd=5, agility=5)
         session = CombatSession([npc, player])
         # turn_order = [N, P] (N is first, higher spd+agi)
         # With fix: next_turn checks index 0 first → returns N
@@ -276,17 +329,18 @@ class CombatSessionNextTurn(unittest.TestCase):
 
     def test_dead_actor_skipped_returns_none_when_one_living(self):
         """When only one living remains, has_ended=True → next_turn returns None."""
-        npc    = FakeCombatant("N", account=None, hp=0,  spd=20, agility=20)
-        player = FakeCombatant("P", account=True,  hp=100, spd=5,  agility=5)
+        npc = FakeCombatant("N", account=None, hp=0, spd=20, agility=20)
+        player = FakeCombatant("P", account=True, hp=100, spd=5, agility=5)
         session = CombatSession([npc, player])
         # living = [player], has_ended=True → None
         self.assertIsNone(session.next_turn())
 
     def test_stunned_actor_skipped_immediately(self):
         """FIXED: With Bug-A fixed, stunned turn_order[0] is skipped on first call."""
-        npc    = FakeCombatant("N", account=None, hp=100, spd=20, agility=20,
-                               combat_status="stunned")
-        player = FakeCombatant("P", account=True,  hp=100, spd=5,  agility=5)
+        npc = FakeCombatant(
+            "N", account=None, hp=100, spd=20, agility=20, combat_status="stunned"
+        )
+        player = FakeCombatant("P", account=True, hp=100, spd=5, agility=5)
         session = CombatSession([npc, player])
         # first next_turn: N is index 0, stunned → skip → player (index 1) returns
         actor = session.next_turn()
@@ -296,9 +350,10 @@ class CombatSessionNextTurn(unittest.TestCase):
 
     def test_npc_retaliates_false_skipped_immediately(self):
         """FIXED: With Bug-A fixed, npc_retaliates=False at index 0 skipped on first call."""
-        npc    = FakeCombatant("N", account=None, hp=100, spd=20, agility=20,
-                               npc_retaliates=False)
-        player = FakeCombatant("P", account=True,  hp=100, spd=5,  agility=5)
+        npc = FakeCombatant(
+            "N", account=None, hp=100, spd=20, agility=20, npc_retaliates=False
+        )
+        player = FakeCombatant("P", account=True, hp=100, spd=5, agility=5)
         session = CombatSession([npc, player])
         # first call: N (index 0) has no_retaliates → skip → player (index 1) returns
         actor = session.next_turn()
@@ -315,9 +370,10 @@ class CombatSessionNextTurn(unittest.TestCase):
                    → advance: index=0, round_count=3, process_status_effects
         So round_count=3 on the second next_turn() return.
         """
-        npc    = FakeCombatant("N", account=None, hp=100, spd=20, agility=20,
-                               npc_retaliates=False)
-        player = FakeCombatant("P", account=True,  hp=100, spd=5,  agility=5)
+        npc = FakeCombatant(
+            "N", account=None, hp=100, spd=20, agility=20, npc_retaliates=False
+        )
+        player = FakeCombatant("P", account=True, hp=100, spd=5, agility=5)
         session = CombatSession([npc, player])
         self.assertEqual(session.round_count, 1)
         # Turn 1: N skipped → P acts → advance: round_count=2
@@ -333,10 +389,12 @@ class CombatSessionNextTurn(unittest.TestCase):
 # Tests: CombatSession — status effects
 # ---------------------------------------------------------------------------
 
+
 class CombatSessionStatusEffects(unittest.TestCase):
     def test_poison_ticks_damage(self):
-        npc    = FakeCombatant("N", account=None, hp=100, stamina=10,
-                               combat_status="poisoned")
+        npc = FakeCombatant(
+            "N", account=None, hp=100, stamina=10, combat_status="poisoned"
+        )
         player = FakeCombatant("P", hp=20)
         session = CombatSession([npc, player])
         session.process_status_effects()
@@ -344,24 +402,27 @@ class CombatSessionStatusEffects(unittest.TestCase):
         self.assertEqual(npc.db.combat_status, "poisoned")
 
     def test_poison_floor_at_zero(self):
-        npc    = FakeCombatant("N", account=None, hp=3, stamina=10,
-                               combat_status="poisoned")
+        npc = FakeCombatant(
+            "N", account=None, hp=3, stamina=10, combat_status="poisoned"
+        )
         session = CombatSession([npc])
         session.process_status_effects()
         self.assertEqual(npc.db.hp, 0)
         self.assertEqual(npc.db.combat_status, "normal")
 
     def test_dead_poison_ignored(self):
-        npc    = FakeCombatant("N", account=None, hp=0, combat_status="poisoned")
+        npc = FakeCombatant("N", account=None, hp=0, combat_status="poisoned")
         session = CombatSession([npc])
         session.process_status_effects()  # must not raise
         self.assertEqual(npc.db.hp, 0)
 
     def test_expired_buff_removed(self):
         import time
+
         player = FakeCombatant("P", hp=100)
-        player.db.active_buffs = {"str": {"amount": 5, "duration": 1,
-                                          "applied_at": time.time()}}
+        player.db.active_buffs = {
+            "str": {"amount": 5, "duration": 1, "applied_at": time.time()}
+        }
         session = CombatSession([player])
         session.process_status_effects()
         self.assertEqual(player.get_buff_bonus("str"), 0)
@@ -369,9 +430,11 @@ class CombatSessionStatusEffects(unittest.TestCase):
 
     def test_active_buff_preserved(self):
         import time
+
         player = FakeCombatant("P", hp=100)
-        player.db.active_buffs = {"str": {"amount": 5, "duration": 3,
-                                          "applied_at": time.time()}}
+        player.db.active_buffs = {
+            "str": {"amount": 5, "duration": 3, "applied_at": time.time()}
+        }
         session = CombatSession([player])
         session.process_status_effects()
         self.assertEqual(player.get_buff_bonus("str"), 5)
@@ -381,6 +444,7 @@ class CombatSessionStatusEffects(unittest.TestCase):
 # Tests: CombatManager — start_combat
 # ---------------------------------------------------------------------------
 
+
 class CombatManagerStartCombat(unittest.TestCase):
     def setUp(self):
         FakeCombatant._id = 0
@@ -388,13 +452,13 @@ class CombatManagerStartCombat(unittest.TestCase):
 
     def test_start_combat_stores_session(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         self.assertIn(session.session_id, manager.sessions)
 
     def test_combatants_set_to_fighting(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         self.assertEqual(player.db.combat_state, "fighting")
         self.assertEqual(npc.db.combat_state, "fighting")
@@ -402,7 +466,7 @@ class CombatManagerStartCombat(unittest.TestCase):
 
     def test_start_combat_announces(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         manager.start_combat([player, npc])
         all_msgs = player.messages + npc.messages
         self.assertTrue(any("戰鬥開始" in m for m in all_msgs))
@@ -412,6 +476,7 @@ class CombatManagerStartCombat(unittest.TestCase):
 # Tests: CombatManager — is_npc_locked_by_session
 # ---------------------------------------------------------------------------
 
+
 class CombatManagerNPCCheck(unittest.TestCase):
     def setUp(self):
         FakeCombatant._id = 0
@@ -419,8 +484,8 @@ class CombatManagerNPCCheck(unittest.TestCase):
 
     def test_npc_locked_while_in_active_session(self):
         """NPC in active session is locked. Session stays active while NPC is alive."""
-        player = FakeCombatant("P", account=True, hp=100)   # high HP so NPC can't kill
-        npc    = FakeCombatant("N", account=None, hp=100, str_=1, def_=1)  # weak NPC
+        player = FakeCombatant("P", account=True, hp=100)  # high HP so NPC can't kill
+        npc = FakeCombatant("N", account=None, hp=100, str_=1, def_=1)  # weak NPC
         manager.start_combat([player, npc])
         # Session should still be active (NPC alive, player not dead)
         self.assertTrue(manager.is_npc_locked_by_session(npc))
@@ -431,7 +496,7 @@ class CombatManagerNPCCheck(unittest.TestCase):
 
     def test_ended_session_does_not_lock(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.end_combat(session.session_id)
         self.assertFalse(manager.is_npc_locked_by_session(npc))
@@ -440,6 +505,7 @@ class CombatManagerNPCCheck(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Tests: CombatManager — end_combat
 # ---------------------------------------------------------------------------
+
 
 class CombatManagerEndCombat(unittest.TestCase):
     def setUp(self):
@@ -451,7 +517,7 @@ class CombatManagerEndCombat(unittest.TestCase):
 
     def test_end_combat_clears_state(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.end_combat(session.session_id)
         self.assertEqual(player.db.combat_state, "idle")
@@ -461,7 +527,7 @@ class CombatManagerEndCombat(unittest.TestCase):
 
     def test_end_combat_removes_session(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         sid = session.session_id
         manager.end_combat(sid)
@@ -469,14 +535,14 @@ class CombatManagerEndCombat(unittest.TestCase):
 
     def test_death_awards_50_exp(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.end_combat(session.session_id, reason="death")
         self.assertEqual(player.exp_gained, 50)
 
     def test_flee_awards_partial_exp(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.end_combat(session.session_id, reason="flee")
         self.assertEqual(player.exp_gained, 12)
@@ -484,7 +550,7 @@ class CombatManagerEndCombat(unittest.TestCase):
     def test_player_dead_no_exp(self):
         """FIXED: player HP=0 → no exp even if 'winner' would be player."""
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None, hp=100)
+        npc = FakeCombatant("N", account=None, hp=100)
         player.db.hp = 0  # player dead
         session = manager.start_combat([player, npc])
         manager.end_combat(session.session_id, reason="normal")
@@ -496,6 +562,7 @@ class CombatManagerEndCombat(unittest.TestCase):
 # Tests: CombatManager — npc_death / npc_flee
 # ---------------------------------------------------------------------------
 
+
 class CombatManagerNPCDeathFlee(unittest.TestCase):
     def setUp(self):
         FakeCombatant._id = 0
@@ -506,8 +573,9 @@ class CombatManagerNPCDeathFlee(unittest.TestCase):
 
     def test_npc_death_drops_tokens(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None, hp=0, level=5,
-                               npc_token_min=2, npc_token_max=4)
+        npc = FakeCombatant(
+            "N", account=None, hp=0, level=5, npc_token_min=2, npc_token_max=4
+        )
         session = manager.start_combat([player, npc])
         manager.npc_death(npc, session.session_id)
         # rand(2,4) + (5-1)*2 = 2-4+8 = min 10
@@ -515,14 +583,14 @@ class CombatManagerNPCDeathFlee(unittest.TestCase):
 
     def test_npc_death_sets_cooldown(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None, hp=0)
+        npc = FakeCombatant("N", account=None, hp=0)
         session = manager.start_combat([player, npc])
         manager.npc_death(npc, session.session_id)
         self.assertIsNotNone(npc.db.npc_death_time)
 
     def test_npc_death_removes_from_room(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None, hp=0)
+        npc = FakeCombatant("N", account=None, hp=0)
         npc.location = types.SimpleNamespace(msg_contents=lambda *a, **k: None)
         session = manager.start_combat([player, npc])
         manager.npc_death(npc, session.session_id)
@@ -530,14 +598,14 @@ class CombatManagerNPCDeathFlee(unittest.TestCase):
 
     def test_npc_flee_no_tokens(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.npc_flee(npc, session.session_id)
         self.assertEqual(player.tokens_gained, 0)
 
     def test_npc_flee_sets_cooldown(self):
         player = FakeCombatant("P", account=True)
-        npc    = FakeCombatant("N", account=None)
+        npc = FakeCombatant("N", account=None)
         session = manager.start_combat([player, npc])
         manager.npc_flee(npc, session.session_id)
         self.assertIsNotNone(npc.db.npc_death_time)
@@ -546,12 +614,19 @@ class CombatManagerNPCDeathFlee(unittest.TestCase):
         player = FakeCombatant("P", account=True, hp=100)
         npc = FakeCombatant("N", account=None, hp=0, level=3)
         npc.db.npc_loot_table = [
-            {"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 1.0, "stats": {"atk": 5}}
+            {
+                "typeclass": "typeclasses.equipment.Equipment",
+                "key": "鐵劍",
+                "chance": 1.0,
+                "stats": {"atk": 5},
+            }
         ]
         session = manager.start_combat([player, npc])
         manager.npc_death(npc, session.session_id)
         # 物品應該被嘗試放入背包
-        self.assertTrue(any("撿到" in str(m) or "拾取" in str(m) for m in player.messages))
+        self.assertTrue(
+            any("撿到" in str(m) or "拾取" in str(m) for m in player.messages)
+        )
 
     def test_end_combat_broadcasts_exp(self):
         player = FakeCombatant("P", account=True, hp=100)
@@ -568,6 +643,7 @@ class CombatManagerNPCDeathFlee(unittest.TestCase):
 # Smoke: full 1v1 → player attacks → NPC dies → session ends → exp awarded
 # ---------------------------------------------------------------------------
 
+
 class CombatFullSmoke(unittest.TestCase):
     def setUp(self):
         FakeCombatant._id = 0
@@ -579,9 +655,10 @@ class CombatFullSmoke(unittest.TestCase):
     def test_player_kills_npc_exp_awarded(self):
         import commands.combat_commands as cc
 
-        player = FakeCombatant("P", account=True, hp=100, str_=100,
-                               def_=0, intel=50, agility=50)
-        npc    = FakeCombatant("N", account=None, hp=5, npc_retaliates=False)
+        player = FakeCombatant(
+            "P", account=True, hp=100, str_=100, def_=0, intel=50, agility=50
+        )
+        npc = FakeCombatant("N", account=None, hp=5, npc_retaliates=False)
         session = manager.start_combat([player, npc])
         sid = session.session_id
 

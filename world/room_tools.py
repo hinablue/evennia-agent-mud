@@ -39,7 +39,11 @@ class RoomTools:
 
     @staticmethod
     def list_rooms(query=None):
-        rooms = [obj for obj in Room.objects.all() if inherits_from(obj, "typeclasses.rooms.Room")]
+        rooms = [
+            obj
+            for obj in Room.objects.all()
+            if inherits_from(obj, "typeclasses.rooms.Room")
+        ]
         query = RoomTools._clean(query).lower()
         if query:
             rooms = [room for room in rooms if query in room.key.lower()]
@@ -102,16 +106,23 @@ class RoomTools:
 
         door = None
         for obj in room.contents:
-            if inherits_from(obj, "typeclasses.doors.DoorObject") and getattr(obj.db, "direction", None) == direction:
+            if (
+                inherits_from(obj, "typeclasses.doors.DoorObject")
+                and getattr(obj.db, "direction", None) == direction
+            ):
                 door = obj
                 break
 
         if not door:
-            door = create_object(DoorObject, key=f"Door-{direction}", location=room, home=room)
+            door = create_object(
+                DoorObject, key=f"Door-{direction}", location=room, home=room
+            )
             door.db.direction = direction
         door.db.state = state
         door.save()
-        return f"Door {direction} in {room.key} is now {state} (DoorObject ID: {door.id})."
+        return (
+            f"Door {direction} in {room.key} is now {state} (DoorObject ID: {door.id})."
+        )
 
     @staticmethod
     def set_pvp_state(room_name, enabled):

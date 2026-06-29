@@ -45,10 +45,17 @@ class CmdAgentWorldTests(unittest.TestCase):
             "objects_relocated_after_rebuild": 0,
             "fallback_room": "迎賓大廳",
             "build": {"rooms_total": 21, "rooms_created": 21, "exits_created": 50},
-            "xyzgrid": {"rooms": 21, "exits": 36, "zcoord": "agent-hub", "spawned": True},
+            "xyzgrid": {
+                "rooms": 21,
+                "exits": 36,
+                "zcoord": "agent-hub",
+                "spawned": True,
+            },
         }
 
-        with patch("commands.world_admin.force_rebuild_agent_world", return_value=fake_result):
+        with patch(
+            "commands.world_admin.force_rebuild_agent_world", return_value=fake_result
+        ):
             cmd._handle_force_rebuild()
 
         output = cmd.caller.messages[-1]

@@ -24,7 +24,17 @@ class CmdAgentRoom(MuxCommand):
     aliases = ["@room"]
     locks = "cmd:perm(Admin) or perm(Developer)"
     help_category = "Admin"
-    switch_options = ("list", "status", "create", "move", "desc", "door", "pvp", "delete", "help")
+    switch_options = (
+        "list",
+        "status",
+        "create",
+        "move",
+        "desc",
+        "door",
+        "pvp",
+        "delete",
+        "help",
+    )
 
     def _msg(self, text):
         self.caller.msg(text)

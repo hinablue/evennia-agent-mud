@@ -117,7 +117,9 @@ def _install_evennia_stubs():
     rp_module.ContribRPObject = type("ContribRPObject", (), {})
     sys.modules["evennia.contrib.rpg.rpsystem"] = rp_module
 
-    chargen_module = types.ModuleType("evennia.contrib.rpg.character_creator.character_creator")
+    chargen_module = types.ModuleType(
+        "evennia.contrib.rpg.character_creator.character_creator"
+    )
 
     class ContribCmdCharCreate:
         def func(self):
@@ -125,7 +127,9 @@ def _install_evennia_stubs():
 
     chargen_module.ContribCmdCharCreate = ContribCmdCharCreate
     chargen_module.ContribChargenAccount = type("ContribChargenAccount", (), {})
-    sys.modules["evennia.contrib.rpg.character_creator.character_creator"] = chargen_module
+    sys.modules["evennia.contrib.rpg.character_creator.character_creator"] = (
+        chargen_module
+    )
 
     scripts_module = types.ModuleType("evennia.scripts.models")
     scripts_module.ScriptDB = type(
@@ -159,10 +163,12 @@ def _install_evennia_stubs():
     # evennia.typeclasses stubs
     typeclasses_pkg = types.ModuleType("evennia.typeclasses")
     typeclasses_module = types.ModuleType("evennia.typeclasses.attributes")
+
     class AttributeProperty:
         def __init__(self, default=None, autocreate=False):
             self.default = default
             self.autocreate = autocreate
+
     typeclasses_module.AttributeProperty = AttributeProperty
     typeclasses_pkg.attributes = typeclasses_module
     sys.modules["evennia.typeclasses"] = typeclasses_pkg
@@ -170,12 +176,25 @@ def _install_evennia_stubs():
 
     # evennia.utils.create stub
     create_module = types.ModuleType("evennia.utils.create")
-    def create_object(*a, **k): return None
-    def create_account(*a, **k): return None
-    def create_script(*a, **k): return None
-    def create_channel(*a, **k): return None
-    def create_message(*a, **k): return None
-    def create_help_entry(*a, **k): return None
+
+    def create_object(*a, **k):
+        return None
+
+    def create_account(*a, **k):
+        return None
+
+    def create_script(*a, **k):
+        return None
+
+    def create_channel(*a, **k):
+        return None
+
+    def create_message(*a, **k):
+        return None
+
+    def create_help_entry(*a, **k):
+        return None
+
     create_module.create_object = create_object
     create_module.create_account = create_account
     create_module.create_script = create_script
@@ -220,6 +239,7 @@ class FakeAttributes:
 class FakeDB(types.SimpleNamespace):
     """Namespace-backed db attr holder."""
 
+
 class FakeCombatant:
     """Simple combatant test double."""
 
@@ -239,6 +259,7 @@ class FakeCombatant:
     ):
         stats = stats or {}
         self.id = FakeCombatant._next_id
+        self.pk = self.id
         FakeCombatant._next_id += 1
         self.key = key
         self.account = account
@@ -249,7 +270,7 @@ class FakeCombatant:
         # location with msg_contents stub
         self.location = types.SimpleNamespace(
             db=types.SimpleNamespace(pvp_enabled=room_pvp),
-            msg_contents=lambda *a, **k: None
+            msg_contents=lambda *a, **k: None,
         )
         self.search_results = {}
         self.db = FakeDB(
@@ -310,11 +331,13 @@ class FakeCombatant:
         if self.db.npc_death_time is None:
             return False
         import time
+
         elapsed = time.time() - self.db.npc_death_time
         return elapsed < self.db.npc_cooldown
 
     def get_tokens_for_drop(self):
         import random
+
         level = max(1, int(self.db.level or 1))
         token_min = max(1, int(self.db.npc_token_min or 1))
         token_max = max(1, int(self.db.npc_token_max or 5))
@@ -324,6 +347,7 @@ class FakeCombatant:
 
     def attempt_flee(self):
         import random
+
         if not self.db.npc_can_flee:
             return False
         # 失敗率 = 基礎失敗率（越高越容易失敗）
@@ -334,12 +358,14 @@ class FakeCombatant:
 
     def enter_cooldown(self, from_death=True):
         import time
+
         self.db.npc_death_time = time.time()
 
     def check_aggro_on_look(self):
         if not self.db.npc_aggro_chance:
             return False
         import random
+
         return random.random() < self.db.npc_aggro_chance
 
     def apply_buff(self, stat, amount, duration):
@@ -347,7 +373,12 @@ class FakeCombatant:
             return
         buffs = getattr(self.db, "active_buffs") or {}
         import time
-        buffs[stat] = {"amount": int(amount), "duration": int(duration), "applied_at": time.time()}
+
+        buffs[stat] = {
+            "amount": int(amount),
+            "duration": int(duration),
+            "applied_at": time.time(),
+        }
         self.db.active_buffs = buffs
 
     def apply_debuff_to_self(self, stat, amount, duration):
@@ -355,7 +386,12 @@ class FakeCombatant:
             return
         debuffs = getattr(self.db, "active_debuffs") or {}
         import time
-        debuffs[stat] = {"amount": int(amount), "duration": int(duration), "applied_at": time.time()}
+
+        debuffs[stat] = {
+            "amount": int(amount),
+            "duration": int(duration),
+            "applied_at": time.time(),
+        }
         self.db.active_debuffs = debuffs
 
     def get_buff_bonus(self, stat_name):
@@ -726,7 +762,9 @@ class NPCDeathExpTests(unittest.TestCase):
 
     def test_player_gets_exp_when_npc_dies(self):
         attacker = FakeCombatant("玩家", stats={"str": 20, "intel": 50})
-        defender = FakeCombatant("哥布林", stats={"def": 1, "agility": 1}, hp=5, is_npc=True, account=False)
+        defender = FakeCombatant(
+            "哥布林", stats={"def": 1, "agility": 1}, hp=5, is_npc=True, account=False
+        )
         session = combat_manager.manager.start_combat([attacker, defender])
 
         with patch("commands.combat_commands.random.random", return_value=0.0):
@@ -740,7 +778,9 @@ class NPCDeathExpTests(unittest.TestCase):
     def test_flee_reduces_exp(self):
         """NPC flee awards only 25% exp."""
         attacker = FakeCombatant("玩家", stats={"str": 20, "intel": 50})
-        defender = FakeCombatant("哥布林", stats={"def": 1, "agility": 1}, hp=50, is_npc=True, account=False)
+        defender = FakeCombatant(
+            "哥布林", stats={"def": 1, "agility": 1}, hp=50, is_npc=True, account=False
+        )
 
         session = combat_manager.manager.start_combat([attacker, defender])
 
@@ -760,7 +800,11 @@ class NPCDeathExpTests(unittest.TestCase):
 
 
 class ValidateCombatTargetTests(unittest.TestCase):
-    """Test validate_combat_target enforces NPC lock."""
+    """Test validate_combat_target enforces combat-session lock rules."""
+
+    def tearDown(self):
+        """Clear global combat sessions between tests."""
+        combat_manager.manager.sessions.clear()
 
     def test_blocks_attack_on_locked_npc(self):
         player1 = FakeCombatant("玩家A", account=True)
@@ -779,6 +823,37 @@ class ValidateCombatTargetTests(unittest.TestCase):
         ok, reason = combat_commands.validate_combat_target(player2, npc)
         self.assertFalse(ok)
         self.assertIn("無法同時被多人攻擊", reason)
+
+    def test_blocks_attack_on_locked_player(self):
+        player1 = FakeCombatant("玩家A", account=True, room_pvp=True)
+        player2 = FakeCombatant("玩家B", account=True, room_pvp=True)
+        player3 = FakeCombatant("玩家C", account=True, room_pvp=True)
+
+        session = combat_manager.CombatSession([player1, player2])
+        combat_manager.manager.sessions[session.session_id] = session
+        player1.db.combat_session = session.session_id
+        player1.db.combat_state = "fighting"
+        player2.db.combat_session = session.session_id
+        player2.db.combat_state = "fighting"
+
+        ok, reason = combat_commands.validate_combat_target(player3, player1)
+        self.assertFalse(ok)
+        self.assertIn("無法同時被多人攻擊", reason)
+
+    def test_same_session_combatant_can_still_target_opponent(self):
+        player1 = FakeCombatant("玩家A", account=True, room_pvp=True)
+        player2 = FakeCombatant("玩家B", account=True, room_pvp=True)
+
+        session = combat_manager.CombatSession([player1, player2])
+        combat_manager.manager.sessions[session.session_id] = session
+        player1.db.combat_session = session.session_id
+        player1.db.combat_state = "fighting"
+        player2.db.combat_session = session.session_id
+        player2.db.combat_state = "fighting"
+
+        ok, reason = combat_commands.validate_combat_target(player1, player2)
+        self.assertTrue(ok)
+        self.assertIsNone(reason)
 
     def test_attackable_npc_without_session_can_be_targeted(self):
         player = FakeCombatant("玩家", account=True)
@@ -860,7 +935,9 @@ class MagicSkillsTests(unittest.TestCase):
         return types.SimpleNamespace(key=spell_id, db=types.SimpleNamespace(**data))
 
     def test_spell_metadata_reads_scriptdb_shape(self):
-        fake_spell = self._fake_spell("fireball", name="火球術", mp_cost=20, dmg_min=18, dmg_max=32)
+        fake_spell = self._fake_spell(
+            "fireball", name="火球術", mp_cost=20, dmg_min=18, dmg_max=32
+        )
         with patch("world.magic_tools.get_spell_by_name", return_value=fake_spell):
             meta = combat_commands._get_spell_metadata("fireball")
         self.assertEqual(meta["spell_id"], "fireball")
@@ -885,7 +962,9 @@ class MagicSkillsTests(unittest.TestCase):
             "target_enemy": False,
         }
         with patch("commands.combat_commands._get_spell_metadata", return_value=spell):
-            combat_commands.execute_combat_action(actor, "skill", actor, skill_key="battle_focus")
+            combat_commands.execute_combat_action(
+                actor, "skill", actor, skill_key="battle_focus"
+            )
         self.assertEqual(actor.get_buff_bonus("str"), 4)
         self.assertEqual(actor.db.mp, 24)
 
@@ -907,9 +986,13 @@ class MagicSkillsTests(unittest.TestCase):
             "target_self": False,
             "target_enemy": True,
         }
-        with patch("commands.combat_commands._get_spell_metadata", return_value=spell), \
-             patch("commands.combat_commands.random.random", return_value=0.0):
-            combat_commands.execute_combat_action(actor, "skill", target, skill_key="weaken")
+        with (
+            patch("commands.combat_commands._get_spell_metadata", return_value=spell),
+            patch("commands.combat_commands.random.random", return_value=0.0),
+        ):
+            combat_commands.execute_combat_action(
+                actor, "skill", target, skill_key="weaken"
+            )
         self.assertEqual(target.get_debuff_penalty("def"), 3)
         self.assertEqual(target.db.hp, 96)
 
@@ -928,9 +1011,13 @@ class MagicSkillsTests(unittest.TestCase):
             "target_self": False,
             "target_enemy": True,
         }
-        with patch("commands.combat_commands._get_spell_metadata", return_value=spell), \
-             patch("commands.combat_commands.random.random", side_effect=[0.0, 0.99]):
-            combat_commands.execute_combat_action(actor, "skill", target, skill_key="ice_shard")
+        with (
+            patch("commands.combat_commands._get_spell_metadata", return_value=spell),
+            patch("commands.combat_commands.random.random", side_effect=[0.0, 0.99]),
+        ):
+            combat_commands.execute_combat_action(
+                actor, "skill", target, skill_key="ice_shard"
+            )
         self.assertEqual(target.db.combat_status, "normal")
         self.assertEqual(getattr(target.db, "combat_status_duration", 0), 0)
         self.assertIs(session.get_current_actor(), actor)
@@ -949,7 +1036,7 @@ class CombatCmdSetContentsTests(unittest.TestCase):
         # The cmdset contains CmdCombatAttack, CmdCombatSkill, CmdCombatFlee, CmdCombatNoMatch, CmdCast
         # Check that the cmdset has commands by checking the commands added at creation
         # We can verify by checking the cmdset's internal _added_commands
-        self.assertTrue(hasattr(cmdset, '_added_commands') or len(dir(cmdset)) > 0)
+        self.assertTrue(hasattr(cmdset, "_added_commands") or len(dir(cmdset)) > 0)
         # More robust: check that the cmdset class defines the expected commands
         self.assertEqual(len(combat_commands.COMBAT_COMMANDS), 5)
 

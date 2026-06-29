@@ -46,20 +46,26 @@ class ObjectParent:
         return key, plural
 
     def get_display_exits(self, looker, **kwargs):
-        exits = self.filter_visible(self.contents_get(content_type="exit"), looker, **kwargs)
+        exits = self.filter_visible(
+            self.contents_get(content_type="exit"), looker, **kwargs
+        )
         exit_names = sorted(exi.get_display_name(looker, **kwargs) for exi in exits)
         exit_names = _zh_join(exit_names)
         return f"|w出口：|n {exit_names}" if exit_names else ""
 
     def get_display_characters(self, looker, **kwargs):
-        characters = self.filter_visible(self.contents_get(content_type="character"), looker, **kwargs)
+        characters = self.filter_visible(
+            self.contents_get(content_type="character"), looker, **kwargs
+        )
         character_names = _zh_join(
             char.get_display_name(looker, **kwargs) for char in characters
         )
         return f"|w這裡的人：|n {character_names}" if character_names else ""
 
     def get_display_things(self, looker, **kwargs):
-        things = self.filter_visible(self.contents_get(content_type="object"), looker, **kwargs)
+        things = self.filter_visible(
+            self.contents_get(content_type="object"), looker, **kwargs
+        )
 
         grouped_things = defaultdict(list)
         for thing in things:

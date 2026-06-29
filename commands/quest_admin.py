@@ -8,6 +8,7 @@ from world.quest_tools import (
     summarize_quests,
 )
 
+
 class CmdAgentQuest(MuxCommand):
     """
     管理遊戲任務 (Quest)。

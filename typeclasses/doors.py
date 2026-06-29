@@ -1,5 +1,6 @@
 from typeclasses.objects import Object
 
+
 class DoorObject(Object):
     """
     A specialized object that acts as a door between rooms.
@@ -8,6 +9,7 @@ class DoorObject(Object):
     - db.state: Current state ('open', 'closed', or 'locked')
     - db.locked_by: Key required to unlock (optional)
     """
+
     def at_object_creation(self):
         self.db.direction = "north"
         self.db.state = "closed"

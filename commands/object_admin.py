@@ -1,4 +1,3 @@
-
 """Object management command."""
 
 from commands.command import MuxCommand
@@ -15,6 +14,7 @@ from world.object_tools import (
     set_object_equippable,
     summarize_object,
 )
+
 
 class CmdAgentObject(MuxCommand):
     """
@@ -38,7 +38,19 @@ class CmdAgentObject(MuxCommand):
     aliases = ["@obj"]
     locks = "cmd:perm(Admin) or perm(Developer)"
     help_category = "Admin"
-    switch_options = ("list", "status", "create", "move", "desc", "takeable", "equippable", "setstat", "equip", "delete", "help")
+    switch_options = (
+        "list",
+        "status",
+        "create",
+        "move",
+        "desc",
+        "takeable",
+        "equippable",
+        "setstat",
+        "equip",
+        "delete",
+        "help",
+    )
 
     def _msg(self, text):
         self.caller.msg(text)

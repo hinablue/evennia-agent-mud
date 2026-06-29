@@ -1,18 +1,21 @@
-
 """Admin helpers for managing game Objects."""
 
 from evennia import create_object, search_object
 from evennia.utils.utils import make_iter
 from dataclasses import dataclass
 
+
 @dataclass
 class ObjectSpecError(ValueError):
     message: str
+
     def __str__(self):
         return self.message
 
+
 def _clean_text_safe(value):
     return (value or "").strip()
+
 
 def _find_exact_object(key):
     key = _clean_text_safe(key)
@@ -20,6 +23,7 @@ def _find_exact_object(key):
         return None
     matches = search_object(key, exact=True)
     return matches[0] if matches else None
+
 
 def _get_room_or_error(room_name):
     room_name = _clean_text_safe(room_name)
@@ -32,6 +36,7 @@ def _get_room_or_error(room_name):
         raise ObjectSpecError(f"`{room_name}` 不是房間。")
     return room
 
+
 def _get_object_or_error(obj_key):
     obj_key = _clean_text_safe(obj_key)
     if not obj_key:
@@ -40,6 +45,7 @@ def _get_object_or_error(obj_key):
     if not obj:
         raise ObjectSpecError(f"找不到物件：{obj_key}")
     return obj
+
 
 def _get_player_or_error(char_key):
     char_key = _clean_text_safe(char_key)
@@ -50,13 +56,14 @@ def _get_player_or_error(char_key):
         raise ObjectSpecError(f"找不到角色：{char_key}")
     return obj
 
+
 def summarize_object(obj_key):
     obj = _get_object_or_error(obj_key)
     location = getattr(obj, "location", None)
     loc_name = getattr(location, "key", "無") if location else "無"
     desc = getattr(obj.db, "desc", "無") or "無"
     aliases = list(obj.aliases.all()) if hasattr(obj, "aliases") else []
-    
+
     lines = [f"Object：{obj.key}"]
     lines.append(f"- 位置：{loc_name}")
     lines.append(f"- 描述：{desc}")
@@ -66,34 +73,38 @@ def summarize_object(obj_key):
     lines.append(f"- 可裝備：{'是' if getattr(obj.db, 'equippable', False) else '否'}")
     return "\n".join(lines)
 
+
 def list_objects(room_name=None):
     from evennia.objects.models import ObjectDB
+
     if room_name:
         room = _get_room_or_error(room_name)
         objects = [obj for obj in ObjectDB.objects.all() if obj.location == room]
     else:
         objects = ObjectDB.objects.all()
-    
+
     if not objects:
         return "目前沒有找到任何物件。"
-    
+
     title = f"物件清單：{room_name}" if room_name else "物件清單：全世界"
     lines = [title]
     for obj in objects:
         lines.append(f"- {obj.key} (位於: {getattr(obj.location, 'key', '無')})")
     return "\n".join(lines)
 
+
 def create_object_admin(obj_key, room_name, desc=None, aliases=None):
     from typeclasses.objects import Object
+
     obj_key = _clean_text_safe(obj_key)
     if not obj_key:
         raise ObjectSpecError("create 需要物件名稱。")
     if _find_exact_object(obj_key):
         raise ObjectSpecError(f"同名物件已存在：{obj_key}")
-    
+
     room = _get_room_or_error(room_name)
     desc = _clean_text_safe(desc) or "一個普通的物件。"
-    
+
     obj = create_object(
         Object,
         key=obj_key,
@@ -104,12 +115,14 @@ def create_object_admin(obj_key, room_name, desc=None, aliases=None):
     obj.save()
     return {"message": f"已建立物件 `{obj_key}`，目前位於 `{room.key}`。"}
 
+
 def move_object(obj_key, room_name):
     obj = _get_object_or_error(obj_key)
     room = _get_room_or_error(room_name)
     obj.location = room
     obj.save()
     return {"message": f"已將 `{obj.key}` 移到 `{room.key}`。"}
+
 
 def set_object_desc(obj_key, desc):
     obj = _get_object_or_error(obj_key)
@@ -120,11 +133,13 @@ def set_object_desc(obj_key, desc):
     obj.save()
     return {"message": f"已更新 `{obj.key}` 的描述。"}
 
+
 def delete_object(obj_key):
     obj = _get_object_or_error(obj_key)
     key = obj.key
     obj.delete()
     return {"message": f"已刪除物件 `{key}`。"}
+
 
 def set_object_takeable(obj_key, takeable=True):
     obj = _get_object_or_error(obj_key)
@@ -133,12 +148,14 @@ def set_object_takeable(obj_key, takeable=True):
     status = "可拿取" if takeable else "不可拿取"
     return {"message": f"已將 `{obj.key}` 設定為 {status}。"}
 
+
 def set_object_equippable(obj_key, equippable=True):
     obj = _get_object_or_error(obj_key)
     obj.db.equippable = equippable
     obj.save()
     status = "可裝備" if equippable else "不可裝備"
     return {"message": f"已將 `{obj.key}` 設定為 {status}。"}
+
 
 def set_object_stat(obj_key, stat_pair):
     obj = _get_object_or_error(obj_key)
@@ -150,10 +167,11 @@ def set_object_stat(obj_key, stat_pair):
     obj.save()
     return {"message": f"已將 `{obj.key}` 的屬性 `{stat}` 設定為 `{value}`。"}
 
+
 def equip_object(char_key, obj_key, slot="main"):
     char = _get_player_or_error(char_key)
     obj = _get_object_or_error(obj_key)
-    
+
     # Optional: verify equippable flag here if desired
     # if not getattr(obj.db, 'equippable', False):
     #     raise ObjectSpecError(f"物件 `{obj.key}` 不可裝備。")

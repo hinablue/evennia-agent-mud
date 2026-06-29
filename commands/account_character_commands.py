@@ -17,7 +17,11 @@ class CmdLockedIC(CmdIC):
         primary = None
         if hasattr(account, "get_primary_character"):
             primary = account.get_primary_character()
-        primary = primary or getattr(account.db, "primary_character", None) or getattr(account.db, "_last_puppet", None)
+        primary = (
+            primary
+            or getattr(account.db, "primary_character", None)
+            or getattr(account.db, "_last_puppet", None)
+        )
         if not primary:
             self.msg("你目前沒有可進入的角色，請通知管理員。")
             return
@@ -72,4 +76,6 @@ class CmdCharacterRoster(MuxCommand):
         if not primary:
             self.msg("你目前沒有綁定角色。")
             return
-        self.msg(f"你的預設角色是：{primary.key}。此帳號不能自行新增、刪除或切換 Character。")
+        self.msg(
+            f"你的預設角色是：{primary.key}。此帳號不能自行新增、刪除或切換 Character。"
+        )

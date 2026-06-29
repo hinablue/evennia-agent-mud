@@ -8,7 +8,6 @@ from world.agent_world import build_agent_world
 from world.agent_xyzgrid import migrate_existing_world_to_xyzgrid
 
 
-
 def at_initial_setup():
     # 先補齊 spec 房間/場景，再把同一批 live rooms/exits 掛上 XYZGrid。
     build_agent_world()

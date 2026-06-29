@@ -51,7 +51,6 @@ def _clean_text(value):
     return (value or "").strip()
 
 
-
 def _normalize_aliases(aliases):
     seen = set()
     ordered = []
@@ -63,11 +62,9 @@ def _normalize_aliases(aliases):
     return ordered
 
 
-
 def _format_list(items):
     items = [str(item) for item in items if item]
     return "、".join(items) if items else "無"
-
 
 
 def _find_exact(key):
@@ -76,7 +73,6 @@ def _find_exact(key):
         return None
     matches = search_object(key, exact=True)
     return matches[0] if matches else None
-
 
 
 def _get_room_or_error(room_name):
@@ -91,7 +87,6 @@ def _get_room_or_error(room_name):
     return room
 
 
-
 def _get_npc_or_error(npc_key):
     npc_key = _clean_text(npc_key)
     if not npc_key:
@@ -104,16 +99,13 @@ def _get_npc_or_error(npc_key):
     return obj
 
 
-
 def _current_aliases(obj):
     return list(obj.aliases.all()) if obj else []
-
 
 
 def _find_room_name_for_obj(obj):
     location = getattr(obj, "location", None)
     return getattr(location, "key", "無") if location else "無"
-
 
 
 def _is_llm_npc(obj):
@@ -124,7 +116,6 @@ def _is_llm_npc(obj):
     )
 
 
-
 def _is_npc(obj):
     return bool(obj) and (
         getattr(obj.db, "is_npc", False)
@@ -133,12 +124,10 @@ def _is_npc(obj):
     )
 
 
-
 def _npc_kind(obj):
     if _is_llm_npc(obj):
         return "llm"
     return "npc"
-
 
 
 def _set_aliases(obj, aliases):
@@ -147,7 +136,6 @@ def _set_aliases(obj, aliases):
     for alias in aliases:
         obj.aliases.add(alias)
     return aliases
-
 
 
 def _truncate(text, limit=140):
@@ -169,10 +157,95 @@ def _format_npc_stats(obj):
     parts = []
     for public_key, attr_name in NPC_STAT_FIELDS.items():
         value = getattr(obj.db, attr_name, None)
-        if value is None and hasattr(obj, 'get_stat') and public_key in {"str", "def", "spirit", "intel", "agility", "stamina", "spd"}:
+        if (
+            value is None
+            and hasattr(obj, "get_stat")
+            and public_key
+            in {"str", "def", "spirit", "intel", "agility", "stamina", "spd"}
+        ):
             value = obj.get_stat(public_key)
         parts.append(f"{public_key}={value}")
     return "｜".join(parts)
+
+
+def _is_equipment(obj):
+    return bool(obj) and inherits_from(obj, "typeclasses.equipment.Equipment")
+
+
+def _get_equipment_or_error(eq_key):
+    eq_key = _clean_text(eq_key)
+    if not eq_key:
+        raise NPCSpecError("請提供裝備名稱。")
+    obj = _find_exact(eq_key)
+    if not obj:
+        raise NPCSpecError(f"找不到裝備：{eq_key}")
+    if not _is_equipment(obj):
+        raise NPCSpecError(f"`{eq_key}` 不是 Equipment。")
+    return obj
+
+
+def _normalize_slot(slot):
+    slot = _clean_text(slot)
+    if not slot:
+        raise NPCSpecError("裝備設定需要指定槽位。")
+    return slot
+
+
+def _equipment_summary_pairs(obj):
+    equipment = getattr(obj.db, "equipment", {}) or {}
+    pairs = []
+    for slot, item in equipment.items():
+        if not item:
+            continue
+        pairs.append(f"{slot}:{getattr(item, 'key', str(item))}")
+    return pairs
+
+
+def _loot_summary_pairs(obj):
+    loot_table = getattr(obj.db, "npc_loot_table", []) or []
+    pairs = []
+    for entry in loot_table:
+        key = entry.get("key", "未命名")
+        chance = entry.get("chance", 0.0)
+        slot = entry.get("equip_slot") or "未指定槽位"
+        pairs.append(f"{key}@{chance:.2f}（{slot}）")
+    return pairs
+
+
+def _copy_equipment_to_loot_entry(item, chance=1.0):
+    stats = dict(getattr(item.db, "stats", {}) or {})
+    magic_buffs = list(getattr(item.db, "magic_buffs", []) or [])
+    aliases = list(item.aliases.all()) if hasattr(item, "aliases") else []
+    return {
+        "typeclass": getattr(item, "typeclass_path", "typeclasses.equipment.Equipment"),
+        "key": item.key,
+        "aliases": aliases,
+        "desc": _clean_text(getattr(item.db, "desc", "")) or "從敵人身上掉落的戰利品。",
+        "stats": stats,
+        "equip_slot": getattr(item.db, "equip_slot", None),
+        "max_durability": getattr(item.db, "max_durability", 100) or 100,
+        "two_handed": bool(getattr(item.db, "two_handed", False)),
+        "magic_buffs": magic_buffs,
+        "wear_style": getattr(item.db, "wear_style", "") or "",
+        "chance": float(chance),
+    }
+
+
+def _place_equipment_on_npc(npc, item, slot):
+    previous_location = getattr(item, "location", None)
+    if (
+        previous_location
+        and previous_location != npc
+        and hasattr(previous_location, "remove_from_inventory")
+    ):
+        previous_location.remove_from_inventory(item)
+    item.location = npc
+    item.home = getattr(npc, "location", None) or getattr(npc, "home", None)
+    item.save()
+    if hasattr(npc, "find_in_inventory") and not npc.find_in_inventory(item.key):
+        npc.add_to_inventory(item)
+    npc.equip_item(item, slot)
+    return item
 
 
 # ---------------------------------------------------------------------------
@@ -191,9 +264,13 @@ def summarize_npc(npc_key):
     lines.append(f"- 戰鬥旗標：{_format_combat_flags(obj)}")
     lines.append(f"- 戰鬥數值：{_format_npc_stats(obj)}")
     lines.append(f"- 技能：{_format_list(getattr(obj.db, 'skills', []) or [])}")
+    lines.append(f"- 裝備：{_format_list(_equipment_summary_pairs(obj))}")
+    lines.append(f"- 掉落表：{_format_list(_loot_summary_pairs(obj))}")
     lines.append(f"- typeclass：{obj.typeclass_path}")
     if _is_llm_npc(obj):
-        lines.append(f"- prompt：{_truncate(obj.attributes.get('prompt_prefix', default=DEFAULT_PROMPT_PREFIX), 180)}")
+        lines.append(
+            f"- prompt：{_truncate(obj.attributes.get('prompt_prefix', default=DEFAULT_PROMPT_PREFIX), 180)}"
+        )
         lines.append(f"- LLM：{_format_llm_config(obj)}")
         memory_size = getattr(obj.db, "max_chat_memory_size", None)
         if memory_size in (None, ""):
@@ -203,10 +280,11 @@ def summarize_npc(npc_key):
             thinking_timeout = getattr(obj, "thinking_timeout", 2)
         lines.append(f"- memory：{memory_size}")
         lines.append(f"- thinking_timeout：{thinking_timeout}")
-        thinking_messages = obj.attributes.get("thinking_messages", default=getattr(obj, "thinking_messages", []))
+        thinking_messages = obj.attributes.get(
+            "thinking_messages", default=getattr(obj, "thinking_messages", [])
+        )
         lines.append(f"- thinking_messages：{_format_list(thinking_messages)}")
     return "\n".join(lines)
-
 
 
 def summarize_npcs(room_name=None):
@@ -252,14 +330,18 @@ def create_npc(kind, npc_key, room_name, desc=None, aliases=None, prompt_prefix=
 
     room = _get_room_or_error(room_name)
     aliases = _normalize_aliases(aliases)
-    desc = _clean_text(desc) or (DEFAULT_LLMNPC_DESC if kind == "llm" else DEFAULT_NPC_DESC)
+    desc = _clean_text(desc) or (
+        DEFAULT_LLMNPC_DESC if kind == "llm" else DEFAULT_NPC_DESC
+    )
     typeclass = LLMNPC if kind == "llm" else NPC
 
     attributes = [("desc", desc), ("is_npc", True), ("npc_kind", kind)]
     for attr_name, value in NPC_COMBAT_DEFAULTS.items():
         attributes.append((attr_name, value))
     if kind == "llm":
-        attributes.append(("prompt_prefix", _clean_text(prompt_prefix) or DEFAULT_PROMPT_PREFIX))
+        attributes.append(
+            ("prompt_prefix", _clean_text(prompt_prefix) or DEFAULT_PROMPT_PREFIX)
+        )
 
     obj = create_object(
         typeclass,
@@ -275,7 +357,6 @@ def create_npc(kind, npc_key, room_name, desc=None, aliases=None, prompt_prefix=
     }
 
 
-
 def move_npc(npc_key, room_name):
     obj = _get_npc_or_error(npc_key)
     room = _get_room_or_error(room_name)
@@ -286,7 +367,6 @@ def move_npc(npc_key, room_name):
         "npc": obj,
         "message": f"已將 `{obj.key}` 移到 `{room.key}`。這是 live 世界變更。",
     }
-
 
 
 def set_npc_desc(npc_key, desc):
@@ -302,7 +382,6 @@ def set_npc_desc(npc_key, desc):
     }
 
 
-
 def set_npc_aliases(npc_key, aliases):
     obj = _get_npc_or_error(npc_key)
     aliases = _normalize_aliases(aliases)
@@ -314,7 +393,6 @@ def set_npc_aliases(npc_key, aliases):
         "npc": obj,
         "message": f"已更新 `{obj.key}` 的 aliases：{_format_list(aliases)}。",
     }
-
 
 
 def set_llm_prompt(npc_key, prompt_prefix):
@@ -332,7 +410,6 @@ def set_llm_prompt(npc_key, prompt_prefix):
     }
 
 
-
 def set_llm_thinking(npc_key, timeout, messages=None):
     obj = _get_npc_or_error(npc_key)
     if not _is_llm_npc(obj):
@@ -344,7 +421,9 @@ def set_llm_thinking(npc_key, timeout, messages=None):
     if timeout_value < 0:
         raise NPCSpecError("thinking timeout 不能小於 0。")
     obj.attributes.add("thinking_timeout", timeout_value)
-    clean_messages = [msg for msg in (_clean_text(item) for item in (messages or [])) if msg]
+    clean_messages = [
+        msg for msg in (_clean_text(item) for item in (messages or [])) if msg
+    ]
     if clean_messages:
         obj.attributes.add("thinking_messages", clean_messages)
     obj.save()
@@ -352,7 +431,11 @@ def set_llm_thinking(npc_key, timeout, messages=None):
         "npc": obj,
         "message": (
             f"已更新 `{obj.key}` 的 thinking 設定：timeout={timeout_value} 秒"
-            + (f"，messages={_format_list(clean_messages)}。" if clean_messages else "。")
+            + (
+                f"，messages={_format_list(clean_messages)}。"
+                if clean_messages
+                else "。"
+            )
         ),
     }
 
@@ -371,7 +454,10 @@ def set_npc_combat_flags(npc_key, attackable=None, retaliates=None, can_die=None
     for key, value in updates.items():
         setattr(obj.db, key, value)
     obj.save()
-    return {"npc": obj, "message": f"已更新 `{obj.key}` 的戰鬥旗標：{_format_combat_flags(obj)}。"}
+    return {
+        "npc": obj,
+        "message": f"已更新 `{obj.key}` 的戰鬥旗標：{_format_combat_flags(obj)}。",
+    }
 
 
 def set_npc_stats(npc_key, stat_updates):
@@ -390,15 +476,23 @@ def set_npc_stats(npc_key, stat_updates):
         setattr(obj.db, attr_name, value)
         applied.append(f"{public_key}={value}")
     obj.save()
-    return {"npc": obj, "message": f"已更新 `{obj.key}` 的戰鬥數值：{'、'.join(applied)}。"}
+    return {
+        "npc": obj,
+        "message": f"已更新 `{obj.key}` 的戰鬥數值：{'、'.join(applied)}。",
+    }
 
 
 def set_npc_skills(npc_key, skills):
     obj = _get_npc_or_error(npc_key)
-    clean_skills = [skill for skill in (_clean_text(item) for item in (skills or [])) if skill]
+    clean_skills = [
+        skill for skill in (_clean_text(item) for item in (skills or [])) if skill
+    ]
     obj.db.skills = clean_skills
     obj.save()
-    return {"npc": obj, "message": f"已更新 `{obj.key}` 的技能：{_format_list(clean_skills)}。"}
+    return {
+        "npc": obj,
+        "message": f"已更新 `{obj.key}` 的技能：{_format_list(clean_skills)}。",
+    }
 
 
 def _format_llm_config(obj):
@@ -411,7 +505,11 @@ def _format_llm_config(obj):
         parts.append(f"host={llm_host}")
     if llm_api_key:
         # Mask API key for display
-        masked = llm_api_key[:4] + "***" + llm_api_key[-4:] if len(llm_api_key) > 8 else "***"
+        masked = (
+            llm_api_key[:4] + "***" + llm_api_key[-4:]
+            if len(llm_api_key) > 8
+            else "***"
+        )
         parts.append(f"api_key={masked}")
     if llm_model:
         parts.append(f"model={llm_model}")
@@ -567,6 +665,69 @@ def set_npc_aggro(npc_key, chance_str):
     return {
         "npc": obj,
         "message": f"已設定 `{obj.key}` 的被 look 主動攻擊機率為 {chance:.0%}。",
+    }
+
+
+def set_npc_equipment(npc_key, slot_to_equipment):
+    """把既有裝備物件直接掛到 NPC 身上並裝備。"""
+    obj = _get_npc_or_error(npc_key)
+    if not slot_to_equipment:
+        raise NPCSpecError("equip 至少要提供一個 `槽位:裝備名`。")
+
+    equipped = []
+    for raw_slot, raw_item_key in slot_to_equipment.items():
+        slot = _normalize_slot(raw_slot)
+        item_key = _clean_text(raw_item_key)
+        if not item_key:
+            raise NPCSpecError(f"槽位 `{slot}` 缺少裝備名稱。")
+        item = _get_equipment_or_error(item_key)
+        _place_equipment_on_npc(obj, item, slot)
+        equipped.append(f"{slot}:{item.key}")
+
+    obj.save()
+    return {
+        "npc": obj,
+        "message": f"已將 `{obj.key}` 的裝備更新為：{_format_list(equipped)}。",
+    }
+
+
+def set_npc_loot_table(npc_key, loot_specs):
+    """用既有裝備物件快速覆寫 NPC 的 loot table。"""
+    obj = _get_npc_or_error(npc_key)
+    loot_specs = list(loot_specs or [])
+    if not loot_specs:
+        obj.db.npc_loot_table = []
+        obj.db.npc_always_drops_loot = False
+        obj.save()
+        return {
+            "npc": obj,
+            "message": f"已清空 `{obj.key}` 的掉落表。",
+        }
+
+    loot_table = []
+    summary = []
+    for spec in loot_specs:
+        item_key = _clean_text(spec.get("item_key"))
+        if not item_key:
+            raise NPCSpecError("loot 每一筆都需要裝備名稱。")
+        try:
+            chance = float(spec.get("chance", 1.0))
+        except (TypeError, ValueError) as exc:
+            raise NPCSpecError(f"掉落機率需要是 0~1 的數字：{item_key}") from exc
+        if not (0.0 <= chance <= 1.0):
+            raise NPCSpecError(f"掉落機率需要在 0~1 之間：{item_key}")
+        item = _get_equipment_or_error(item_key)
+        loot_table.append(_copy_equipment_to_loot_entry(item, chance=chance))
+        summary.append(f"{item.key}@{chance:.2f}")
+
+    obj.db.npc_loot_table = loot_table
+    obj.db.npc_always_drops_loot = any(
+        entry.get("chance", 0.0) > 0 for entry in loot_table
+    )
+    obj.save()
+    return {
+        "npc": obj,
+        "message": f"已覆寫 `{obj.key}` 的掉落表：{_format_list(summary)}。",
     }
 
 

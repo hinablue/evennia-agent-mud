@@ -79,7 +79,11 @@ class CmdAgentMagic(MuxCommand):
 
         spell_key = parts[0]
         name = parts[1] if len(parts) > 1 else spell_key
-        aliases = [a.strip() for a in parts[2].split(",")] if len(parts) > 2 and parts[2] else []
+        aliases = (
+            [a.strip() for a in parts[2].split(",")]
+            if len(parts) > 2 and parts[2]
+            else []
+        )
         spell_type = parts[3] if len(parts) > 3 else "physical"
         mp = int(parts[4]) if len(parts) > 4 and parts[4] else 10
         dmg_min = int(parts[5]) if len(parts) > 5 and parts[5] else 0

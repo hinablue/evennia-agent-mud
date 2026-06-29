@@ -79,6 +79,11 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             "base_stamina": 10,
             "base_spd": 10,
             "base_atk": 10,
+            # Kingdom / Nationality fields
+            "is_king": False,
+            "kingdom": None,
+            "nationality": "",
+            "king": None,
         }
         for key, value in defaults.items():
             if self.attributes.get(key) is None:
@@ -257,7 +262,9 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         if slot is None:
             slot = getattr(item.db, "equip_slot", None)
             if not slot:
-                self.msg(f"⚠️ {item.get_display_name(self)} 無法裝備：沒有指定的裝備欄位。")
+                self.msg(
+                    f"⚠️ {item.get_display_name(self)} 無法裝備：沒有指定的裝備欄位。"
+                )
                 return False
 
         if slot not in EQUIPMENT_SLOTS:
@@ -352,7 +359,14 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             return "目前身上沒有穿戴任何裝備。"
 
         lines = []
-        for slot, item in sorted(equipment.items(), key=lambda x: list(EQUIPMENT_SLOTS.keys()).index(x[0]) if x[0] in EQUIPMENT_SLOTS else 999):
+        for slot, item in sorted(
+            equipment.items(),
+            key=lambda x: (
+                list(EQUIPMENT_SLOTS.keys()).index(x[0])
+                if x[0] in EQUIPMENT_SLOTS
+                else 999
+            ),
+        ):
             slot_info = EQUIPMENT_SLOTS.get(slot, {"name": slot, "is_weapon": False})
             slot_name = slot_info["name"]
             item_name = item.get_display_name(self)
@@ -424,6 +438,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             return
         buffs = getattr(self.db, "active_buffs", {}) or {}
         import time
+
         buffs[stat] = {
             "amount": int(amount),
             "duration": int(duration),
@@ -438,6 +453,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             return
         debuffs = getattr(self.db, "active_debuffs", {}) or {}
         import time
+
         debuffs[stat] = {
             "amount": int(amount),
             "duration": int(duration),
@@ -489,6 +505,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
     def heal_self(self, min_hp, max_hp):
         """自我治療。"""
         import random
+
         amount = random.randint(int(min_hp), int(max_hp))
         current_hp = getattr(self.db, "hp", 0)
         max_hp_val = getattr(self.db, "max_hp", 100)

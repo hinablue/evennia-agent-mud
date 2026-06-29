@@ -67,7 +67,17 @@ class CmdAgentWorld(MuxCommand):
     )
 
     GRANULAR_SWITCHES = {"rooms", "objects", "exits", "details", "npcs"}
-    ACTION_SWITCHES = {"status", "check", "dryrun", "room", "addroom", "adddetail", "addscenery", "addexit", "move"}
+    ACTION_SWITCHES = {
+        "status",
+        "check",
+        "dryrun",
+        "room",
+        "addroom",
+        "adddetail",
+        "addscenery",
+        "addexit",
+        "move",
+    }
 
     def _msg(self, text):
         self.caller.msg(text)
@@ -76,7 +86,9 @@ class CmdAgentWorld(MuxCommand):
         return (self.args or self.lhs or "").strip()
 
     def _selected_components(self):
-        components = [switch for switch in self.switches if switch in self.GRANULAR_SWITCHES]
+        components = [
+            switch for switch in self.switches if switch in self.GRANULAR_SWITCHES
+        ]
         return components or None
 
     def _resolve_scope_for_report(self):
@@ -132,12 +144,16 @@ class CmdAgentWorld(MuxCommand):
 
     def _handle_checklike(self, mode):
         room_name = self._resolve_scope_for_report()
-        analysis = analyze_agent_world(room_name=room_name, components=self._selected_components())
+        analysis = analyze_agent_world(
+            room_name=room_name, components=self._selected_components()
+        )
         self._msg(render_analysis(analysis, mode=mode))
 
     def _handle_build(self):
         room_name = self._resolve_scope_for_report()
-        result = build_agent_world(room_name=room_name, components=self._selected_components())
+        result = build_agent_world(
+            room_name=room_name, components=self._selected_components()
+        )
         self._msg(self._render_build_result(result))
 
     def _handle_force_rebuild(self):
@@ -200,16 +216,26 @@ class CmdAgentWorld(MuxCommand):
         object_key = parts[0]
         aliases = [alias.strip() for alias in parts[1].split(",") if alias.strip()]
         desc = "|".join(parts[2:]).strip()
-        result = add_live_scenery(room_name, object_key=object_key, aliases=aliases, desc=desc)
+        result = add_live_scenery(
+            room_name, object_key=object_key, aliases=aliases, desc=desc
+        )
         self._msg(result["message"])
 
     def _handle_addexit(self):
         source_name = (self.lhs or "").strip()
-        parts = self._parse_pipe_rhs(2, "addexit 格式需要 `來源房間=出口名|目標房間|alias1,alias2`。")
+        parts = self._parse_pipe_rhs(
+            2, "addexit 格式需要 `來源房間=出口名|目標房間|alias1,alias2`。"
+        )
         exit_key = parts[0]
         dest_name = parts[1]
-        aliases = [alias.strip() for alias in (parts[2] if len(parts) > 2 else "").split(",") if alias.strip()]
-        result = add_live_exit(source_name, exit_key=exit_key, dest_name=dest_name, aliases=aliases)
+        aliases = [
+            alias.strip()
+            for alias in (parts[2] if len(parts) > 2 else "").split(",")
+            if alias.strip()
+        ]
+        result = add_live_exit(
+            source_name, exit_key=exit_key, dest_name=dest_name, aliases=aliases
+        )
         self._msg(result["message"])
 
     def _handle_move(self):

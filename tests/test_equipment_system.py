@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 # Mock helpers - build realistic-enough Evennia object mocks
 # ---------------------------------------------------------------------------
 
+
 class MockAttributeStore(dict):
     """Dict-backed attribute store that behaves like Evennia's attribute system."""
 
@@ -54,6 +55,7 @@ class MockDB:
 
 class MockAliases(set):
     """Simulates Evennia's aliases relationship."""
+
     pass
 
 
@@ -103,42 +105,45 @@ EQUIPMENT_SLOTS = {
 # Test: Character attribute initialization
 # ---------------------------------------------------------------------------
 
+
 class TestCharacterAttributes:
     """Test that Character initializes all required attributes."""
 
     def test_default_attributes_initialized(self):
         """All required attributes should be present after creation."""
         store = MockAttributeStore()
-        store.update({
-            "combat_state": "idle",
-            "combat_session": None,
-            "combat_status": "normal",
-            "hp": 100,
-            "max_hp": 100,
-            "mp": 30,
-            "max_mp": 30,
-            "stamina": 100,
-            "max_stamina": 100,
-            "level": 1,
-            "exp": 0,
-            "max_exp": 100,
-            "max_sockets": 3,
-            "sockets": {},
-            "equipped_items": [],
-            "skills": [],
-            "tokens": 0,
-            "inventory_capacity": 10,
-            "inventory": [],
-            "equipment": {},
-            "base_str": 10,
-            "base_def": 10,
-            "base_spirit": 10,
-            "base_intel": 10,
-            "base_agility": 10,
-            "base_stamina": 10,
-            "base_spd": 10,
-            "base_atk": 10,
-        })
+        store.update(
+            {
+                "combat_state": "idle",
+                "combat_session": None,
+                "combat_status": "normal",
+                "hp": 100,
+                "max_hp": 100,
+                "mp": 30,
+                "max_mp": 30,
+                "stamina": 100,
+                "max_stamina": 100,
+                "level": 1,
+                "exp": 0,
+                "max_exp": 100,
+                "max_sockets": 3,
+                "sockets": {},
+                "equipped_items": [],
+                "skills": [],
+                "tokens": 0,
+                "inventory_capacity": 10,
+                "inventory": [],
+                "equipment": {},
+                "base_str": 10,
+                "base_def": 10,
+                "base_spirit": 10,
+                "base_intel": 10,
+                "base_agility": 10,
+                "base_stamina": 10,
+                "base_spd": 10,
+                "base_atk": 10,
+            }
+        )
 
         assert store["tokens"] == 0
         assert store["inventory_capacity"] == 10
@@ -152,6 +157,7 @@ class TestCharacterAttributes:
 # ---------------------------------------------------------------------------
 # Test: Token / Wallet System
 # ---------------------------------------------------------------------------
+
 
 class TestTokenSystem:
     """Test token operations."""
@@ -191,18 +197,23 @@ class TestTokenSystem:
 # Test: Inventory System
 # ---------------------------------------------------------------------------
 
+
 class TestInventorySystem:
     """Test inventory operations."""
 
     def test_default_inventory_empty(self):
         """New character should have empty inventory."""
-        char = MockObject(key="TestChar", attrs={"inventory": [], "inventory_capacity": 10})
+        char = MockObject(
+            key="TestChar", attrs={"inventory": [], "inventory_capacity": 10}
+        )
         assert len(char.db.inventory) == 0
         assert char.db.inventory_capacity == 10
 
     def test_add_to_inventory_success(self):
         """Should be able to add items until capacity."""
-        char = MockObject(key="TestChar", attrs={"inventory": [], "inventory_capacity": 3})
+        char = MockObject(
+            key="TestChar", attrs={"inventory": [], "inventory_capacity": 3}
+        )
 
         items = [MockObject(key=f"Item{i}") for i in range(3)]
         inv = list(char.db.inventory or [])
@@ -215,7 +226,9 @@ class TestInventorySystem:
 
     def test_inventory_full(self):
         """Cannot add items beyond capacity."""
-        char = MockObject(key="TestChar", attrs={"inventory": [], "inventory_capacity": 2})
+        char = MockObject(
+            key="TestChar", attrs={"inventory": [], "inventory_capacity": 2}
+        )
         inv = list(char.db.inventory or [])
 
         # Fill inventory
@@ -235,7 +248,10 @@ class TestInventorySystem:
         """Removing item from inventory should work."""
         item1 = MockObject(key="Item1")
         item2 = MockObject(key="Item2")
-        char = MockObject(key="TestChar", attrs={"inventory": [item1, item2], "inventory_capacity": 10})
+        char = MockObject(
+            key="TestChar",
+            attrs={"inventory": [item1, item2], "inventory_capacity": 10},
+        )
 
         inv = list(char.db.inventory or [])
         if item1 in inv:
@@ -247,7 +263,9 @@ class TestInventorySystem:
 
     def test_expand_inventory(self):
         """Expanding inventory should increase capacity."""
-        char = MockObject(key="TestChar", attrs={"inventory": [], "inventory_capacity": 10})
+        char = MockObject(
+            key="TestChar", attrs={"inventory": [], "inventory_capacity": 10}
+        )
         current = char.db.inventory_capacity
         char.db.inventory_capacity = current + 5
         assert char.db.inventory_capacity == 15
@@ -257,14 +275,25 @@ class TestInventorySystem:
 # Test: Equipment Slots
 # ---------------------------------------------------------------------------
 
+
 class TestEquipmentSlots:
     """Test equipment slot definitions."""
 
     def test_all_required_slots_defined(self):
         """All required equipment slots should be defined."""
         required = [
-            "hat", "top", "bottom", "cloak", "shoes", "gloves",
-            "glasses", "earring", "ring", "main_hand", "off_hand", "two_hand",
+            "hat",
+            "top",
+            "bottom",
+            "cloak",
+            "shoes",
+            "gloves",
+            "glasses",
+            "earring",
+            "ring",
+            "main_hand",
+            "off_hand",
+            "two_hand",
         ]
         for slot in required:
             assert slot in EQUIPMENT_SLOTS
@@ -290,16 +319,20 @@ class TestEquipmentSlots:
 # Test: Equip / Unequip Logic
 # ---------------------------------------------------------------------------
 
+
 class TestEquipUnequip:
     """Test equip/unequip logic with inventory."""
 
     def test_equip_item_to_empty_slot(self):
         """Can equip item to empty slot."""
-        char = MockObject(key="TestChar", attrs={
-            "inventory": [],
-            "equipment": {},
-            "inventory_capacity": 10,
-        })
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "inventory": [],
+                "equipment": {},
+                "inventory_capacity": 10,
+            },
+        )
         item = MockObject(key="IronSword")
         item.db.equip_slot = "main_hand"
         item.db.worn = False
@@ -313,9 +346,12 @@ class TestEquipUnequip:
 
     def test_equip_two_hand_blocks_main_off(self):
         """Equipping two-hand weapon should block main/off hand."""
-        char = MockObject(key="TestChar", attrs={
-            "equipment": {"two_hand": MockObject(key="GreatAxe")},
-        })
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "equipment": {"two_hand": MockObject(key="GreatAxe")},
+            },
+        )
         two_hand = char.db.equipment.get("two_hand")
         main_hand = char.db.equipment.get("main_hand")
 
@@ -325,12 +361,15 @@ class TestEquipUnequip:
 
     def test_equip_main_hand_blocks_two_hand(self):
         """Equipping main-hand weapon should block two-hand."""
-        char = MockObject(key="TestChar", attrs={
-            "equipment": {
-                "main_hand": MockObject(key="ShortSword"),
-                "two_hand": None,
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "equipment": {
+                    "main_hand": MockObject(key="ShortSword"),
+                    "two_hand": None,
+                },
             },
-        })
+        )
         main_hand = char.db.equipment.get("main_hand")
         two_hand = char.db.equipment.get("two_hand")
 
@@ -340,11 +379,14 @@ class TestEquipUnequip:
 
     def test_unequip_to_inventory_full(self):
         """Unequipping when inventory full should leave item in room."""
-        char = MockObject(key="TestChar", attrs={
-            "inventory": [MockObject(key=f"Item{i}") for i in range(10)],
-            "equipment": {"hat": MockObject(key="OldHat")},
-            "inventory_capacity": 10,
-        })
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "inventory": [MockObject(key=f"Item{i}") for i in range(10)],
+                "equipment": {"hat": MockObject(key="OldHat")},
+                "inventory_capacity": 10,
+            },
+        )
         char.location = MockObject(key="TestRoom")
 
         item = char.db.equipment.get("hat")
@@ -364,6 +406,7 @@ class TestEquipUnequip:
 # Test: Equipment Stats
 # ---------------------------------------------------------------------------
 
+
 class TestEquipmentStats:
     """Test equipment stat bonuses."""
 
@@ -372,11 +415,14 @@ class TestEquipmentStats:
         item = MockObject(key="MagicSword")
         item.db.stats = {"atk": 10, "str": 3}
 
-        char = MockObject(key="TestChar", attrs={
-            "base_atk": 10,
-            "equipment": {"main_hand": item},
-            "sockets": {},
-        })
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "base_atk": 10,
+                "equipment": {"main_hand": item},
+                "sockets": {},
+            },
+        )
 
         bonus = 0
         equipment = char.db.equipment or {}
@@ -392,12 +438,15 @@ class TestEquipmentStats:
         item = MockObject(key="RustyArmor")
         item.db.stats = {"def": -5, "agi": -2}
 
-        char = MockObject(key="TestChar", attrs={
-            "base_def": 20,
-            "base_agi": 15,
-            "equipment": {"top": item},
-            "sockets": {},
-        })
+        char = MockObject(
+            key="TestChar",
+            attrs={
+                "base_def": 20,
+                "base_agi": 15,
+                "equipment": {"top": item},
+                "sockets": {},
+            },
+        )
 
         equipment = char.db.equipment or {}
         def_bonus = 0
@@ -413,23 +462,30 @@ class TestEquipmentStats:
 # Test: Equipment Durability
 # ---------------------------------------------------------------------------
 
+
 class TestEquipmentDurability:
     """Test equipment durability system."""
 
     def test_durability_starts_at_max(self):
         """New equipment should have full durability."""
-        item = MockObject(key="NewSword", attrs={
-            "durability": 100,
-            "max_durability": 100,
-        })
+        item = MockObject(
+            key="NewSword",
+            attrs={
+                "durability": 100,
+                "max_durability": 100,
+            },
+        )
         assert item.db.durability == item.db.max_durability
 
     def test_durability_decreases(self):
         """Using durability should decrease it."""
-        item = MockObject(key="TestSword", attrs={
-            "durability": 50,
-            "max_durability": 100,
-        })
+        item = MockObject(
+            key="TestSword",
+            attrs={
+                "durability": 50,
+                "max_durability": 100,
+            },
+        )
         amount = 10
         new_dur = max(0, (item.db.durability or 0) - amount)
         item.db.durability = new_dur
@@ -437,11 +493,14 @@ class TestEquipmentDurability:
 
     def test_durability_zero_breaks(self):
         """Durability reaching 0 should mark equipment as broken."""
-        item = MockObject(key="TestSword", attrs={
-            "durability": 5,
-            "max_durability": 100,
-            "broken": False,
-        })
+        item = MockObject(
+            key="TestSword",
+            attrs={
+                "durability": 5,
+                "max_durability": 100,
+                "broken": False,
+            },
+        )
         item.db.durability = 0
         if (item.db.durability or 0) <= 0:
             item.db.broken = True
@@ -449,11 +508,14 @@ class TestEquipmentDurability:
 
     def test_repair_restores_durability(self):
         """Repairing should restore durability."""
-        item = MockObject(key="TestSword", attrs={
-            "durability": 30,
-            "max_durability": 100,
-            "broken": True,
-        })
+        item = MockObject(
+            key="TestSword",
+            attrs={
+                "durability": 30,
+                "max_durability": 100,
+                "broken": True,
+            },
+        )
         max_dur = item.db.max_durability
         item.db.durability = max_dur
         item.db.broken = False
@@ -462,10 +524,13 @@ class TestEquipmentDurability:
 
     def test_partial_repair(self):
         """Partial repair should add durability up to max."""
-        item = MockObject(key="TestSword", attrs={
-            "durability": 30,
-            "max_durability": 100,
-        })
+        item = MockObject(
+            key="TestSword",
+            attrs={
+                "durability": 30,
+                "max_durability": 100,
+            },
+        )
         amount = 20
         current = item.db.durability
         item.db.durability = min(item.db.max_durability, current + amount)
@@ -478,9 +543,7 @@ class TestEquipmentDurability:
 
 evennia_missing = False
 try:
-    from world.equipment_tools import (
-        create_equipment, EquipmentSpecError, VALID_SLOTS
-    )
+    from world.equipment_tools import create_equipment, EquipmentSpecError, VALID_SLOTS
 except ImportError:
     evennia_missing = True
 
@@ -493,11 +556,13 @@ class TestEquipmentTools:
         """create_equipment should store attributes correctly."""
         # Check function signature exists
         from world.equipment_tools import create_equipment
+
         assert callable(create_equipment)
 
     def test_equipment_spec_error(self):
         """EquipmentSpecError should be a dataclass with message."""
         from world.equipment_tools import EquipmentSpecError
+
         err = EquipmentSpecError("test message")
         assert str(err) == "test message"
         assert err.message == "test message"
@@ -505,9 +570,20 @@ class TestEquipmentTools:
     def test_valid_slots_defined(self):
         """All expected slots should be in VALID_SLOTS."""
         from world.equipment_tools import VALID_SLOTS
+
         expected = [
-            "hat", "top", "bottom", "cloak", "shoes", "gloves",
-            "glasses", "earring", "ring", "main_hand", "off_hand", "two_hand",
+            "hat",
+            "top",
+            "bottom",
+            "cloak",
+            "shoes",
+            "gloves",
+            "glasses",
+            "earring",
+            "ring",
+            "main_hand",
+            "off_hand",
+            "two_hand",
         ]
         for slot in expected:
             assert slot in VALID_SLOTS
@@ -517,15 +593,19 @@ class TestEquipmentTools:
 # Test: Magic Buff System
 # ---------------------------------------------------------------------------
 
+
 class TestMagicBuff:
     """Test magic buff stacking on equipment."""
 
     def test_magic_buff_stacks(self):
         """Magic buffs should be stackable."""
-        item = MockObject(key="EnchantedRing", attrs={
-            "magic_buffs": [],
-            "stats": {},
-        })
+        item = MockObject(
+            key="EnchantedRing",
+            attrs={
+                "magic_buffs": [],
+                "stats": {},
+            },
+        )
 
         buffs = list(item.db.magic_buffs or [])
         buffs.append({"stat": "atk", "value": 5})
@@ -546,6 +626,7 @@ class TestMagicBuff:
 # ---------------------------------------------------------------------------
 # Test: Look Player Description
 # ---------------------------------------------------------------------------
+
 
 class TestLookPlayer:
     """Test that look player shows equipped items."""
