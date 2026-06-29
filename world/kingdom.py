@@ -158,3 +158,25 @@ def create_kingdom_channels(kingdom_key, king_char):
     )
     chan.connect(king_char)
     return chan
+
+
+def add_room_quota(kingdom, additional_quota):
+    """GM 追加房間額度。"""
+    kingdom.db.room_quota += additional_quota
+    kingdom.save()
+    return kingdom.db.room_quota
+
+
+def get_kingdom_status(kingdom):
+    """取得國家狀態摘要。"""
+    king_char = kingdom.db.king
+    entrance = kingdom.db.entrance_room
+    return {
+        "name": kingdom.key,
+        "king": king_char.key if king_char else "無",
+        "entrance_room": entrance.key if entrance else "未設定",
+        "quota": kingdom.db.room_quota,
+        "used": kingdom.db.rooms_created,
+        "remaining": kingdom.get_quota_remaining(),
+        "nationality_tag": kingdom.db.nationality_tag,
+    }
