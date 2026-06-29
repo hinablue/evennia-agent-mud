@@ -30,6 +30,16 @@ def _install_evennia_stubs():
     accounts_models.Permission = Permission
     sys.modules["evennia.accounts.models"] = accounts_models
 
+    accounts_accounts = ModuleType("evennia.accounts.accounts")
+
+    class DefaultAccount:
+        """Minimal DefaultAccount stub."""
+
+        create = MagicMock(return_value=(None, []))
+
+    accounts_accounts.DefaultAccount = DefaultAccount
+    sys.modules["evennia.accounts.accounts"] = accounts_accounts
+
     utils_utils = ModuleType("evennia.utils.utils")
     utils_utils.make_iter = lambda value: (
         value if isinstance(value, (list, tuple, set)) else [value]
@@ -52,6 +62,7 @@ account_admin = importlib.import_module("commands.account_admin")
 
 AccountSpecError = account_tools.AccountSpecError
 CmdAgentAccount = account_admin.CmdAgentAccount
+set_account_role = account_tools.set_account_role
 
 
 def _fake_char_count(count):
@@ -72,6 +83,84 @@ class FakeCaller:
 
 class AccountToolsTests(unittest.TestCase):
     """Unit tests for world.account_tools."""
+
+    def test_create_account_creates_live_account(self):
+        """Creating an account should delegate to Evennia's account factory."""
+
+        account = SimpleNamespace(key="hinablue", permissions=SimpleNamespace(all=lambda: []))
+
+        default_account = sys.modules["evennia.accounts.accounts"].DefaultAccount
+        with patch.object(
+            default_account,
+            "create",
+            return_value=(account, []),
+        ) as creator:
+            result = account_tools.create_account(
+                "hinablue",
+                "stardust11",
+                email="hina@example.com",
+            )
+
+        creator.assert_called_once_with(
+            username="hinablue",
+            password="stardust11",
+            email="hina@example.com",
+        )
+        self.assertIn("已建立 Account `hinablue`", result["message"])
+        self.assertIn("hina@example.com", result["message"])
+
+    def test_create_account_surfaces_evennia_validation_errors(self):
+        """Evennia validation failures should become AccountSpecError messages."""
+
+        default_account = sys.modules["evennia.accounts.accounts"].DefaultAccount
+        with patch.object(
+            default_account,
+            "create",
+            return_value=(None, ["A user with that username already exists."]),
+        ):
+            with self.assertRaises(AccountSpecError) as err:
+                account_tools.create_account("hinablue", "stardust11")
+
+        self.assertIn("建立帳號失敗", str(err.exception))
+        self.assertIn("A user with that username already exists.", str(err.exception))
+
+    def test_set_account_role_normalizes_hierarchy_permissions(self):
+        """Setting a hierarchy role should replace older hierarchy permissions."""
+
+        existing_perms = [
+            SimpleNamespace(name="Admin"),
+            SimpleNamespace(name="Player"),
+        ]
+        permission_map = {
+            "Admin": SimpleNamespace(name="Admin"),
+            "GM": SimpleNamespace(name="GM"),
+            "King": SimpleNamespace(name="King"),
+            "Player": SimpleNamespace(name="Player"),
+            "Developer": SimpleNamespace(name="Developer"),
+        }
+        account = SimpleNamespace(
+            key="hinablue",
+            permissions=SimpleNamespace(
+                all=lambda: existing_perms,
+                add=MagicMock(),
+                remove=MagicMock(),
+            ),
+            save=MagicMock(),
+        )
+
+        with patch.object(account_tools, "_get_account_or_error", return_value=account), patch.object(
+            sys.modules["evennia.accounts.models"].Permission.objects,
+            "get",
+            side_effect=lambda name: permission_map[name],
+        ):
+            result = set_account_role("hinablue", "King")
+
+        self.assertEqual(result["role"], "King")
+        self.assertIn("`King`", result["message"])
+        account.permissions.remove.assert_any_call(permission_map["Admin"])
+        account.permissions.remove.assert_any_call(permission_map["Player"])
+        account.permissions.add.assert_called_once_with(permission_map["King"])
+        account.save.assert_called_once_with()
 
     def test_delete_account_deletes_live_account(self):
         """Deleting a normal account should call Evennia's delete hook."""
@@ -132,6 +221,49 @@ class CmdAgentAccountTests(unittest.TestCase):
             cmd._handle_delete()
 
         self.assertIn("delete 格式需要 `帳號`", str(err.exception))
+
+    def test_handle_create_requires_account_and_password(self):
+        """The create switch should require account and password input."""
+
+        cmd = self._make_cmd()
+
+        with self.assertRaises(AccountSpecError) as err:
+            cmd._handle_create()
+
+        self.assertIn("create 格式需要 `帳號=密碼`", str(err.exception))
+
+    def test_func_routes_create_switch(self):
+        """The public command entrypoint should dispatch /create correctly."""
+
+        cmd = self._make_cmd()
+        cmd.switches = ["create"]
+        cmd.lhs = "hinablue"
+        cmd.rhs = "stardust11|hina@example.com"
+
+        with patch(
+            "commands.account_admin.create_account",
+            return_value={"message": "建立完成"},
+        ) as creator:
+            cmd.func()
+
+        creator.assert_called_once_with(
+            "hinablue",
+            "stardust11",
+            email="hina@example.com",
+        )
+        self.assertEqual(cmd.caller.messages[-1], "建立完成")
+
+    def test_func_rejects_gm_permission_in_addperm(self):
+        """@agentaccount should refuse GM-tier permission changes."""
+
+        cmd = self._make_cmd()
+        cmd.switches = ["addperm"]
+        cmd.lhs = "hinablue"
+        cmd.rhs = "GM"
+
+        cmd.func()
+
+        self.assertIn("@agentaccount 只能管理 King/Player 權限", cmd.caller.messages[-1])
 
     def test_func_routes_delete_switch(self):
         """The public command entrypoint should dispatch /delete correctly."""

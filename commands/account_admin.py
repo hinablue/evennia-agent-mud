@@ -4,6 +4,7 @@ from commands.command import MuxCommand
 from world.account_tools import (
     AccountSpecError,
     add_account_permission,
+    create_account,
     delete_account,
     list_accounts,
     remove_account_permission,
@@ -19,10 +20,12 @@ class CmdAgentAccount(MuxCommand):
     使用方式:
       @agentaccount
       @agentaccount/list
+      @agentaccount/create <帳號>=<密碼>
+      @agentaccount/create <帳號>=<密碼>|<email>
       @agentaccount/status <帳號>
       @agentaccount/setpuppet <帳號>=<角色>
-      @agentaccount/addperm <帳號>=<權限>
-      @agentaccount/delperm <帳號>=<權限>
+      @agentaccount/addperm <帳號>=<King|Player>
+      @agentaccount/delperm <帳號>=<King|Player>
       @agentaccount/delete <帳號>
     """
 
@@ -32,6 +35,7 @@ class CmdAgentAccount(MuxCommand):
     help_category = "Admin"
     switch_options = (
         "list",
+        "create",
         "status",
         "setpuppet",
         "addperm",
@@ -47,15 +51,34 @@ class CmdAgentAccount(MuxCommand):
         self._msg(
             "|w@agentaccount|n\n"
             "  |w@agentaccount/list|n：列出所有帳號。\n"
+            "  |w@agentaccount/create <帳號>=<密碼>|n：建立新 Account。\n"
+            "  |w@agentaccount/create <帳號>=<密碼>|<email>|n：建立新 Account 並設定 email。\n"
             "  |w@agentaccount/status <帳號>|n：查看帳號詳情與角色。\n"
             "  |w@agentaccount/setpuppet <帳號>=<角色>|n：強制切換最後使用角色。\n"
-            "  |w@agentaccount/addperm <帳號>=<權限>|n：追加權限。\n"
-            "  |w@agentaccount/delperm <帳號>=<權限>|n：移除權限。\n"
+            "  |w@agentaccount/addperm <帳號>=<King|Player>|n：追加層級權限。\n"
+            "  |w@agentaccount/delperm <帳號>=<King|Player>|n：移除層級權限。\n"
+            "  |w註：GM 請改用 @agentworld/role <帳號>=GM|n。\n"
             "  |w@agentaccount/delete <帳號>|n：刪除 Account。\n"
         )
 
     def _handle_list(self):
         self._msg(list_accounts())
+
+    def _handle_create(self):
+        usage = "create 格式需要 `帳號=密碼`，若要設定 email 可再追加 `|email`。"
+        acc_key = (self.lhs or "").strip()
+        rhs = (self.rhs or "").strip()
+        if not acc_key or not rhs:
+            raise AccountSpecError(usage)
+
+        parts = [part.strip() for part in rhs.split("|", 1)]
+        password = parts[0]
+        email = parts[1] if len(parts) > 1 and parts[1] else None
+        if not password:
+            raise AccountSpecError(usage)
+
+        result = create_account(acc_key, password, email=email)
+        self._msg(result["message"])
 
     def _handle_status(self):
         acc_key = (self.args or self.lhs or "").strip()
@@ -101,6 +124,9 @@ class CmdAgentAccount(MuxCommand):
                 return
             if "list" in self.switches:
                 self._handle_list()
+                return
+            if "create" in self.switches:
+                self._handle_create()
                 return
             if "status" in self.switches:
                 self._handle_status()

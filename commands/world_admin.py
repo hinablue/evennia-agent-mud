@@ -1,6 +1,7 @@
 """世界管理用的管理員指令。"""
 
 from commands.command import MuxCommand
+from world.account_tools import AccountSpecError, set_account_role
 from world.agent_world import (
     WorldSpecError,
     add_live_exit,
@@ -37,6 +38,7 @@ class CmdAgentWorld(MuxCommand):
       @agentworld/addscenery 迎賓大廳=茶几|桌几,矮桌|深色木紋桌面被擦得很乾淨。
       @agentworld/addexit 迎賓大廳=archive|資料室|file,檔案室
       @agentworld/move rosie=觀測室
+      @agentworld/role hinablue=GM
 
     不帶 switch 時，等同於全域 build。
     Phase 4 的 add/move 類動作只改 live DB，不會自動回寫 world/agent_world.py。
@@ -64,6 +66,7 @@ class CmdAgentWorld(MuxCommand):
         "addscenery",
         "addexit",
         "move",
+        "role",
     )
 
     GRANULAR_SWITCHES = {"rooms", "objects", "exits", "details", "npcs"}
@@ -77,6 +80,7 @@ class CmdAgentWorld(MuxCommand):
         "addscenery",
         "addexit",
         "move",
+        "role",
     }
 
     def _msg(self, text):
@@ -134,7 +138,8 @@ class CmdAgentWorld(MuxCommand):
             "  |w@agentworld/adddetail 房間=alias1,alias2:描述|n：新增 live detail。\n"
             "  |w@agentworld/addscenery 房間=物件名|alias1,alias2|描述|n：新增 live 場景物。\n"
             "  |w@agentworld/addexit 來源房間=出口名|目標房間|alias1,alias2|n：新增 live 出口。\n"
-            "  |w@agentworld/move 物件或角色=房間|n：移動 live 物件或角色。\n\n"
+            "  |w@agentworld/move 物件或角色=房間|n：移動 live 物件或角色。\n"
+            "  |w@agentworld/role 帳號=GM|King|Player|n：指定帳號的三層角色。\n\n"
             "註：add/move 系列只修改 live DB，不會自動回寫 world/agent_world.py。"
         )
 
@@ -246,6 +251,17 @@ class CmdAgentWorld(MuxCommand):
         result = move_live_entity(entity_key, dest_name=dest_name)
         self._msg(result["message"])
 
+    def _handle_role(self):
+        account_name = (self.lhs or "").strip()
+        role_name = (self.rhs or "").strip()
+        if not account_name or not role_name:
+            raise WorldSpecError("role 格式需要 `帳號=GM|King|Player`。")
+        try:
+            result = set_account_role(account_name, role_name)
+        except AccountSpecError as err:
+            raise WorldSpecError(str(err)) from err
+        self._msg(result["message"])
+
     def func(self):
         try:
             if "help" in self.switches:
@@ -266,6 +282,9 @@ class CmdAgentWorld(MuxCommand):
                 return
             if "move" in self.switches:
                 self._handle_move()
+                return
+            if "role" in self.switches:
+                self._handle_role()
                 return
 
             if "room" in self.switches:

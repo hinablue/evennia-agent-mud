@@ -204,13 +204,15 @@ class CmdKingAdmin(MuxCommand):
     aliases = ["@king"]
     locks = "cmd:perm(King)"          # 只有 King 權限可用
     help_category = "King"
-    switch_options = ("status", "name", "buildroom", "buildexit", "buildobj", "help")
+    switch_options = ("status", "name", "buildroom", "buildexit", "buildobj", "deleteroom", "appoint", "help")
 
     # /status      → 看自己國家狀態、額度、房間列表
     # /name 新國名 → 更改國家名稱（需 GM 同意或自行可改，視政策）
     # /buildroom   → 在額度內建房間
     # /buildexit   → 建出口（限自家房間間）
     # /buildobj    → 放置物件/NPC
+    # /deleteroom  → 刪除自建房間（見 §12.2）
+    # /appoint 玩家 → 指定國民為新 King，自己降為 Player（單一國家只有一個 King）
 ```
 
 ### 6.2 既有指令 Lock 調整
@@ -336,6 +338,7 @@ def _handle_create(self):
 | 4 | Player 重生預設 home？ | **入口房** | King 建立 Player 時 `character.home = kingdom.db.entrance_room`（預設）；Player 死亡後 `at_post_unpuppet` 或重生指令回到 home |
 | 5 | 跨國頻道隔離？ | **隔離** | 每個 Kingdom 擁有獨立公開頻道，Player 預設只能看到/發言於自國頻道；GM 可跨頻道（override）。跨國私訊 (`tell`) 不受限 |
 | 6 | 次權限層（大臣/官員）？ | **不需要** | 不設計次權限層，King 為該國唯一管理者 |
+| 7 | King 權力移交？ | **單一國家只有一個 King** | `@king/appoint <Player>` 指定國民為新 King，自己降為 Player。原子操作（transaction）。King 失去 `perm(King)`、`is_king=False`，新 King 獲得 `perm(King)`、`is_king=True`、`db.kingdom` 指向同一 Kingdom script。Player 國籍不變。 |
 
 ---
 
@@ -420,7 +423,98 @@ def delete_king_room(king_char, room):
     kingdom.db.rooms_created -= 1
 ```
 
+# 12.3 補充設計：King 權力移交（@king/appoint）
+
+```python
+# kingdom_tools.py
+from evennia import DefaultScript
+from evennia.utils import logger
+
+def appoint_new_king(current_king_char, target_player_char):
+    """
+    King 權力移交：將指定國民升為新 King，自己降為 Player。
+    單一國家只能有一個 King，原子操作（transaction）。
+    
+    Args:
+        current_king_char: 現任 King Character
+        target_player_char: 目標 Player Character（必須同國籍）
+    
+    Returns:
+        (success: bool, message: str)
+    """
+    # 1. 驗證：當前呼叫者必須是 King
+    if not getattr(current_king_char.db, "is_king", False):
+        return False, "只有 King 才能執行權力移交。"
+    
+    kingdom = getattr(current_king_char.db, "kingdom", None)
+    if not kingdom:
+        return False, "找不到國家資料。"
+    
+    # 2. 驗證：目標必須是同國籍 Player
+    if getattr(target_player_char.db, "nationality", "") != kingdom.key:
+        return False, f"目標必須是 {kingdom.key} 國民。"
+    
+    if getattr(target_player_char.db, "is_king", False):
+        return False, "目標已經是 King。"
+    
+    # 3. 執行移交（原子操作）
+    try:
+        # 3.1 移除舊 King 權限
+        old_account = current_king_char.account
+        if old_account:
+            old_account.permissions.remove("King")
+        current_king_char.db.is_king = False
+        current_king_char.db.kingdom = None
+        # 保留 nationality（仍是該國國民）
+        
+        # 3.2 賦予新 King 權限
+        new_account = target_player_char.account
+        if new_account:
+            new_account.permissions.add("King")
+        target_player_char.db.is_king = True
+        target_player_char.db.kingdom = kingdom
+        target_player_char.db.nationality = kingdom.key  # 確保一致
+        target_player_char.db.king = target_player_char  # 自己是自己的 King
+        
+        # 3.3 更新 Kingdom script 指向
+        kingdom.db.king = target_player_char
+        
+        # 3.4 設定新 King home = 入口房
+        if kingdom.db.entrance_room:
+            target_player_char.home = kingdom.db.entrance_room
+        
+        # 3.5 更新舊 King 的 king 參照
+        current_king_char.db.king = target_player_char
+        
+        logger.log_info(f"King appoint: {current_king_char.key} -> {target_player_char.key} (kingdom: {kingdom.key})")
+        return True, f"權力移交完成：{target_player_char.key} 成為新任 {kingdom.key} 國王，{current_king_char.key} 降為國民。"
+        
+    except Exception as e:
+        logger.log_err(f"King appoint failed: {e}")
+        return False, f"移交失敗：{e}"
+```
+
+### 指令語法
+```
+@king/appoint <Player名稱>
+```
+
+### 限制條件
+- 只有現任 King 可用（`perm(King)` lock）
+- 目標必須同國籍
+- 目標不可已是 King
+- 單一國家同一時間只有一個 King
+
+### 狀態變更摘要
+
+| 角色 | 變更前 | 變更後 |
+|------|--------|--------|
+| 舊 King | `perm(King)`, `is_king=True`, `db.kingdom=kingdom` | `perm(King)` 移除, `is_king=False`, `db.kingdom=None`, `db.king=新 King` |
+| 新 King | `is_king=False`, `db.kingdom=None` | `perm(King)`, `is_king=True`, `db.kingdom=kingdom`, `db.king=自己` |
+| Kingdom | `db.king=舊 King` | `db.king=新 King` |
+| 國內 Players | `db.king=舊 King` | 自動指向新 King（透過 `king.db.king` 參照） |
+
 ---
 
-*文件版本：v2.0 — 2025-06-29*  
+*文件版本：v2.1 — 2025-06-29*  
 *作者：Rosie (許御琪) 為 Hina Chen 整理*
