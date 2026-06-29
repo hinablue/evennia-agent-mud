@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from evennia import search_account
 from evennia.utils.search import search_object
 from evennia.accounts.models import AccountDB
-from django.contrib.auth.models import Permission
 from evennia.utils.utils import make_iter
 from evennia.utils import logger
 from world.kingdom import get_kingdom_by_name
@@ -62,7 +61,7 @@ def summarize_account(account_name):
         else "無"
     )
     perms = (
-        ", ".join([p.name for p in account.permissions.all()])
+        ", ".join([p for p in account.permissions.all()])
         if account.permissions.all()
         else "無"
     )
@@ -80,7 +79,7 @@ def list_accounts(filter_perm=None):
         accounts = [
             a
             for a in accounts
-            if any(p.name == filter_perm in p.name for p in a.permissions.all())
+            if filter_perm in a.permissions.all()
         ]
 
     lines = ["帳號清單："]
@@ -175,34 +174,23 @@ def normalize_account_command_permission(perm_name):
     return normalized
 
 
-def _get_permission_or_error(name):
-    """Resolve a permission row by exact name."""
-
-    from django.contrib.auth.models import Permission
-
-    try:
-        return Permission.objects.get(name=name)
-    except Permission.DoesNotExist:
-        raise AccountSpecError(f"權限 `{name}` 不存在。")
-
-
 def set_account_role(account_name, role_name):
     """Set one hierarchy role on an account, replacing existing hierarchy perms."""
 
     account = _get_account_or_error(account_name)
     normalized = normalize_hierarchy_role_name(role_name)
-    current = {perm.name for perm in account.permissions.all()}
+    current = set(account.permissions.all())
 
     removed = []
     for perm_name in HIERARCHY_PERMISSION_POOL:
         if perm_name in current:
-            account.permissions.remove(_get_permission_or_error(perm_name))
+            account.permissions.remove(perm_name)
             removed.append(perm_name)
 
     added = []
     for perm_name in HIERARCHY_ROLE_PERMISSIONS[normalized]:
         if perm_name not in current:
-            account.permissions.add(_get_permission_or_error(perm_name))
+            account.permissions.add(perm_name)
             added.append(perm_name)
 
     account.save()
@@ -221,9 +209,8 @@ def set_account_role(account_name, role_name):
 def add_account_permission(account_name, perm_name):
     perm_name = normalize_account_command_permission(perm_name)
     account = _get_account_or_error(account_name)
-    perm = _get_permission_or_error(perm_name)
 
-    account.permissions.add(perm)
+    account.permissions.add(perm_name)
     account.save()
     return {"message": f"已為帳號 `{account.key}` 追加權限 `{perm_name}`。"}
 
@@ -231,9 +218,8 @@ def add_account_permission(account_name, perm_name):
 def remove_account_permission(account_name, perm_name):
     perm_name = normalize_account_command_permission(perm_name)
     account = _get_account_or_error(account_name)
-    perm = _get_permission_or_error(perm_name)
 
-    account.permissions.remove(perm)
+    account.permissions.remove(perm_name)
     account.save()
     return {"message": f"已從帳號 `{account.key}` 移除權限 `{perm_name}`。"}
 
@@ -275,75 +261,73 @@ def appoint_king(account_name, target_char_key):
     GM 強制指定/移交 King：將指定角色設為某國的 King。
     單一國家同一時間只有一個 King。
     這是 GM 級工具，不受 King 自身 @king/appoint 限制。
-    
+
     Args:
         account_name (str): 目標 Player 的 Account 名稱
         target_char_key (str): 要升為 King 的 Character 名稱
-    
+
     Returns:
         dict: Result payload
     """
     account = _get_account_or_error(account_name)
-    
+
     # 找目標角色
     matches = search_object(target_char_key, exact=True)
     if not matches:
         raise AccountSpecError(f"找不到角色：{target_char_key}")
     target_char = matches[0]
-    
+
     # 驗證角色屬於該帳號
     if target_char not in account.characters.all():
         raise AccountSpecError(f"角色 `{target_char.key}` 不屬於帳號 `{account.key}`。")
-    
+
     # 找該角色目前的 Kingdom（透過 nationality 或 king 參照）
     kingdom = None
     nat = getattr(target_char.db, "nationality", "")
     if nat:
         from world.kingdom import get_kingdom_by_name
         kingdom = get_kingdom_by_name(nat)
-    
+
     if not kingdom:
         raise AccountSpecError(f"角色 `{target_char.key}` 無國籍或找不到對應國家。")
-    
+
     # 如果該國已有 King，先降級舊 King
     old_king = kingdom.db.king
     if old_king and old_king != target_char:
         old_account = old_king.account
         if old_account:
             try:
-                king_perm = Permission.objects.get(name="King")
-                old_account.permissions.remove(king_perm)
+                old_account.permissions.remove("King")
             except Exception as e:
                 logger.log_warn(f"移除舊 King 權限失敗: {e}")
         old_king.db.is_king = False
         old_king.db.kingdom = None
         old_king.db.king = target_char
         old_king.save()
-    
+
     # 賦予新 King 權限
     try:
-        king_perm = Permission.objects.get(name="King")
-        account.permissions.add(king_perm)
+        account.permissions.add("King")
     except Exception as e:
         raise AccountSpecError(f"賦予 King 權限失敗：{e}")
-    
+
     target_char.db.is_king = True
     target_char.db.kingdom = kingdom
     target_char.db.king = target_char  # 自己是自己的 King
     target_char.db.nationality = kingdom.key
-    
+
     # 設定 home = 入口房
     if kingdom.db.entrance_room:
         target_char.home = kingdom.db.entrance_room
-    
+
     target_char.save()
-    
+
     # 更新 Kingdom script
     kingdom.db.king = target_char
     kingdom.save()
-    
+
     logger.log_info(f"GM appoint King: {account.key} -> {target_char.key} (kingdom: {kingdom.key})")
-    
+
     return {
         "message": (
             f"已指定 `{target_char.key}` (帳號: {account.key}) 為 `{kingdom.key}` 國王。"
