@@ -1353,6 +1353,9 @@ def build_agent_world(room_name=None, components=None):
             result["npcs_updated"] += int(rosie_updated)
         result["player_descs_updated"] += int(_ensure_hina_desc())
 
+    from world.account_tools import ensure_first_player_account_is_gm
+
+    result["bootstrap"] = ensure_first_player_account_is_gm()
     result["rooms"] = scope
     return result
 

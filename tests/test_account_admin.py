@@ -76,6 +76,7 @@ account_admin = importlib.import_module("commands.account_admin")
 AccountSpecError = account_tools.AccountSpecError
 CmdAgentAccount = account_admin.CmdAgentAccount
 set_account_role = account_tools.set_account_role
+ensure_first_player_account_is_gm = account_tools.ensure_first_player_account_is_gm
 
 
 def _fake_char_count(count):
@@ -164,6 +165,70 @@ class AccountToolsTests(unittest.TestCase):
         account.permissions.remove.assert_any_call("Player")
         account.permissions.add.assert_called_once_with("King")
         account.save.assert_called_once_with()
+
+    def test_ensure_first_player_account_is_gm_promotes_first_bound_account(self):
+        """First bound account should become GM when no staff account exists."""
+
+        first_character = SimpleNamespace(
+            key="Hina",
+            permissions=SimpleNamespace(
+                all=lambda: ["Player"],
+                add=MagicMock(),
+                remove=MagicMock(),
+            ),
+            save=MagicMock(),
+        )
+        first_account = SimpleNamespace(
+            key="hinablue",
+            permissions=SimpleNamespace(
+                all=lambda: ["Player"],
+                add=MagicMock(),
+                remove=MagicMock(),
+            ),
+            characters=SimpleNamespace(all=lambda: [first_character]),
+            save=MagicMock(),
+        )
+        second_account = SimpleNamespace(
+            key="other",
+            permissions=SimpleNamespace(all=lambda: []),
+            characters=SimpleNamespace(all=lambda: []),
+        )
+
+        with patch.object(account_tools.AccountDB.objects, "all", return_value=[first_account, second_account]):
+            result = ensure_first_player_account_is_gm()
+
+        self.assertTrue(result["promoted"])
+        self.assertIs(result["account"], first_account)
+        self.assertIs(result["character"], first_character)
+        first_account.permissions.add.assert_any_call("Admin")
+        first_account.permissions.add.assert_any_call("GM")
+        first_character.permissions.add.assert_any_call("Admin")
+        first_character.permissions.add.assert_any_call("GM")
+
+    def test_ensure_first_player_account_is_gm_skips_when_staff_exists(self):
+        """Bootstrap promotion should not overwrite an existing staff account."""
+
+        staff_account = SimpleNamespace(
+            key="staff",
+            permissions=SimpleNamespace(all=lambda: ["Admin"]),
+            characters=SimpleNamespace(all=lambda: []),
+        )
+        player_account = SimpleNamespace(
+            key="hinablue",
+            permissions=SimpleNamespace(
+                all=lambda: ["Player"],
+                add=MagicMock(),
+                remove=MagicMock(),
+            ),
+            characters=SimpleNamespace(all=lambda: [SimpleNamespace(key="Hina")]),
+            save=MagicMock(),
+        )
+
+        with patch.object(account_tools.AccountDB.objects, "all", return_value=[staff_account, player_account]):
+            result = ensure_first_player_account_is_gm()
+
+        self.assertFalse(result["promoted"])
+        player_account.permissions.add.assert_not_called()
 
     def test_delete_account_deletes_live_account(self):
         """Deleting a normal account should call Evennia's delete hook."""

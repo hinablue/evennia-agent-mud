@@ -212,6 +212,84 @@ def set_account_role(account_name, role_name):
     }
 
 
+def _iter_account_characters(account):
+    """Return a stable list of Characters owned by an account."""
+
+    try:
+        return list(account.characters.all())
+    except Exception:
+        return []
+
+
+def _has_staff_role(account):
+    """Whether an account already has staff-level world permissions."""
+
+    perms = set(account.permissions.all())
+    return bool(perms & {"Admin", "Developer", "GM"})
+
+
+def _apply_role_to_holder(holder, normalized):
+    """Apply one hierarchy role to an Account or Character-like holder."""
+
+    permissions = getattr(holder, "permissions", None)
+    if not permissions:
+        return False
+
+    current = set(permissions.all())
+    changed = False
+    for perm_name in HIERARCHY_PERMISSION_POOL:
+        if perm_name in current:
+            permissions.remove(perm_name)
+            changed = True
+
+    for perm_name in HIERARCHY_ROLE_PERMISSIONS[normalized]:
+        if perm_name not in current:
+            permissions.add(perm_name)
+            changed = True
+
+    if changed and hasattr(holder, "save"):
+        holder.save()
+    return changed
+
+
+def ensure_first_player_account_is_gm():
+    """Promote the first playable account/character to GM if no staff account exists."""
+
+    accounts = list(AccountDB.objects.all())
+    if any(_has_staff_role(account) for account in accounts):
+        return {
+            "promoted": False,
+            "account": None,
+            "character": None,
+            "message": "已存在 GM/Admin/Developer 帳號，略過首位玩家自動升權。",
+        }
+
+    for account in accounts:
+        characters = _iter_account_characters(account)
+        if not characters:
+            continue
+
+        first_character = characters[0]
+        _apply_role_to_holder(account, "GM")
+        _apply_role_to_holder(first_character, "GM")
+        return {
+            "promoted": True,
+            "account": account,
+            "character": first_character,
+            "message": (
+                f"已將首位使用者角色 `{first_character.key}` 與帳號 `{account.key}`"
+                " 自動設為 GM/Admin。"
+            ),
+        }
+
+    return {
+        "promoted": False,
+        "account": None,
+        "character": None,
+        "message": "目前尚未找到已綁定帳號的使用者角色，略過首位玩家自動升權。",
+    }
+
+
 def add_account_permission(account_name, perm_name):
     perm_name = normalize_account_command_permission(perm_name)
     account = _get_account_or_error(account_name)

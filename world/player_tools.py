@@ -10,6 +10,7 @@ from evennia.objects.models import ObjectDB
 from evennia.utils.utils import inherits_from, make_iter
 
 from typeclasses.characters import Character
+from world.account_tools import ensure_first_player_account_is_gm
 
 
 DEFAULT_PLAYER_DESC = "這是一名旅人。"
@@ -289,12 +290,19 @@ def create_player(
     owners = _player_accounts(character)
     _apply_character_owner_locks(character, owners)
     character.save()
+    bootstrap_result = ensure_first_player_account_is_gm()
 
     owner_note = f"，已綁定帳號 `{account.key}`" if account else "，目前未綁帳號"
     king_note = f"（{nationality} 國籍）" if nationality else ""
+    bootstrap_note = (
+        f" {bootstrap_result['message']}" if bootstrap_result.get("promoted") else ""
+    )
     return {
         "player": character,
-        "message": f"已建立 Player `{char_key}`，目前位於 `{room.key}`{owner_note}{king_note}。這是 live 世界變更。",
+        "message": (
+            f"已建立 Player `{char_key}`，目前位於 `{room.key}`{owner_note}{king_note}。"
+            f"這是 live 世界變更。{bootstrap_note}"
+        ),
     }
 
 
@@ -428,9 +436,13 @@ def bind_player(char_key, account_name):
     _apply_character_owner_locks(obj, owners)
     obj.db.is_player_character = True
     obj.save()
+    bootstrap_result = ensure_first_player_account_is_gm()
+    bootstrap_note = (
+        f" {bootstrap_result['message']}" if bootstrap_result.get("promoted") else ""
+    )
     return {
         "player": obj,
-        "message": f"已將 `{obj.key}` 綁到帳號 `{account.key}`。",
+        "message": f"已將 `{obj.key}` 綁到帳號 `{account.key}`。{bootstrap_note}",
     }
 
 

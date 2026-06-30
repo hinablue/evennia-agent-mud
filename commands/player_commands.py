@@ -51,21 +51,18 @@ class CmdStatus(MuxCommand):
         hp_bar = self._make_bar(hp, max_hp, 20, "red")
         mp_bar = self._make_bar(mp, max_mp, 20, "blue")
         stam_bar = self._make_bar(stamina, max_stamina, 20, "green")
-        exp_bar = self._make_bar(exp, max_exp, 20, "yellow")
 
         lines = [
-            f"|w┌─ {caller.key} 的狀態 ─┐|n",
-            f"│ 等級：{level}  | 經驗值：{exp}/{max_exp} {exp_bar}",
-            f"│ HP：{hp}/{max_hp} {hp_bar}",
-            f"│ MP：{mp}/{max_mp} {mp_bar}",
-            f"│ 體力：{stamina}/{max_stamina} {stam_bar}",
-            f"│ Token：{tokens}",
-            f"│ 戰鬥狀態：{combat_state} | 異常狀態：{combat_status}",
-            f"├────────────────────┤",
-            f"│ 力量：{str_val}   智力：{intel_val}   敏捷：{agility_val}",
-            f"│ 防禦：{def_val}   精神：{spirit_val}   體質：{stamina_val}",
-            f"│ 速度：{spd_val}   攻擊：{atk_val}",
-            f"└────────────────────┘",
+            f" {caller.key} 的狀態",
+            f" 等級：{level}  經驗值：{exp}/{max_exp}",
+            f" HP：{hp}/{max_hp} {hp_bar}",
+            f" MP：{mp}/{max_mp} {mp_bar}",
+            f" 體力：{stamina}/{max_stamina} {stam_bar}",
+            f" Token：{tokens}",
+            f" 戰鬥狀態：{combat_state} | 異常狀態：{combat_status}",
+            f" 力量：{str_val}   智力：{intel_val}   敏捷：{agility_val}",
+            f" 防禦：{def_val}   精神：{spirit_val}   體質：{stamina_val}",
+            f" 速度：{spd_val}   攻擊：{atk_val}",
         ]
 
         caller.msg("\n".join(lines))

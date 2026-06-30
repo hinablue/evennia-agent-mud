@@ -81,6 +81,14 @@ def _install_stubs():
     kingdom_mod.get_kingdom_by_name = lambda n: None
     sys.modules["world.kingdom"] = kingdom_mod
 
+    account_tools_mod = types.ModuleType("world.account_tools")
+    setattr(
+        account_tools_mod,
+        "ensure_first_player_account_is_gm",
+        MagicMock(return_value={"promoted": False, "message": ""}),
+    )
+    sys.modules["world.account_tools"] = account_tools_mod
+
 
 _install_stubs()
 player = importlib.import_module("world.player_tools")

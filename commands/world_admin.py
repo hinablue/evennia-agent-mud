@@ -149,6 +149,12 @@ class CmdAgentWorld(MuxCommand):
         scope = result["scope"]
         scope_label = scope[0] if len(scope) == 1 else "全世界"
         components = "、".join(result["components"])
+        bootstrap = result.get("bootstrap") or {}
+        bootstrap_line = (
+            f"- 首位使用者升權：{bootstrap.get('message')}\n"
+            if bootstrap.get("promoted")
+            else ""
+        )
         return (
             "|w世界整理完成。|n\n"
             f"- 範圍：{scope_label}\n"
@@ -162,7 +168,8 @@ class CmdAgentWorld(MuxCommand):
             f"- 更新出口：{result['exits_updated']}\n"
             f"- NPC 移動：{result['npcs_moved']}\n"
             f"- NPC 更新：{result['npcs_updated']}\n"
-            f"- 玩家描述修正：{result['player_descs_updated']}\n\n"
+            f"- 玩家描述修正：{result['player_descs_updated']}\n"
+            f"{bootstrap_line}\n"
             f"{summarize_agent_world(scope[0] if len(scope) == 1 else None)}"
         )
 
@@ -208,6 +215,12 @@ class CmdAgentWorld(MuxCommand):
         result = force_rebuild_agent_world()
         build = result["build"]
         xyzgrid = result["xyzgrid"]
+        bootstrap = build.get("bootstrap") or {}
+        bootstrap_line = (
+            f"- 首位使用者升權：{bootstrap.get('message')}\n"
+            if bootstrap.get("promoted")
+            else ""
+        )
         self._msg(
             "|w世界強制重建完成。|n\n"
             f"- 刪除房間：{result['rooms_deleted']}\n"
@@ -219,6 +232,7 @@ class CmdAgentWorld(MuxCommand):
             f"- Builder 房間總數：{build['rooms_total']}\n"
             f"- Builder 新增房間：{build['rooms_created']}\n"
             f"- Builder 新增出口：{build['exits_created']}\n"
+            f"{bootstrap_line}"
             f"- XYZGrid 房間：{xyzgrid['rooms']}\n"
             f"- XYZGrid 出口：{xyzgrid['exits']}\n"
             f"- XYZGrid zcoord：{xyzgrid['zcoord']}\n"

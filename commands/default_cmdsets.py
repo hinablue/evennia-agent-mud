@@ -36,7 +36,6 @@ from .account_character_commands import (
     CmdLockedCharCreate,
     CmdLockedIC,
 )
-from .character_admin import CmdAgentChar
 from .combat_admin import CmdAgentCombat
 from .combat_commands import (
     CmdCombatAttack,
@@ -99,7 +98,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdCast())
 
         self.add(CmdAgentWorld())
-        self.add(CmdAgentChar())
         self.add(CmdAgentNPC())
         self.add(CmdAgentPlayer())
         self.add(CmdAgentAccount())

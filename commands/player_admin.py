@@ -51,7 +51,7 @@ class CmdAgentPlayer(MuxCommand):
     """
 
     key = "@agentplayer"
-    aliases = ["@playerworld", "@player"]
+    aliases = ["@agentchar", "@playerworld", "@player"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
     help_category = "Admin"
     switch_options = (
