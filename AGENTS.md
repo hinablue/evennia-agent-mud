@@ -13,7 +13,7 @@ uv pip install -e .                          # dev install
 make format                                  # black + isort
 make lint                                    # black --check
 make cleanrot                                # check agent context for rot
-uv run pytest .agents/tools/tests/ -v        # agent tooling tests (pytest)
+uv run pytest tests/ -v --tb=short       # all unit tests
 ```
 
 **Running Evennia tests**: `make test` requires `evennia` on PATH. With `uv run`, you must init a test game dir first and run from inside it — see [Testing](.agents/docs/testing.md).
@@ -38,3 +38,9 @@ Vendor-agnostic skills live in `.agents/skills/`. Vendor directories (`.claude/s
 - [Development Commands](.agents/docs/commands.md) — install, game lifecycle, test/format commands, PR conventions
 - [CI/CD](.agents/docs/ci.md) — GitHub Actions workflows, test matrix, database configs, Docker, secrets
 - [GitHub Issues & PRs](.agents/docs/github.md) — listing, searching, and reviewing issues/PRs with `gh` CLI
+
+## Game Docs
+
+- [Module Reference](docs/module-reference.md) — all world/, commands/, typeclasses/ 模組與函數索引
+- [MCP Tooling Reference](docs/mcp-tooling-reference.md) — AI Agent 可用的 MCP 工具清單
+- [Permission Hierarchy](docs/permission-hierarchy-design.md) — GM/King/Player 三層權限架構

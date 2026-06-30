@@ -46,7 +46,7 @@ class CmdAgentWorld(MuxCommand):
 
     key = "@agentworld"
     aliases = ["@worldbuild", "@world"]
-    locks = "cmd:perm(Admin) or perm(Developer)"
+    locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
     help_category = "Admin"
     switch_options = (
         "build",
@@ -70,6 +70,7 @@ class CmdAgentWorld(MuxCommand):
     )
 
     GRANULAR_SWITCHES = {"rooms", "objects", "exits", "details", "npcs"}
+    KING_ALLOWED_SWITCHES = {"addroom", "adddetail", "addscenery", "addexit"}
     ACTION_SWITCHES = {
         "status",
         "check",
@@ -85,6 +86,47 @@ class CmdAgentWorld(MuxCommand):
 
     def _msg(self, text):
         self.caller.msg(text)
+
+    def _caller_permissions(self):
+        """Return the caller account's permission strings."""
+
+        account = getattr(self.caller, "account", None)
+        if not account:
+            return set()
+        return set(account.permissions.all())
+
+    def _has_staff_world_access(self):
+        """Check whether caller can use staff-only @agentworld switches."""
+
+        return bool(self._caller_permissions() & {"GM", "Developer", "Admin"})
+
+    def _has_king_world_access(self):
+        """Check whether caller can use King-allowed @agentworld switches."""
+
+        return self._has_staff_world_access() or "King" in self._caller_permissions()
+
+    def _ensure_switch_access(self):
+        """Validate per-switch access for @agentworld."""
+
+        active_switches = set(self.switches)
+        if not active_switches:
+            if not self._has_staff_world_access():
+                raise WorldSpecError(
+                    "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。"
+                )
+            return
+
+        if active_switches <= self.KING_ALLOWED_SWITCHES:
+            if not self._has_king_world_access():
+                raise WorldSpecError(
+                    "@agentworld/addroom、/adddetail、/addscenery、/addexit 僅限 King 或 GM/Developer/Admin。"
+                )
+            return
+
+        if not self._has_staff_world_access():
+            raise WorldSpecError(
+                "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。"
+            )
 
     def _room_arg(self):
         return (self.args or self.lhs or "").strip()
@@ -134,12 +176,13 @@ class CmdAgentWorld(MuxCommand):
             "  |w@agentworld/dryrun [房間]|n：預估 build 會補哪些項目。\n"
             "  |w@agentworld/forcerebuild|n：清掉規格世界後，依 world/agent_world.py 與 XYZGrid 重新建一遍。\n"
             "  |w@agentworld/room 房間名|n：等同該房間的 status。\n"
-            "  |w@agentworld/addroom 房間名=描述|n：新增 live 房間。\n"
-            "  |w@agentworld/adddetail 房間=alias1,alias2:描述|n：新增 live detail。\n"
-            "  |w@agentworld/addscenery 房間=物件名|alias1,alias2|描述|n：新增 live 場景物。\n"
-            "  |w@agentworld/addexit 來源房間=出口名|目標房間|alias1,alias2|n：新增 live 出口。\n"
+            "  |w@agentworld/addroom 房間名=描述|n：新增 live 房間（King 可用）。\n"
+            "  |w@agentworld/adddetail 房間=alias1,alias2:描述|n：新增 live detail（King 可用）。\n"
+            "  |w@agentworld/addscenery 房間=物件名|alias1,alias2|描述|n：新增 live 場景物（King 可用）。\n"
+            "  |w@agentworld/addexit 來源房間=出口名|目標房間|alias1,alias2|n：新增 live 出口（King 可用）。\n"
             "  |w@agentworld/move 物件或角色=房間|n：移動 live 物件或角色。\n"
             "  |w@agentworld/role 帳號=GM|King|Player|n：指定帳號的三層角色。\n\n"
+            "註：King 僅開放 /addroom、/adddetail、/addscenery、/addexit；其餘 switch 仍限 GM/Developer/Admin。\n"
             "註：add/move 系列只修改 live DB，不會自動回寫 world/agent_world.py。"
         )
 
@@ -264,6 +307,8 @@ class CmdAgentWorld(MuxCommand):
 
     def func(self):
         try:
+            self._ensure_switch_access()
+
             if "help" in self.switches:
                 self._show_help()
                 return

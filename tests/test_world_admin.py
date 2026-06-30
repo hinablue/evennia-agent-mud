@@ -53,8 +53,19 @@ from commands.world_admin import CmdAgentWorld
 class FakeCaller:
     """Collects command output for assertions."""
 
-    def __init__(self):
+    def __init__(self, permissions=None):
         self.messages = []
+        self.account = type(
+            "FakeAccount",
+            (),
+            {
+                "permissions": type(
+                    "FakePerms",
+                    (),
+                    {"all": lambda self: list(permissions or [])},
+                )()
+            },
+        )()
 
     def msg(self, text):
         self.messages.append(text)
@@ -63,9 +74,9 @@ class FakeCaller:
 class CmdAgentWorldTests(unittest.TestCase):
     """Command routing and reporting tests."""
 
-    def _make_cmd(self):
+    def _make_cmd(self, permissions=None):
         cmd = object.__new__(CmdAgentWorld)
-        cmd.caller = FakeCaller()
+        cmd.caller = FakeCaller(permissions=permissions)
         cmd.switches = []
         cmd.args = ""
         cmd.lhs = ""
@@ -78,7 +89,7 @@ class CmdAgentWorldTests(unittest.TestCase):
     def test_handle_force_rebuild_reports_summary(self):
         """The forcerebuild report should include both builder and XYZGrid stats."""
 
-        cmd = self._make_cmd()
+        cmd = self._make_cmd(permissions=["Admin"])
         fake_result = {
             "rooms_deleted": 21,
             "exits_deleted": 25,
@@ -109,7 +120,7 @@ class CmdAgentWorldTests(unittest.TestCase):
     def test_func_routes_forcerebuild_switch(self):
         """The public command entrypoint should dispatch /forcerebuild correctly."""
 
-        cmd = self._make_cmd()
+        cmd = self._make_cmd(permissions=["Admin"])
         cmd.switches = ["forcerebuild"]
 
         with patch.object(cmd, "_handle_force_rebuild") as handler:
@@ -120,7 +131,7 @@ class CmdAgentWorldTests(unittest.TestCase):
     def test_func_routes_role_switch(self):
         """The role switch should delegate to hierarchy role assignment."""
 
-        cmd = self._make_cmd()
+        cmd = self._make_cmd(permissions=["Admin"])
         cmd.switches = ["role"]
         cmd.lhs = "hinablue"
         cmd.rhs = "GM"
@@ -130,6 +141,36 @@ class CmdAgentWorldTests(unittest.TestCase):
 
         setter.assert_called_once_with("hinablue", "GM")
         self.assertEqual(cmd.caller.messages[-1], "已設為 GM")
+
+    def test_king_can_use_addroom_switch(self):
+        """Kings should retain access to the live room-creation switches."""
+
+        cmd = self._make_cmd(permissions=["King"])
+        cmd.switches = ["addroom"]
+        cmd.lhs = "新房間"
+        cmd.rhs = "這裡的描述"
+
+        with patch(
+            "commands.world_admin.create_live_room",
+            return_value={"message": "新增完成"},
+        ) as creator:
+            cmd.func()
+
+        creator.assert_called_once_with("新房間", desc="這裡的描述")
+        self.assertEqual(cmd.caller.messages[-1], "新增完成")
+
+    def test_king_cannot_use_status_switch(self):
+        """Kings should be blocked from staff-only @agentworld switches."""
+
+        cmd = self._make_cmd(permissions=["King"])
+        cmd.switches = ["status"]
+
+        cmd.func()
+
+        self.assertIn(
+            "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit",
+            cmd.caller.messages[-1],
+        )
 
 
 if __name__ == "__main__":

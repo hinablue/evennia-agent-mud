@@ -73,13 +73,19 @@ def summarize_account(account_name):
     return "\n".join(lines)
 
 
-def list_accounts(filter_perm=None):
+def list_accounts(filter_perm=None, nation=None):
     accounts = AccountDB.objects.all()
     if filter_perm:
         accounts = [
             a
             for a in accounts
             if filter_perm in a.permissions.all()
+        ]
+
+    if nation:
+        accounts = [
+            a for a in accounts
+            if any(getattr(c.db, "nationality", "") == nation for c in a.characters.all())
         ]
 
     lines = ["帳號清單："]
@@ -254,8 +260,56 @@ def delete_account(account_name):
     }
 
 
-# --- King Appoint Tool (GM only) ---
+def set_account_nationality(account_name, nationality, caller=None):
+    """
+    為帳號下的所有角色設定國籍（nationality）。
 
+    Args:
+        account_name (str): 目標帳號名稱
+        nationality (str): 國籍字串（通常為 Kingdom key）
+        caller (Object, optional): 呼叫者，用於權限檢查。需具 King/GM/Developer 權限。
+
+    Returns:
+        dict: Result payload with message
+
+    Raises:
+        AccountSpecError: 如果權限不足、帳號不存在、或國籍無效
+    """
+    from world.kingdom import get_kingdom_by_name
+
+    # 權限檢查：只有 King、GM、Developer 可用
+    if caller:
+        perms = set(caller.account.permissions.all()) if caller.account else set()
+        is_king = getattr(caller.db, "is_king", False)
+        if not (is_king or "GM" in perms or "Developer" in perms or "Admin" in perms):
+            raise AccountSpecError("只有 King 或以上權限才能設定國籍。")
+
+    account = _get_account_or_error(account_name)
+
+    # 驗證國家是否存在
+    kingdom = get_kingdom_by_name(nationality)
+    if not kingdom:
+        raise AccountSpecError(f"找不到國家：{nationality}")
+
+    # 為該帳號下所有角色設定國籍
+    updated = 0
+    for char in account.characters.all():
+        char.db.nationality = nationality
+        # 若是 King 設定，同步更新 king 參照
+        if caller and getattr(caller.db, "is_king", False):
+            char.db.king = caller
+        char.save()
+        updated += 1
+
+    if updated == 0:
+        return {"message": f"帳號 `{account.key}` 下無角色，無需設定國籍。"}
+
+    return {
+        "message": f"已將帳號 `{account.key}` 的 {updated} 個角色國籍設為 `{nationality}`。"
+    }
+
+
+# --- King Appoint Tool (GM only) ---
 def appoint_king(account_name, target_char_key):
     """
     GM 強制指定/移交 King：將指定角色設為某國的 King。

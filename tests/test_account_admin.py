@@ -46,6 +46,14 @@ def _install_evennia_stubs():
     )
     sys.modules["evennia.utils.utils"] = utils_utils
 
+    utils_search = ModuleType("evennia.utils.search")
+    utils_search.search_object = MagicMock(return_value=[])
+    sys.modules["evennia.utils.search"] = utils_search
+
+    utils_module = ModuleType("evennia.utils")
+    utils_module.logger = SimpleNamespace(log_info=MagicMock(), log_err=MagicMock())
+    sys.modules["evennia.utils"] = utils_module
+
     commands_command = ModuleType("commands.command")
 
     class MuxCommand:
@@ -53,6 +61,11 @@ def _install_evennia_stubs():
 
     commands_command.MuxCommand = MuxCommand
     sys.modules["commands.command"] = commands_command
+
+    kingdom_module = ModuleType("world.kingdom")
+    kingdom_module.get_kingdom_by_name = MagicMock(return_value=None)
+    kingdom_module.get_kingdom_by_king = MagicMock(return_value=None)
+    sys.modules["world.kingdom"] = kingdom_module
 
 
 _install_evennia_stubs()
@@ -74,8 +87,12 @@ def _fake_char_count(count):
 class FakeCaller:
     """Collect command output for assertions."""
 
-    def __init__(self):
+    def __init__(self, permissions=None, is_king=False):
         self.messages = []
+        self.account = SimpleNamespace(
+            permissions=SimpleNamespace(all=lambda: list(permissions or []))
+        )
+        self.db = SimpleNamespace(is_king=is_king)
 
     def msg(self, text):
         self.messages.append(text)
@@ -127,17 +144,7 @@ class AccountToolsTests(unittest.TestCase):
     def test_set_account_role_normalizes_hierarchy_permissions(self):
         """Setting a hierarchy role should replace older hierarchy permissions."""
 
-        existing_perms = [
-            SimpleNamespace(name="Admin"),
-            SimpleNamespace(name="Player"),
-        ]
-        permission_map = {
-            "Admin": SimpleNamespace(name="Admin"),
-            "GM": SimpleNamespace(name="GM"),
-            "King": SimpleNamespace(name="King"),
-            "Player": SimpleNamespace(name="Player"),
-            "Developer": SimpleNamespace(name="Developer"),
-        }
+        existing_perms = ["Admin", "Player"]
         account = SimpleNamespace(
             key="hinablue",
             permissions=SimpleNamespace(
@@ -148,18 +155,14 @@ class AccountToolsTests(unittest.TestCase):
             save=MagicMock(),
         )
 
-        with patch.object(account_tools, "_get_account_or_error", return_value=account), patch.object(
-            sys.modules["evennia.accounts.models"].Permission.objects,
-            "get",
-            side_effect=lambda name: permission_map[name],
-        ):
+        with patch.object(account_tools, "_get_account_or_error", return_value=account):
             result = set_account_role("hinablue", "King")
 
         self.assertEqual(result["role"], "King")
         self.assertIn("`King`", result["message"])
-        account.permissions.remove.assert_any_call(permission_map["Admin"])
-        account.permissions.remove.assert_any_call(permission_map["Player"])
-        account.permissions.add.assert_called_once_with(permission_map["King"])
+        account.permissions.remove.assert_any_call("Admin")
+        account.permissions.remove.assert_any_call("Player")
+        account.permissions.add.assert_called_once_with("King")
         account.save.assert_called_once_with()
 
     def test_delete_account_deletes_live_account(self):
@@ -200,9 +203,9 @@ class AccountToolsTests(unittest.TestCase):
 class CmdAgentAccountTests(unittest.TestCase):
     """Command routing tests for @agentaccount."""
 
-    def _make_cmd(self):
+    def _make_cmd(self, permissions=None, is_king=False):
         cmd = object.__new__(CmdAgentAccount)
-        cmd.caller = FakeCaller()
+        cmd.caller = FakeCaller(permissions=permissions, is_king=is_king)
         cmd.switches = []
         cmd.args = ""
         cmd.lhs = ""
@@ -215,7 +218,7 @@ class CmdAgentAccountTests(unittest.TestCase):
     def test_handle_delete_requires_account_name(self):
         """The delete switch should require an explicit account name."""
 
-        cmd = self._make_cmd()
+        cmd = self._make_cmd(permissions=["Admin"])
 
         with self.assertRaises(AccountSpecError) as err:
             cmd._handle_delete()
@@ -260,26 +263,43 @@ class CmdAgentAccountTests(unittest.TestCase):
         cmd.switches = ["addperm"]
         cmd.lhs = "hinablue"
         cmd.rhs = "GM"
+        fake_account = SimpleNamespace(key="hinablue")
 
-        cmd.func()
+        with patch("commands.account_admin._find_exact_account", return_value=fake_account):
+            cmd.func()
 
         self.assertIn("@agentaccount 只能管理 King/Player 權限", cmd.caller.messages[-1])
 
     def test_func_routes_delete_switch(self):
         """The public command entrypoint should dispatch /delete correctly."""
 
-        cmd = self._make_cmd()
+        cmd = self._make_cmd(permissions=["Admin"])
         cmd.switches = ["delete"]
         cmd.args = "hinablue"
+        fake_account = SimpleNamespace(key="hinablue")
 
         with patch(
             "commands.account_admin.delete_account",
             return_value={"message": "刪除完成"},
-        ) as deleter:
+        ) as deleter, patch(
+            "commands.account_admin._find_exact_account",
+            return_value=fake_account,
+        ):
             cmd.func()
 
         deleter.assert_called_once_with("hinablue")
         self.assertEqual(cmd.caller.messages[-1], "刪除完成")
+
+    def test_handle_delete_rejects_plain_king(self):
+        """Kings without GM/Developer/Admin should not be able to delete accounts."""
+
+        cmd = self._make_cmd(permissions=["King"], is_king=True)
+        cmd.args = "hinablue"
+
+        with self.assertRaises(AccountSpecError) as err:
+            cmd._handle_delete()
+
+        self.assertIn("delete 僅限 GM/Developer/Admin 使用", str(err.exception))
 
 
 if __name__ == "__main__":
