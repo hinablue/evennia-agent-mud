@@ -35,7 +35,7 @@ class CmdKingAdmin(MuxCommand):
     key = "@king"
     aliases = ["@kingdom"]  # 同名不同 lock，King 用這個
     locks = "cmd:perm(King)"
-    help_category = "King"
+    help_category = "國王"
     switch_options = (
         "status",
         "buildroom",
@@ -289,7 +289,7 @@ class CmdKingAdmin(MuxCommand):
         entrance = kingdom.db.entrance_room
         moved = 0
         for char in room.contents_get(content_type="character"):
-            if char.has_account:  # Player
+            if char.has_account:  # 玩家
                 char.move_to(entrance, quiet=False)
                 char.msg(f"你所在的房間已被國王拆除，你被傳送回 {kingdom.key} 的入口。")
                 moved += 1

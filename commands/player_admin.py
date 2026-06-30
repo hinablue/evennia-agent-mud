@@ -1,4 +1,4 @@
-"""Player / Character management command."""
+"""玩家/角色管理指令。"""
 
 from commands.command import MuxCommand
 from world.player_tools import (
@@ -23,7 +23,7 @@ from world.player_tools import (
 
 class CmdAgentPlayer(MuxCommand):
     """
-    管理 Player / Character。
+    管理玩家角色。
 
     使用方式:
       @agentplayer
@@ -53,7 +53,7 @@ class CmdAgentPlayer(MuxCommand):
     key = "@agentplayer"
     aliases = ["@agentchar", "@playerworld", "@player"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "status",
@@ -81,7 +81,7 @@ class CmdAgentPlayer(MuxCommand):
             "|w@agentplayer|n\n"
             "  |w@agentplayer|n 或 |w@agentplayer/list [房間]|n：列出所有玩家角色。\n"
             "  |w@agentplayer/status 名稱|n：看單一角色狀態。\n"
-            "  |w@agentplayer/create 名稱=房間|描述|alias1,alias2|n：建立未綁帳號的 Character。\n"
+            "  |w@agentplayer/create 名稱=房間|描述|alias1,alias2|n：建立未綁帳號的角色。\n"
             "  |w@agentplayer/create 名稱=房間|描述|alias1,alias2|帳號|n：建立並綁到指定帳號。\n"
             "  |w@agentplayer/move 名稱=房間|n：移動角色到新房間。\n"
             "  |w@agentplayer/home 名稱=房間|n：設定角色 home。\n"

@@ -1,41 +1,34 @@
-"""
-Web plugin hooks.
-"""
+"""Web 插件掛鉤。"""
 
 
 def at_webserver_root_creation(web_root):
-    """
-    This is called as the web server has finished building its default
-    path tree. At this point, the media/ and static/ URIs have already
-    been added to the web root.
+    """當 Web 伺服器完成建置其預設值時呼叫此方法
+    路徑樹。此時，media/ 和 static/ URI 已經
+    已新增至網路根目錄。
 
-    Args:
-        web_root (twisted.web.resource.Resource): The root
-            resource of the URI tree. Use .putChild() to
-            add new subdomains to the tree.
+    參數：
+        web_root (twisted.web.resource.Resource)：根
+            URI 樹的資源。使用 .putChild() 來
+            將新的子網域新增到樹中。
 
-    Returns:
-        web_root (twisted.web.resource.Resource): The potentially
-            modified root structure.
+    返回：
+        web_root (twisted.web.resource.Resource)：潛在的
+            修改根結構。
 
-    Example:
-        from twisted.web import static
+    範例：
+        從twisted.web 導入靜態
         my_page = static.File("web/mypage/")
         my_page.indexNames = ["index.html"]
-        web_root.putChild("mypage", my_page)
-
-    """
+        web_root.putChild("我的頁面", my_page)"""
     return web_root
 
 
 def at_webproxy_root_creation(web_root):
-    """
-    This function can modify the portal proxy service.
-    Args:
-        web_root (evennia.server.webserver.Website): The Evennia
-            Website application. Use .putChild() to add new
-            subdomains that are Portal-accessible over TCP;
-            primarily for new protocol development, but suitable
-            for other shenanigans.
-    """
+    """此功能可以修改Portal代理服務。
+    參數：
+        web_root (evennia.server.webserver.Website)：Evennia
+            網站申請。使用 .putChild() 新增新的
+            可透過 TCP 進行入口網站存取的子網域；
+            主要用於新協議開發，但適合
+            對於其他惡作劇。"""
     return web_root

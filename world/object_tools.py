@@ -1,4 +1,4 @@
-"""Admin helpers for managing game Objects."""
+"""用於管理遊戲物件的管理助理。"""
 
 from evennia import create_object, search_object
 from evennia.utils.utils import make_iter
@@ -172,8 +172,8 @@ def equip_object(char_key, obj_key, slot="main"):
     char = _get_player_or_error(char_key)
     obj = _get_object_or_error(obj_key)
 
-    # Optional: verify equippable flag here if desired
-    # if not getattr(obj.db, 'equippable', False):
+    # 可選：如果需要，請在此處驗證可裝備標誌
+    # 如果不是 getattr(obj.db, 'equippable', False):
     #     raise ObjectSpecError(f"物件 `{obj.key}` 不可裝備。")
 
     if hasattr(char, "equip"):

@@ -1,11 +1,9 @@
-"""
-Account
+"""帳戶
 
-The Account represents the game "account" and each login has only one
-Account object. An Account is what chats on default channels but has no
-other in-game-world existence. Rather the Account puppets Objects (such
-as Characters) in order to actually participate in the game world.
-"""
+Account代表遊戲“帳號”，每次登入只有一個
+帳戶對象。帳戶是在預設頻道上聊天但沒有權限的帳戶
+其他遊戲世界中的存在。相反，帳號傀儡物件（例如
+作為角色）以便真正參與遊戲世界。"""
 
 from evennia.accounts.accounts import DefaultGuest
 from evennia.contrib.rpg.character_creator.character_creator import (
@@ -14,7 +12,7 @@ from evennia.contrib.rpg.character_creator.character_creator import (
 
 
 class Account(ContribChargenAccount):
-    """Game account with a locked primary character."""
+    """主要角色被鎖定的遊戲帳號。"""
 
     def at_account_creation(self):
         super().at_account_creation()
@@ -51,6 +49,6 @@ class Account(ContribChargenAccount):
 
 
 class Guest(DefaultGuest):
-    """Guest accounts are deleted after disconnection."""
+    """斷開連線後，訪客帳戶將被刪除。"""
 
     pass

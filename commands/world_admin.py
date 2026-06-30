@@ -39,7 +39,7 @@ class CmdAgentWorld(MuxCommand):
     key = "@agentworld"
     aliases = ["@worldbuild", "@world"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "build",
         "status",
@@ -80,7 +80,7 @@ class CmdAgentWorld(MuxCommand):
         self.caller.msg(text)
 
     def _caller_permissions(self):
-        """Return the caller account's permission strings."""
+        """傳回呼叫者帳戶的權限字串。"""
 
         account = getattr(self.caller, "account", None)
         if not account:
@@ -88,18 +88,18 @@ class CmdAgentWorld(MuxCommand):
         return set(account.permissions.all())
 
     def _has_staff_world_access(self):
-        """Check whether caller can use staff-only @agentworld switches."""
+        """檢查來電者是否可以使用僅限員工的@agentworld 開關。"""
 
         perms = {perm.lower() for perm in (self._caller_permissions() or [])}
         return bool(perms & {"gm", "developer", "admin"})
 
     def _has_king_world_access(self):
-        """Check whether caller can use King-allowed @agentworld switches."""
+        """檢查呼叫者是否可以使用 King 允許的 @agentworld 開關。"""
 
         return self._has_staff_world_access() or "King" in self._caller_permissions()
 
     def _ensure_switch_access(self):
-        """Validate per-switch access for @agentworld."""
+        """驗證@agentworld 的每個交換器存取權限。"""
 
         active_switches = set(self.switches)
         if not active_switches:

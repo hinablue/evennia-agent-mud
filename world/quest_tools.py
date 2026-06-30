@@ -1,4 +1,4 @@
-"""Admin helpers for managing Game Quests."""
+"""用於管理遊戲任務的管理員助理。"""
 
 from __future__ import annotations
 from evennia import search_object

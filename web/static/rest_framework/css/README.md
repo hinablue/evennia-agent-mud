@@ -1,3 +1,3 @@
-# Evennia API static files
+# Evennia API 靜態文件
 
-Overrides for API files.
+API 檔案的覆蓋。

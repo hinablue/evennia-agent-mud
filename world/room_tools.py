@@ -1,4 +1,4 @@
-"""Live room management helpers."""
+"""直播間管理好幫手。"""
 
 from __future__ import annotations
 

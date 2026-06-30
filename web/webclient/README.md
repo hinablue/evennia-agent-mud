@@ -1,23 +1,23 @@
-# Webclient Views
+# 網路客戶端視圖
 
-The webclient is mainly controlled by Javascript directly in the browser, so
-you usually customize it via `mygame/web/static/webclient/js/` - files instead.
+webclient主要是直接在瀏覽器中透過Javascript控制，所以
+您通常透過 `mygame/web/static/webclient/js/` - 文件來自訂它。
 
-There is very little you can change from here, unless you want to implement
-your very own client from scratch.
+從這裡你可以改變的很少，除非你想實施
+從頭開始您自己的客戶。
 
-## On views
+## 關於視圖
 
-A 'view' is python code (a function or callable class) responsible for
-producing a HTML page for a user to view in response for going to a given URL
-in their browser. In Evennia lingo, it's similar in function to a Command, with
-the input/args being the URL/request and the output being a new web-page.
+「視圖」是 python 程式碼（函數或可呼叫類別），負責
+產生一個 HTML 頁面供使用者查看，以回應訪問給定的 URL
+在他們的瀏覽器中。在 Evennia 行話中，它的功能與命令類似，其中
+輸入/參數是 URL/請求，輸出是新網頁。
 
-The urls.py file contains regular expressions that are run against the provided
-URL - when a match is found, the execution is passed to a view which is then
-responsible (usually) for producing the web page by filling in a _template_ - a
-HTML document that can have special tags in it that are replaced for dynamic
-content. It then returns the finished HTML page for the user to view.
+urls.py 檔案包含針對提供的運行的正規表示式
+URL - 當找到匹配項時，執行將傳遞到視圖，然後
+負責（通常）透過填寫_模板_ - a 來產生網頁
+HTML 文件中可以包含特殊標籤，這些標籤可以被動態替換
+內容。然後它返回完成的 HTML 頁面供用戶查看。
 
-See the [Django docs on Views](https://docs.djangoproject.com/en/4.1/topics/http/views/) for
-more information.
+請參閱[關於視圖的 Django 文件](https://docs.djangoproject.com/en/4.1/topics/http/views/)
+更多資訊。

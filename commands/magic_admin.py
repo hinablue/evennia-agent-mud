@@ -33,7 +33,7 @@ class CmdAgentMagic(MuxCommand):
     key = "@agentmagic"
     aliases = ["@spellworld", "@spell", "@magicworld", "@magic"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = ("list", "create", "get", "update", "delete", "help")
 
     def _msg(self, text):

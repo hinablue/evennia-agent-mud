@@ -1,4 +1,4 @@
-"""Admin helpers for creating and managing equipment objects."""
+"""用於建立和管理設備物件的管理助理。"""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class EquipmentSpecError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Shared helpers
+# 共享助手
 # ---------------------------------------------------------------------------
 
 
@@ -96,7 +96,7 @@ def _truncate(text, limit=160):
 
 
 def _clone_equipment_attributes(template):
-    """Build a new-equipment attribute payload from a template object."""
+    """從模板物件建立新設備屬性有效負載。"""
     stats = dict(getattr(template.db, "stats", {}) or {})
     magic_buffs = list(getattr(template.db, "magic_buffs", []) or [])
     max_durability = getattr(template.db, "max_durability", 100) or 100
@@ -114,7 +114,7 @@ def _clone_equipment_attributes(template):
 
 
 # ---------------------------------------------------------------------------
-# Equipment typeclass slots
+# 設備類型等級槽位
 # ---------------------------------------------------------------------------
 VALID_SLOTS = (
     "hat",
@@ -133,7 +133,7 @@ VALID_SLOTS = (
 
 
 # ---------------------------------------------------------------------------
-# Summaries
+# 摘要
 # ---------------------------------------------------------------------------
 
 
@@ -141,39 +141,39 @@ def summarize_equipment(eq_key):
     obj = _get_equipment_or_error(eq_key)
     lines = [f"Equipment：{obj.key}"]
 
-    # Alias
+    # 別名
     alias = getattr(obj.db, "player_alias", None)
     if alias:
         lines.append(f"- 暱稱：{alias}")
 
-    # Slot
+    # 投幣口
     slot = getattr(obj.db, "equip_slot", None)
     lines.append(f"- 裝備槽：{slot or '未裝備'}")
 
-    # Room
+    # 房間
     lines.append(f"- 所在：{_get_equipment_location(obj)}")
 
-    # Description
+    # 描述
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
 
-    # Stats
+    # 統計數據
     stats = getattr(obj.db, "stats", {}) or {}
     if stats:
         stats_parts = [f"{k}={v}" for k, v in sorted(stats.items())]
         lines.append(f"- 屬性：{', '.join(stats_parts)}")
 
-    # Durability
+    # 耐用性
     max_dur = getattr(obj.db, "max_durability", 100) or 100
     dur = getattr(obj.db, "durability", 100) or 100
     broken = getattr(obj.db, "broken", False)
     status = "已損壞" if broken else "正常"
     lines.append(f"- 耐用度：{dur}/{max_dur}（{status}）")
 
-    # Two-handed
+    # 雙手
     two_hand = getattr(obj.db, "two_handed", False)
     lines.append(f"- 雙手武器：{'是' if two_hand else '否'}")
 
-    # Magic buffs
+    # 魔法愛好者
     buffs = getattr(obj.db, "magic_buffs", []) or []
     if buffs:
         buff_parts = [f"{b['stat']}{b['value']:+d}" for b in buffs]
@@ -214,7 +214,7 @@ def summarize_equipments(room_name=None):
 
 
 # ---------------------------------------------------------------------------
-# Mutations
+# 突變
 # ---------------------------------------------------------------------------
 
 
@@ -228,20 +228,18 @@ def create_equipment(
     max_durability=None,
     two_handed=None,
 ):
-    """
-    Create a new equipment item.
+    """建立一個新的設備項目。
 
-    Args:
-        eq_key: Equipment name
-        slot: Equipment slot (hat, top, bottom, cloak, shoes, gloves,
-              glasses, earring, ring, main_hand, off_hand, two_hand)
-        room_name: Optional room to create in
-        desc: Description
-        aliases: List of aliases
-        stats: Dict of stat modifiers {stat: value, ...}
-        max_durability: Maximum durability (default 100)
-        two_handed: Whether this is a two-handed weapon
-    """
+    參數：
+        eq_key：設備名稱
+        插槽：裝備槽位（帽子、上衣、下裝、斗篷、鞋子、手套、
+              眼鏡、耳環、戒指、主手、副手、雙手）
+        room_name：可選的建立房間
+        描述：描述
+        別名：別名列表
+        stats：統計修飾符 {stat: value, ...} 的字典
+        max_durability：最大耐久性（預設100）
+        two_handed: 這是否是雙手武器"""
     eq_key = _clean_text(eq_key)
     if not eq_key:
         raise EquipmentSpecError("create 需要裝備名稱。")
@@ -305,19 +303,18 @@ def clone_equipment(
     home=None,
     allow_duplicate_key=False,
 ):
-    """Clone an equipment object into a fresh instance.
+    """將設備物件複製到新實例中。
 
-    Args:
-        eq_key: Existing equipment template name.
-        new_key: Optional new object key. Defaults to the template key.
-        room_name: Optional destination room name.
-        location: Optional direct location object. Overrides ``room_name``.
+    參數：
+        eq_key：現有設備範本名稱。
+        new_key：可選的新物件鍵。預設為模板鍵。
+        room_name：可選的目標房間名稱。
+        location：可選的直接位置物件。允許覆蓋``room_name``.
         home: Optional home object for the clone.
-        allow_duplicate_key: Whether a duplicate ``new_key`` is allowed.
+        allow_duplicate_key: Whether a duplicate ``new_key``。
 
-    Returns:
-        dict: Clone result payload with the new equipment object and message.
-    """
+    返回：
+        dict：使用新的設備物件和訊息複製結果有效負載。"""
     template = _get_equipment_or_error(eq_key)
     clone_key = _clean_text(new_key) or template.key
     if not allow_duplicate_key and _find_exact_object(clone_key):
@@ -348,13 +345,11 @@ def clone_equipment(
 
 
 def set_equipment_stats(eq_key, stats_dict):
-    """
-    Set equipment stats. Replaces existing stats.
+    """設定設備統計資料。替換現有的統計資料。
 
-    Args:
-        eq_key: Equipment name
-        stats_dict: Dict like {"atk": 5, "def": -2}
-    """
+    參數：
+        eq_key：設備名稱
+        stats_dict：類似 {"atk": 5, "def": -2} 的字典"""
     obj = _get_equipment_or_error(eq_key)
     obj.db.stats = dict(stats_dict)
     obj.save()
@@ -366,7 +361,7 @@ def set_equipment_stats(eq_key, stats_dict):
 
 
 def add_equipment_stat(eq_key, stat, value):
-    """Add or modify a single stat on equipment."""
+    """新增或修改裝置上的單一統計資料。"""
     obj = _get_equipment_or_error(eq_key)
     stats = getattr(obj.db, "stats", {}) or {}
     stats[stat] = stats.get(stat, 0) + value
@@ -379,13 +374,13 @@ def add_equipment_stat(eq_key, stat, value):
 
 
 def add_equipment_magic_buff(eq_key, stat, value):
-    """Add a magic buff to equipment."""
+    """為裝備添加魔法增益。"""
     obj = _get_equipment_or_error(eq_key)
     buffs = getattr(obj.db, "magic_buffs", []) or []
     buffs.append({"stat": stat, "value": value})
     obj.db.magic_buffs = buffs
 
-    # Also apply to base stats
+    # 也適用於基礎統計數據
     stats = getattr(obj.db, "stats", {}) or {}
     stats[stat] = stats.get(stat, 0) + value
     obj.db.stats = stats
@@ -398,7 +393,7 @@ def add_equipment_magic_buff(eq_key, stat, value):
 
 
 def set_equipment_alias(eq_key, alias):
-    """Set player-defined alias for equipment."""
+    """設定玩家定義的設備別名。"""
     obj = _get_equipment_or_error(eq_key)
     alias = _clean_text(alias)
     obj.db.player_alias = alias if alias else None
@@ -412,7 +407,7 @@ def set_equipment_alias(eq_key, alias):
 
 
 def set_equipment_desc(eq_key, desc):
-    """Set equipment description."""
+    """設定設備描述。"""
     obj = _get_equipment_or_error(eq_key)
     desc = _clean_text(desc)
     if not desc:
@@ -423,7 +418,7 @@ def set_equipment_desc(eq_key, desc):
 
 
 def set_equipment_durability(eq_key, durability, max_durability=None):
-    """Set equipment durability."""
+    """設定裝備耐久度。"""
     obj = _get_equipment_or_error(eq_key)
     durability = int(durability)
     if max_durability is not None:
@@ -442,7 +437,7 @@ def set_equipment_durability(eq_key, durability, max_durability=None):
 
 
 def repair_equipment(eq_key, amount=None):
-    """Repair equipment durability."""
+    """修復設備耐久性。"""
     obj = _get_equipment_or_error(eq_key)
     max_dur = getattr(obj.db, "max_durability", 100) or 100
     current = getattr(obj.db, "durability", 0) or 0
@@ -459,7 +454,7 @@ def repair_equipment(eq_key, amount=None):
 
 
 def delete_equipment(eq_key):
-    """Delete equipment."""
+    """刪除裝備。"""
     obj = _get_equipment_or_error(eq_key)
     key = obj.key
     obj.delete()

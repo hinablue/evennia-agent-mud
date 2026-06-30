@@ -40,7 +40,7 @@ from evennia.utils.utils import make_iter
 
 @dataclass
 class MagicSpecError(ValueError):
-    """Raised when a spell CRUD request is invalid."""
+    """當拼字 CRUD 請求無效時引發。"""
 
     message: str
 
@@ -224,7 +224,7 @@ DEFAULT_SPELL_DEFS = [
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# 幫手
 # ---------------------------------------------------------------------------
 
 
@@ -338,7 +338,7 @@ def _refresh_target_defaults(spell):
 
 
 def _is_spell_script(scr):
-    """Return True when the script row should be treated as a spell entry."""
+    """當腳本行應被視為拼字條目時傳回 True。"""
     if not scr:
         return False
     db = getattr(scr, "db", None)
@@ -350,7 +350,7 @@ def _is_spell_script(scr):
 
 
 def _get_spell_identifier(scr):
-    """Return the canonical spell id for a spell script."""
+    """傳回咒語腳本的規範咒語 ID。"""
     db = getattr(scr, "db", None)
     spell_id = _clean_text(getattr(db, "spell_id", ""))
     if spell_id:
@@ -362,7 +362,7 @@ def _get_spell_identifier(scr):
 
 
 def _apply_spell_fields(obj, spec):
-    """Write normalized spell fields onto a ScriptDB row."""
+    """將標準化拼字欄位寫入 ScriptDB 行。"""
     damage_type, effect_type = _resolve_spell_types(spec)
     obj.db.is_spell = True
     obj.db.spell_id = spec["spell_key"]
@@ -395,7 +395,7 @@ def _apply_spell_fields(obj, spec):
 
 
 def _bootstrap_default_spells():
-    """Create default spells when the live registry is empty."""
+    """當即時註冊表為空時建立預設咒語。"""
     try:
         from evennia import create_script
     except Exception:
@@ -464,7 +464,7 @@ def _list_all_spells():
 
 
 def _format_spell(spell):
-    """Format spell for display."""
+    """設定拼字格式以供顯示。"""
     spell_id = _get_spell_identifier(spell)
     lines = []
     lines.append(f"ID：{spell_id}")
@@ -499,7 +499,7 @@ def _format_spell(spell):
 
 
 # ---------------------------------------------------------------------------
-# CRUD
+# 增刪改查
 # ---------------------------------------------------------------------------
 
 

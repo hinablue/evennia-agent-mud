@@ -13,7 +13,7 @@ class CmdKingdomAdmin(MuxCommand):
     key = "@agentkingdom"
     aliases = ["@kingdom", "@kingdom_admin"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "countrycreate",
         "countries",

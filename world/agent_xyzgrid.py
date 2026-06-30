@@ -105,7 +105,7 @@ EXIT_SPAWN_NAMES = {
 
 
 class AgentHubNode(xymap_legend.MapNode):
-    """Map node that preserves the game's custom exit command names."""
+    """保留遊戲自訂退出命令名稱的地圖節點。"""
 
     symbol = "#"
     prototype = {
@@ -290,7 +290,7 @@ def _ensure_exit_xyz(
 
 
 def migrate_existing_world_to_xyzgrid(spawn: bool = True):
-    """Convert the current live world to XYZ-aware rooms/exits and register the map."""
+    """將當前的現實世界轉換為 XYZ 感知的房間/出口並註冊地圖。"""
 
     room_stats = {"typeclass": 0, "tags": 0}
     exit_stats = {"typeclass": 0, "tags": 0, "data": 0, "deleted": 0, "missing": 0}

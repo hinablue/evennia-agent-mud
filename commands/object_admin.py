@@ -1,4 +1,4 @@
-"""Object management command."""
+"""對像管理命令。"""
 
 from commands.command import MuxCommand
 from world.object_tools import (
@@ -37,7 +37,7 @@ class CmdAgentObject(MuxCommand):
     key = "@agentobject"
     aliases = ["@obj"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "status",

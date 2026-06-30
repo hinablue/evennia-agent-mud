@@ -1,16 +1,16 @@
-# typeclasses/
+# 類型類別/
 
-This directory holds the modules for overloading all the typeclasses
-representing the game entities and many systems of the game. Other
-server functionality not covered here is usually modified by the
-modules in `server/conf/`.
+此目錄包含用於重載所有類型類別的模組
+代表遊戲實體和遊戲的許多系統。其他
+這裡未涵蓋的伺服器功能通常由
+`server/conf/` 中的模組。
 
-Each module holds empty classes that just imports Evennia's defaults.
-Any modifications done to these classes will overload the defaults.
+每個模組都包含僅導入 Evennia 的預設值的空類別。
+對這些類別所做的任何修改都會超載預設值。
 
-You can change the structure of this directory (even rename the
-directory itself) as you please, but if you do you must add the
-appropriate new paths to your settings.py file so Evennia knows where
-to look. Also remember that for Python to find your modules, it
-requires you to add an empty `__init__.py` file in any new sub
-directories you create.
+您可以更改此目錄的結構（甚至重新命名
+目錄本身），如您所願，但如果您這樣做，則必須添加
+為您的settings.py 檔案添加適當的新路徑，以便 Evennia 知道在哪裡
+看看。还要记住，为了让 Python 找到你的模块，它
+要求您在任何新子文件中新增一個空的 `__init__.py` 文件
+您建立的目錄。

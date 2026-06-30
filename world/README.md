@@ -1,10 +1,10 @@
-# world/
+# 世界/
 
-This folder is meant as a miscellaneous folder for all that other stuff
-related to the game. Code which are not commands or typeclasses go
-here, like custom economy systems, combat code, batch-files etc. 
+該資料夾是用於存放所有其他內容的雜項資料夾
+與遊戲相關。不是命令或類型類別的程式碼
+在這裡，例如自訂經濟系統、戰鬥代碼、批次檔等。
 
-You can restructure and even rename this folder as best fits your
-sense of organisation. Just remember that if you add new sub
-directories, you must add (optionally empty) `__init__.py` files in
-them for Python to be able to find the modules within. 
+您可以重組甚至重命名此資料夾，以最適合您的方式
+組織意識。請記住，如果您添加新的子
+目錄，您必須新增（可選為空） `__init__.py` 文件
+讓 Python 能夠找到其中的模組。

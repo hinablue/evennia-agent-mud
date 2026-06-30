@@ -1,3 +1,3 @@
-# Templates for the Evennia API
+# Evennia API 模板
 
-Override templates here.
+在這裡覆蓋模板。

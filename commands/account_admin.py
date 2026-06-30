@@ -1,4 +1,4 @@
-"""Account management command."""
+"""帳號管理命令。"""
 
 from commands.command import MuxCommand
 from world.account_tools import (
@@ -41,7 +41,7 @@ class CmdAgentAccount(MuxCommand):
     key = "@agentaccount"
     aliases = ["@account"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "create",
@@ -59,7 +59,7 @@ class CmdAgentAccount(MuxCommand):
         self.caller.msg(text)
 
     def _caller_permissions(self):
-        """Return the caller account's permission strings."""
+        """傳回呼叫者帳戶的權限字串。"""
 
         account = getattr(self.caller, "account", None)
         if not account:
@@ -67,7 +67,7 @@ class CmdAgentAccount(MuxCommand):
         return set(account.permissions.all())
 
     def _has_account_delete_access(self):
-        """Check whether caller can use @agentaccount/delete."""
+        """檢查呼叫者是否可以使用@agentaccount/delete。"""
 
         perms = {perm.lower() for perm in (self._caller_permissions() or [])}
         return bool(perms & {"gm", "developer", "admin"})

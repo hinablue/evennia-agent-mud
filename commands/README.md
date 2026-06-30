@@ -1,14 +1,14 @@
-# commands/
+# 命令/
 
-This folder holds modules for implementing one's own commands and
-command sets. All the modules' classes are essentially empty and just
-imports the default implementations from Evennia; so adding anything
-to them will start overloading the defaults. 
+該資料夾包含用於實現自己的命令和
+命令集。所有模組的類別本質上都是空的並且只是
+從 Evennia 導入預設實作；所以添加任何東西
+對他們來說將開始超載預設值。
 
-You can change the organisation of this directory as you see fit, just
-remember that if you change any of the default command set classes'
-locations, you need to add the appropriate paths to
-`server/conf/settings.py` so that Evennia knows where to find them.
-Also remember that if you create new sub directories you must put
-(optionally empty) `__init__.py` files in there so that Python can
-find your modules.
+您可以根據需要更改此目錄的組織，只需
+請記住，如果您更改任何預設命令集類別'
+位置，您需要添加適當的路徑
+`server/conf/settings.py` 以便 Evennia 知道在哪裡可以找到它們。
+另請記住，如果您建立新的子目錄，則必須將
+（可選為空） `__init__.py` 文件，以便 Python 可以
+找到你的模組。

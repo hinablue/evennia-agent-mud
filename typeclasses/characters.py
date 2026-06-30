@@ -1,12 +1,9 @@
-"""
-Characters
+"""人物
 
-Characters are (by default) Objects setup to be puppeted by Accounts.
-They are what you "see" in game. The Character class in this module
-is setup to be the "default" character type created by the default
-creation commands.
-
-"""
+角色（預設）是由帳戶設定的物件。
+它們就是您在遊戲中「看到」的內容。該模組中的Character類
+被設定為預設創建的“預設”字元類型
+創建命令。"""
 
 from evennia.objects.objects import DefaultCharacter
 from evennia.contrib.game_systems.clothing import ClothedCharacter
@@ -17,8 +14,8 @@ from commands.combat_commands import CombatCmdSet
 from .objects import ObjectParent
 
 
-# Equipment slot definitions
-# slot_name: (display_name, auto_unequip_on_replaced, is_weapon_slot)
+# 裝置插槽定義
+# slot_name：（顯示名稱、auto_unequip_on_replaced、is_weapon_slot）
 EQUIPMENT_SLOTS = {
     "hat": {"name": "帽子", "auto_unequip": True, "is_weapon": False},
     "top": {"name": "上身", "auto_unequip": False, "is_weapon": False},
@@ -36,19 +33,17 @@ EQUIPMENT_SLOTS = {
 
 
 class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharacter):
-    """
-    The Character just re-implements some of the Object's methods and hooks
-    to represent a Character entity in-game.
+    """角色只是重新實現了物件的一些方法和鉤子
+    代表遊戲中的角色實體。
 
-    See mygame/typeclasses/objects.py for a list of
-    properties and methods available on all Object child classes like this.
-    """
+    有關列表，請參閱 mygame/typeclasses/objects.py
+    像這樣的所有 Object 子類別都可用的屬性和方法。"""
 
     default_description = "這是一名旅人。"
     _COMBAT_ALLOWED_COMMANDS = {"attack", "atk", "攻擊", "skill", "sk", "技能"}
 
     def at_object_creation(self):
-        """Initialize default combat and progression attributes."""
+        """初始化預設戰鬥和進度屬性。"""
         super().at_object_creation()
         defaults = {
             "combat_state": "idle",
@@ -79,7 +74,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             "base_stamina": 10,
             "base_spd": 10,
             "base_atk": 10,
-            # Kingdom / Nationality fields
+            # 王國/國籍字段
             "is_king": False,
             "kingdom": None,
             "nationality": "",
@@ -90,7 +85,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
                 self.attributes.add(key, value)
 
     def at_cmdset_get(self, **kwargs):
-        """Toggle the combat-only cmdset based on current combat state."""
+        """根據目前戰鬥狀態切換僅限戰鬥的命令集。"""
         super().at_cmdset_get(**kwargs)
         in_combat = getattr(self.db, "combat_state", "idle") == "fighting"
         try:
@@ -102,7 +97,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             pass
 
     def at_pre_cmd(self, raw_string, **kwargs):
-        """Block non-combat commands while the character is fighting."""
+        """當角色戰鬥時阻止非戰鬥命令。"""
         if getattr(self.db, "combat_state", "idle") != "fighting":
             return False
 
@@ -118,7 +113,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     def get_stat(self, stat_name):
-        """Return the final stat after equipment and gem bonuses."""
+        """返回裝備和寶石獎勵後的最終統計數據。"""
         base_val = getattr(self.db, f"base_{stat_name}", 10)
 
         bonus = 0
@@ -139,15 +134,15 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return base_val + bonus
 
     # -------------------------------------------------------------------------
-    # Token / Wallet System
+    # 代幣/錢包系統
     # -------------------------------------------------------------------------
 
     def get_tokens(self):
-        """Get current token balance."""
+        """獲取當前代幣餘額。"""
         return getattr(self.db, "tokens", 0) or 0
 
     def add_tokens(self, amount):
-        """Add tokens to wallet."""
+        """將代幣添加到錢包。"""
         if amount <= 0:
             return False
         current = self.get_tokens()
@@ -156,7 +151,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     def spend_tokens(self, amount):
-        """Spend tokens from wallet. Returns True if successful."""
+        """從錢包中花費代幣。如果成功則回傳 True。"""
         if amount <= 0:
             return False
         current = self.get_tokens()
@@ -168,30 +163,30 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     # -------------------------------------------------------------------------
-    # Inventory System
+    # 庫存系統
     # -------------------------------------------------------------------------
 
     def get_inventory(self):
-        """Get list of items in inventory."""
+        """取得庫存中的物品清單。"""
         return list(getattr(self.db, "inventory", []) or [])
 
     def get_inventory_capacity(self):
-        """Get inventory capacity."""
+        """取得庫存容量。"""
         return getattr(self.db, "inventory_capacity", 10) or 10
 
     def expand_inventory(self, amount=5):
-        """Expand inventory capacity."""
+        """擴大庫存能力。"""
         current = self.get_inventory_capacity()
         self.db.inventory_capacity = current + amount
         self.msg(f"🎒 背包容量增加了 {amount} 格，現在共有 {current + amount} 格。")
 
     def _get_inventory_count(self):
-        """Get current item count in inventory."""
+        """取得庫存中的當前商品數量。"""
         inv = self.get_inventory()
         return len([item for item in inv if item])
 
     def add_to_inventory(self, item):
-        """Add item to inventory. Returns True if successful."""
+        """將商品加入庫存。如果成功則回傳 True。"""
         if not item:
             return False
         inv = self.get_inventory()
@@ -203,7 +198,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     def remove_from_inventory(self, item):
-        """Remove item from inventory. Returns True if successful."""
+        """從庫存中移除物品。如果成功則回傳 True。"""
         if not item:
             return False
         inv = self.get_inventory()
@@ -214,7 +209,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return False
 
     def find_in_inventory(self, key):
-        """Find item in inventory by key or alias."""
+        """透過鍵或別名尋找庫存中的項目。"""
         inv = self.get_inventory()
         for item in inv:
             if item.key.lower() == key.lower():
@@ -224,41 +219,39 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return None
 
     # -------------------------------------------------------------------------
-    # Equipment System
+    # 裝備系統
     # -------------------------------------------------------------------------
 
     def get_equipped(self, slot):
-        """Get equipped item in slot."""
+        """在插槽中取得裝備好的物品。"""
         equipment = getattr(self.db, "equipment", {}) or {}
         return equipment.get(slot)
 
     def get_all_equipped(self):
-        """Get all equipped items."""
+        """獲得所有裝備物品。"""
         equipment = getattr(self.db, "equipment", {}) or {}
         return {slot: item for slot, item in equipment.items() if item}
 
     def _unequip_to_inventory(self, item):
-        """Try to move unequipped item to inventory, or drop in room."""
+        """嘗試將未裝備的物品移至庫存中，或放入房間。"""
         if not item:
             return
         if self.add_to_inventory(item):
             self.msg(f"📦 {item.get_display_name(self)} 被收進背包。")
         else:
-            # Drop in room
+            # 下降到房間
             if self.location:
                 item.location = self.location
                 item.save()
                 self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
 
     def equip_item(self, item, slot=None):
-        """
-        Equip an item. If slot is None, auto-detect from item's equip_slot.
-        Returns True if successful.
-        """
+        """裝備一個物品。如果slot為None，則從物品的equip_slot自動偵測。
+        如果成功則回傳 True。"""
         if not item:
             return False
 
-        # Determine slot
+        # 確定槽位
         if slot is None:
             slot = getattr(item.db, "equip_slot", None)
             if not slot:
@@ -274,49 +267,49 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         slot_info = EQUIPMENT_SLOTS[slot]
         is_weapon_slot = slot_info["is_weapon"]
 
-        # Handle two-handed weapon conflict
+        # 處理雙手武器衝突
         if slot == "two_hand":
-            # Check if already holding something in main/off hand
+            # 檢查主/副手是否已經拿著東西
             main_hand = self.get_equipped("main_hand")
             off_hand = self.get_equipped("off_hand")
             if main_hand or off_hand:
                 self.msg("⚠️ 你已經在手持武器，必須先卸下才能裝備雙手武器。")
                 return False
-            # Check if item is two-handed
+            # 檢查物品是否為雙手物品
             if not getattr(item.db, "two_handed", False):
                 self.msg(f"⚠️ {item.get_display_name(self)} 不是雙手武器。")
                 return False
 
         if slot in ("main_hand", "off_hand"):
-            # Check two-handed weapon conflict
+            # 檢查雙手武器衝突
             two_hand = self.get_equipped("two_hand")
             if two_hand:
                 self.msg("⚠️ 你已經在持雙手武器，必須先卸下才能裝備單手武器。")
                 return False
-            # Check if item is two-handed
+            # 檢查物品是否為雙手物品
             if getattr(item.db, "two_handed", False):
                 self.msg("⚠️ 雙手武器必須裝備到雙手欄位。")
                 return False
 
-        # Remove current item in slot
+        # 刪除槽中的目前項目
         current_item = self.get_equipped(slot)
         if current_item:
             if slot_info["auto_unequip"]:
                 self._unequip_to_inventory(current_item)
             else:
-                # Top/bottom don't auto-unequip - the new item just replaces
+                # 頂部/底部不會自動取消裝備 - 新物品只會替換
                 self.msg(f"⚠️ 你的 {slot_info['name']} 已經穿著了。")
 
-        # If equipping to main/off hand, remove from inventory if present
+        # 如果裝備到主手/副手，則從庫存中移除（如果存在）
         if is_weapon_slot:
             self.remove_from_inventory(item)
 
-        # Equip
+        # 裝備
         equipment = getattr(self.db, "equipment", {}) or {}
         equipment[slot] = item
         self.db.equipment = equipment
 
-        # Set worn flag for clothing system compatibility
+        # 設置磨損標誌以實現服裝系統相容性
         item.db.worn = True
         item.db.equip_slot = slot
 
@@ -324,7 +317,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     def unequip_item(self, slot):
-        """Unequip item from slot and move to inventory."""
+        """從插槽中取消裝備物品並移至庫存。"""
         item = self.get_equipped(slot)
         if not item:
             slot_info = EQUIPMENT_SLOTS.get(slot, {"name": slot})
@@ -333,15 +326,15 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
 
         slot_info = EQUIPMENT_SLOTS[slot]
 
-        # Try to add to inventory
+        # 嘗試新增到庫存
         if not self.add_to_inventory(item):
-            # Inventory full
+            # 庫存已滿
             if self.location:
                 item.location = self.location
                 item.save()
                 self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
 
-        # Clear slot
+        # 清除插槽
         equipment = getattr(self.db, "equipment", {}) or {}
         equipment[slot] = None
         self.db.equipment = equipment
@@ -353,7 +346,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return True
 
     def get_equipment_description(self):
-        """Get description of equipped items for 'look' command."""
+        """取得「look」指令所裝備物品的描述。"""
         equipment = self.get_all_equipped()
         if not equipment:
             return "目前身上沒有穿戴任何裝備。"
@@ -377,7 +370,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
         return "\n".join(lines)
 
     # -------------------------------------------------------------------------
-    # Combat / Level Up
+    # 戰鬥/升級
     # -------------------------------------------------------------------------
 
     def gain_exp(self, amount):
@@ -424,7 +417,7 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             self.msg("你已經掌握這個技能了。")
 
     # -------------------------------------------------------------------------
-    # Buff / Active Effect System
+    # 增益/主動效果系統
     # -------------------------------------------------------------------------
 
     def apply_buff(self, stat, amount, duration):

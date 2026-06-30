@@ -1,12 +1,9 @@
-"""
-Object
+"""物件
 
-The Object is the class for general items in the game world.
+物件是遊戲世界中一般物品的類別。
 
-Use the ObjectParent class to implement common features for *all* entities
-with a location in the game world (like Characters, Rooms, Exits).
-
-"""
+使用 ObjectParent 類別實作*所有*實體的通用功能
+具有遊戲世界中的位置（如角色、房間、出口）。"""
 
 from collections import defaultdict
 
@@ -20,15 +17,12 @@ def _zh_join(items):
 
 
 class ObjectParent:
-    """
-    This is a mixin that can be used to override *all* entities inheriting at
-    some distance from DefaultObject (Objects, Exits, Characters and Rooms).
+    """這是一個 mixin，可用來覆寫繼承於的*所有*實體
+    與預設物件（物件、出口、角色和房間）有一段距離。
 
-    Just add any method that exists on `DefaultObject` to this class. If one
-    of the derived classes has itself defined that same hook already, that will
-    take precedence.
-
-    """
+    只需將 `DefaultObject` 上存在的任何方法添加到此類即可。如果有一個
+    衍生類別本身已經定義了相同的鉤子，這將
+    優先。"""
 
     def get_numbered_name(self, count, looker, **kwargs):
         """以較自然的中文形式顯示物件數量。"""
@@ -83,19 +77,17 @@ class ObjectParent:
 
 
 class Object(ObjectParent, ContribRPObject):
-    """
-    This is the root Object typeclass, representing all entities that
-    have an actual presence in-game. DefaultObjects generally have a
-    location. They can also be manipulated and looked at. Game
-    entities you define should inherit from DefaultObject at some distance.
+    """這是根物件類型類，代表所有實體
+    在遊戲中實際存在。預設物件通常有一個
+    位置。它們也可以被操縱和觀察。遊戲
+    您定義的實體應該在一定距離處從 DefaultObject 繼承。
 
-    It is recommended to create children of this class using the
-    `evennia.create_object()` function rather than to initialize the class
-    directly - this will both set things up and efficiently save the object
-    without `obj.save()` having to be called explicitly.
+    建議使用以下方法建立此類別的子級
+    `evennia.create_object()` 函數而非初始化類
+    直接 - 這將既設置好東西又有效地保存對象
+    無需明確調用 `obj.save()` 。
 
-    Note: Check the autodocs for complete class members, this may not always
-    be up-to date.
-    """
+    注意：檢查自動文件以獲取完整的類別成員，這可能並不總是
+    保持最新狀態。"""
 
     default_description = "你看不出什麼特別之處。"

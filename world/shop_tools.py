@@ -1,4 +1,4 @@
-"""Room-based shop helpers for limited equipment sales."""
+"""房間內的商店助理負責有限的設備銷售。"""
 
 from __future__ import annotations
 
@@ -16,12 +16,12 @@ from world.equipment_tools import (
 
 @dataclass
 class ShopSpecError(ValueError):
-    """Raised when shop configuration or purchase input is invalid."""
+    """當商店配置或購買輸入無效時引發。"""
 
     message: str
 
     def __str__(self):
-        """Return the human-readable error text."""
+        """傳回人類可讀的錯誤文字。"""
         return self.message
 
 
@@ -29,12 +29,12 @@ INFINITE_STOCK = -1
 
 
 def _clean_text(value):
-    """Normalize user-provided text values."""
+    """規範化使用者提供的文字值。"""
     return (value or "").strip()
 
 
 def _get_room(room_or_name=None, room=None):
-    """Resolve a room object from either a direct object or a room name."""
+    """從直接物件或房間名稱解析房間物件。"""
     if room is not None:
         return room
     if room_or_name is None:
@@ -45,7 +45,7 @@ def _get_room(room_or_name=None, room=None):
 
 
 def _coerce_price(price):
-    """Validate and normalize a price value."""
+    """驗證並標準化價格值。"""
     try:
         value = int(price)
     except (TypeError, ValueError) as exc:
@@ -56,7 +56,7 @@ def _coerce_price(price):
 
 
 def _coerce_quantity(quantity):
-    """Validate and normalize a quantity value."""
+    """驗證並標準化數量值。"""
     try:
         value = int(quantity)
     except (TypeError, ValueError) as exc:
@@ -67,7 +67,7 @@ def _coerce_quantity(quantity):
 
 
 def _get_template_or_error(template_key):
-    """Resolve an equipment template object by key."""
+    """透過鍵解析設備模板物件。"""
     try:
         template = _find_exact_object(template_key)
     except EquipmentSpecError as exc:
@@ -78,7 +78,7 @@ def _get_template_or_error(template_key):
 
 
 def _get_template_from_entry(entry):
-    """Resolve the equipment template stored in a stock entry."""
+    """解析儲存在庫存條目中的設備模板。"""
     template_id = entry.get("template_id")
     if template_id is not None:
         try:
@@ -93,26 +93,26 @@ def _get_template_from_entry(entry):
 
 
 def _get_room_stock(room):
-    """Return a mutable copy of the room's stock list."""
+    """返回房間庫存清單的可變副本。"""
     return list(getattr(room.db, "shop_stock", []) or [])
 
 
 def _save_room_stock(room, stock):
-    """Persist stock back onto the room object."""
+    """將庫存保留回房間物件上。"""
     room.db.shop_stock = stock
     if hasattr(room, "save"):
         room.save()
 
 
 def _format_quantity(quantity):
-    """Render a quantity for user-facing output."""
+    """渲染面向使用者的輸出量。"""
     if quantity == INFINITE_STOCK:
         return "∞"
     return str(quantity)
 
 
 def _find_stock_index(stock, selection):
-    """Resolve a stock entry index from a number or template key."""
+    """從數字或範本鍵解析股票條目索引。"""
     selection = _clean_text(selection)
     if not selection:
         raise ShopSpecError("請指定商品編號或名稱。")
@@ -131,17 +131,16 @@ def _find_stock_index(stock, selection):
 
 
 def set_room_shop_stock(template_key, room_name, price, quantity):
-    """Create or update a shop stock entry for a room.
+    """建立或更新房間的商店庫存條目。
 
-    Args:
-        template_key: Existing equipment object used as the sale template.
-        room_name: Room that owns the shop stock.
-        price: Token price for one purchase.
-        quantity: Remaining stock. ``-1`` means unlimited.
+    參數：
+        template_key：用作銷售範本的現有設備物件。
+        room_name：擁有商店庫存的房間。
+        價格：一次購買的代幣價格。
+        數量：剩餘庫存。 ``-1`` 表示無限制。
 
-    Returns:
-        dict: A result payload with a human-readable message.
-    """
+    返回：
+        dict：帶有人類可讀訊息的結果有效負載。"""
     template = _get_template_or_error(template_key)
     room = _get_room(room_name)
     clean_price = _coerce_price(price)
@@ -170,12 +169,12 @@ def set_room_shop_stock(template_key, room_name, price, quantity):
     return {
         "room": room,
         "entry": entry,
-        "message": f"已將 `{template.key}` {action}到 `{room.key}` 商店：價格 {clean_price} Token，數量 {quantity_text}。",
+        "message": f"已將 `{template.key}` {action}到 `{room.key}` 商店：價格 {clean_price} 代幣，數量 {quantity_text}。",
     }
 
 
 def remove_room_shop_stock(template_key, room_name):
-    """Remove a stock entry from a room shop."""
+    """從房間商店中刪除庫存條目。"""
     room = _get_room(room_name)
     template = _get_template_or_error(template_key)
     stock = _get_room_stock(room)
@@ -195,7 +194,7 @@ def remove_room_shop_stock(template_key, room_name):
 
 
 def summarize_room_shop(room_name=None, room=None):
-    """Render an admin-facing summary of a room shop."""
+    """呈現面向管理員的房間商店摘要。"""
     room = _get_room(room_name, room=room)
     stock = _get_room_stock(room)
     lines = [f"商店清單：{room.key}"]
@@ -207,13 +206,13 @@ def summarize_room_shop(room_name=None, room=None):
         quantity = entry.get("quantity", 0)
         status = "售完" if quantity == 0 else _format_quantity(quantity)
         lines.append(
-            f"- {index}. {entry.get('template_key', '未命名')}｜價格：{entry.get('price', 0)} Token｜剩餘：{status}"
+            f"- {index}. {entry.get('template_key', '未命名')}｜價格：{entry.get('price', 0)} 代幣｜剩餘：{status}"
         )
     return "\n".join(lines)
 
 
 def summarize_room_shop_for_player(room):
-    """Render a player-facing summary of the current room shop."""
+    """渲染目前房間商店面向玩家的摘要。"""
     room = _get_room(room=room)
     stock = _get_room_stock(room)
     lines = [f"|w{room.key} 商店清單|n"]
@@ -230,21 +229,20 @@ def summarize_room_shop_for_player(room):
         else:
             quantity_text = str(quantity)
         lines.append(
-            f"{index}. {entry.get('template_key', '未命名')} - {entry.get('price', 0)} Token（剩餘：{quantity_text}）"
+            f"{index}. {entry.get('template_key', '未命名')} - {entry.get('price', 0)} 代幣（剩餘：{quantity_text}）"
         )
     return "\n".join(lines)
 
 
 def buy_from_room_shop(caller, selection):
-    """Buy one equipment item from the caller's current room shop.
+    """從呼叫者目前的房間商店購買一件設備。
 
-    Args:
-        caller: The player character making the purchase.
-        selection: Stock index (1-based) or template key.
+    參數：
+        呼叫者：進行購買的玩家角色。
+        選擇：股票索引（從 1 開始）或範本鍵。
 
-    Returns:
-        dict: Purchase result with the created item and message.
-    """
+    返回：
+        dict：帶有創建的項目和訊息的購買結果。"""
     room = getattr(caller, "location", None)
     if not room:
         raise ShopSpecError("你現在不在任何房間裡。")
@@ -262,7 +260,7 @@ def buy_from_room_shop(caller, selection):
     template = _get_template_from_entry(entry)
     price = _coerce_price(entry.get("price", 0))
     if getattr(caller, "get_tokens", None) and caller.get_tokens() < price:
-        raise ShopSpecError("Token 不足。")
+        raise ShopSpecError("代幣不足。")
 
     clone_result = clone_equipment(
         template.key,
@@ -281,7 +279,7 @@ def buy_from_room_shop(caller, selection):
         caller.remove_from_inventory(new_item)
         if hasattr(new_item, "delete"):
             new_item.delete()
-        raise ShopSpecError("Token 不足。")
+        raise ShopSpecError("代幣不足。")
 
     if quantity != INFINITE_STOCK:
         entry["quantity"] = max(0, quantity - 1)

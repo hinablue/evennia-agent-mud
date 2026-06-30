@@ -1,24 +1,20 @@
-"""
-Equipment - Weapons, armor, and accessories for the game.
+"""裝備 - 遊戲的武器、盔甲和配件。
 
-This module provides the Equipment typeclass, which represents
-wearable items, weapons, and accessories that players can equip.
-"""
+此模組提供了 Equipment 類型類，它代表
+玩家可以裝備的可穿戴物品、武器和配件。"""
 
 from evennia.objects.objects import DefaultObject
 from typeclasses.objects import ObjectParent
 
 
 class Equipment(ObjectParent, DefaultObject):
-    """
-    Equipment is an item that can be equipped by a Character.
-    It has stats, durability, magic slots, and can be worn in
-    specific equipment slots.
-    """
+    """裝備是角色可以裝備的物品。
+    它具有統計數據、耐用性、魔法槽，並且可以佩戴在
+    特定裝備槽位。"""
 
     default_description = "這是一件普通的裝備。"
 
-    # Equipment slot constants
+    # 裝置槽常數
     SLOT_HAT = "hat"
     SLOT_TOP = "top"
     SLOT_BOTTOM = "bottom"
@@ -47,7 +43,7 @@ class Equipment(ObjectParent, DefaultObject):
         SLOT_TWO_HAND,
     )
 
-    # Valid stat names that equipment can modify
+    # 設備可以修改的有效統計名稱
     VALID_STATS = (
         "str",
         "def",
@@ -64,7 +60,7 @@ class Equipment(ObjectParent, DefaultObject):
     )
 
     def at_object_creation(self):
-        """Initialize default equipment attributes."""
+        """初始化預設設備屬性。"""
         super().at_object_creation()
 
         defaults = {
@@ -82,14 +78,14 @@ class Equipment(ObjectParent, DefaultObject):
                 self.attributes.add(key, value)
 
     def get_display_name(self, looker=None, **kwargs):
-        """Return the display name with alias if set."""
+        """傳回顯示名稱和別名（如果設定）。"""
         alias = getattr(self.db, "player_alias", None)
         if alias:
             return f"{self.key}（{alias}）"
         return self.key
 
     def get_stats_description(self):
-        """Return a human-readable description of stat modifiers."""
+        """傳回 stat 修飾符的人類可讀的描述。"""
         stats = getattr(self.db, "stats", {}) or {}
         if not stats:
             return ""
@@ -102,14 +98,14 @@ class Equipment(ObjectParent, DefaultObject):
         return ", ".join(parts) if parts else ""
 
     def get_durability_status(self):
-        """Return durability as a percentage and display string."""
+        """以百分比形式傳回耐久性並顯示字串。"""
         max_dur = getattr(self.db, "max_durability", 100) or 100
         dur = getattr(self.db, "durability", 100) or 100
         pct = int((dur / max_dur) * 100) if max_dur > 0 else 0
         return pct, f"{dur}/{max_dur}"
 
     def use_durability(self, amount=1):
-        """Reduce durability by amount. Returns True if still usable."""
+        """減少一定量的耐久度。如果仍然可用則傳回 True。"""
         dur = getattr(self.db, "durability", 100) or 100
         max_dur = getattr(self.db, "max_durability", 100) or 100
         dur = max(0, dur - amount)
@@ -121,7 +117,7 @@ class Equipment(ObjectParent, DefaultObject):
         return True
 
     def repair(self, amount=None):
-        """Repair durability. If amount is None, fully restore."""
+        """修復耐久性。如果 amount 為 None，則完全恢復。"""
         max_dur = getattr(self.db, "max_durability", 100) or 100
         if amount is None:
             self.db.durability = max_dur
@@ -131,18 +127,18 @@ class Equipment(ObjectParent, DefaultObject):
         self.db.broken = False
 
     def add_magic_buff(self, buff_stat, buff_value):
-        """Add a magic buff to the equipment."""
+        """為裝備添加魔法增益。"""
         buffs = getattr(self.db, "magic_buffs", []) or []
         buffs.append({"stat": buff_stat, "value": buff_value})
         self.db.magic_buffs = buffs
 
-        # Apply to stats
+        # 應用於統計
         stats = getattr(self.db, "stats", {}) or {}
         stats[buff_stat] = stats.get(buff_stat, 0) + buff_value
         self.db.stats = stats
 
     def get_magic_buffs_description(self):
-        """Return description of magic buffs."""
+        """傳回魔法增益的描述。"""
         buffs = getattr(self.db, "magic_buffs", []) or []
         if not buffs:
             return ""
@@ -153,7 +149,7 @@ class Equipment(ObjectParent, DefaultObject):
         return ", ".join(parts)
 
     def get_full_description(self, looker=None):
-        """Return full description including stats and durability."""
+        """傳回完整的描述，包括統計數據和耐久性。"""
         lines = []
         lines.append(f"名稱：{self.get_display_name(looker)}")
 

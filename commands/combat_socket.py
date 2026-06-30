@@ -8,24 +8,33 @@ GEM_DB = {
     "emerald": {"name": "綠寶石", "stats": {"agility": 3, "spd": 1}},
 }
 
+STAT_LABELS = {
+    "str": "力量",
+    "stamina": "體質",
+    "intel": "智力",
+    "spirit": "精神",
+    "agility": "敏捷",
+    "spd": "速度",
+}
+
 
 class CmdSocketGem(Command):
     """鑲嵌寶石指令。"""
 
     key = "socket"
     aliases = ["鑲嵌", "gem"]
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         caller = self.caller
         args = self.args.strip().split()
         if len(args) < 2:
-            caller.msg("用法: socket <寶石id> <槽位(1-3)>")
+            caller.msg("用法：socket <寶石 ID> <槽位（1-3）>")
             return
 
         gem_id, slot_num = args[0], args[1]
         if gem_id not in GEM_DB:
-            caller.msg(f"找不到這種寶石。可用: {', '.join(GEM_DB.keys())}")
+            caller.msg(f"找不到這種寶石。可用寶石：{', '.join(GEM_DB.keys())}")
             return
 
         max_sockets = getattr(caller.db, "max_sockets", 3) or 3
@@ -35,6 +44,7 @@ class CmdSocketGem(Command):
                 caller.msg(f"槽位超出範圍 (1-{max_sockets})")
                 return
             slot_id = f"slot{slot_index}"
+            slot_label = f"第 {slot_index} 槽"
         except ValueError:
             caller.msg("槽位必須是數字。")
             return
@@ -44,9 +54,11 @@ class CmdSocketGem(Command):
         caller.db.sockets = sockets
         caller.db.sockets[slot_id] = gem_data
 
-        stats_msg = ", ".join([f"{k} +{v}" for k, v in gem_data["stats"].items()])
-        caller.msg(f"💎 你將 {gem_data['name']} 鑲嵌到了 {slot_id} 中！")
-        caller.msg(f"屬性提升: {stats_msg}")
+        stats_msg = ", ".join(
+            [f"{STAT_LABELS.get(k, k)} +{v}" for k, v in gem_data["stats"].items()]
+        )
+        caller.msg(f"💎 你將 {gem_data['name']} 鑲嵌到了{slot_label}！")
+        caller.msg(f"屬性提升：{stats_msg}")
 
 
 COMBAT_SOCKET_COMMANDS = [CmdSocketGem]

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- 編碼：utf-8 -*-
 """登入前顯示的連線畫面。"""
 
 from django.conf import settings

@@ -1,51 +1,51 @@
-# Web 
+# 網路
 
-This folder contains overriding of web assets - the website and webclient
-coming with the game.
+此資料夾包含 Web 資產的覆蓋 - 網站和 Web 用戶端
+隨遊戲而來。
 
-This is the process for serving a new web site (see also the Django docs for
-more details):
+這是為新網站提供服務的過程（另請參閱 Django 文檔
+更多細節）：
 
-1. A user enters an url in their browser (or clicks a button). This leads to
-   the browser sending a _HTTP request_ to the server, with a specific type
-   (GET,POST etc) and url-path (like for `https://localhost:4001/`, the part of
-   the url we need to consider is `/`).
-2. Evennia (through Django) will make use of the regular expressions registered
-   in the `urls.py` file.  This acts as a rerouter to _views_, which are
-   regular Python functions able to process the incoming request (think of
-   these as similar to the right Evennia Command being selected to handle your
-   input - views are like Commands in this sense). In the case of `/` we
-   reroute to a view handling the main index-page of the website.  The view is
-   either a function or a callable class (Evennia tends to have them as
-   functions).
-3. The view-function will prepare all the data needed by the web page. For the default 
-   index page, this means gather the game statistics so you can see how many
-   are currently connected to the game etc. 
-4. The view will next fetch a _template_. A template is a HTML-document with special
-   'placeholder' tags (written as `{{...}}` or `{% ... %}` usually). These
-   placeholders allow the view to inject dynamic content into the HTML and make
-   the page customized to the current situation. For the index page, it means
-   injecting the current player-count in the right places of the html page. This
-   is called 'rendering' the template. The result is a complete HTML page.
-5. (The view can also pull in a _form_ to customize user-input in a similar way.)
-6. The finished HTML page is packed in a _HTTP response_ and is returned to the
-   web browser, which can now display the page! 
+1. 使用者在瀏覽器中輸入 URL（或按一下按鈕）。這導致
+   瀏覽器向伺服器發送特定類型的_HTTP請求_
+   （GET、POST 等）和 url 路徑（例如 `https://localhost:4001/`，是
+   我們需要考慮的 url 是 `/`)。
+2. Evennia（透過 Django）將使用註冊的正規表示式
+   在 `urls.py` 文件中。  這充當 _views_ 的重新路由器，它們是
+   能夠處理傳入請求的常規 Python 函數（想想
+   這些類似於選擇正確的 Evennia Command 來處理您的任務
+   輸入 - 從這個意義上來說，視圖就像命令）。對於 `/` 我們
+   重新路由到處理網站主索引頁面的視圖。  視圖是
+   函數或可呼叫類別（Evennia 傾向於將它們視為
+   功能）。
+3. 查看函數將準備網頁所需的所有資料。對於預設的
+   索引頁面，這意味著收集遊戲統計數據，以便您可以看到有多少
+   目前已連接到遊戲等。
+4. 接下來視圖將取得_template_。模板是一個具有特殊屬性的 HTML 文檔
+   「佔位符」標籤（通常寫為 `{{...}}` 或 `{% ... %}`）。這些
+   佔位符允許視圖將動態內容注入到 HTML 中並使得
+   根據當前情況自訂的頁面。對於索引頁來說，這意味著
+   在 html 頁面的正確位置注入當前玩家數量。這
+   稱為“渲染”模板。結果就是一個完整的 HTML 頁面。
+5. （該視圖也可以拉入_form_以類似的方式自訂使用者輸入。）
+6. 完成的 HTML 頁面被打包在 _HTTP 回應_ 中並返回到
+   網路瀏覽器，現在可以顯示頁面了！
 
-## A note on the webclient
+## 關於網頁客戶端的註釋
 
-The web browser can also execute code directly without talking to the Server.
-This code must be written/loaded into the web page and is written using the
-Javascript programming language (there is no way around this, it is what web
-browsers understand). Executing Javascript is something the web browser does,
-it operates independently from Evennia. Small snippets of javascript can be
-used on a page to have buttons react, make small animations etc that doesn't
-require the server.
+Web 瀏覽器還可以直接執行程式碼，而無需與伺服器通訊。
+該程式碼必須寫入/載入到網頁中，並使用
+Javascript 程式語言（沒有辦法解決這個問題，這就是網絡
+瀏覽器可以理解）。執行 Javascript 是網頁瀏覽器所做的事情，
+它獨立於 Evennia 運作。 javascript 的小片段可以是
+在頁面上用於讓按鈕做出反應、製作小動畫等
+需要伺服器。
 
-In the case of the Webclient, Evennia will load the Webclient page as above,
-but the page then contains Javascript code responsible for actually displaying
-the client GUI, allows you to resize windows etc. 
+對於 Web 用戶端，Evennia 將按上述方式載入 Web 用戶端頁面，
+但該頁麵包含負責實際顯示的 Javascript 程式碼
+客戶端 GUI，允許您調整視窗大小等。
 
-After it starts, the webclient 'calls home' and spins up a websocket link to
-the Evennia Portal - this is how all data is then exchanged. So after the
-initial loading of the webclient page, the above sequence doesn't happen again
-until close the tab and come back or you reload it manually in your browser.
+啟動後，Web 用戶端會「回撥」並啟動 WebSocket 鏈接
+Evennia Portal - 這是所有資料交換的方式。所以之後
+初始載入網路用戶端頁面，上述序列不會再發生
+直到關閉選項卡並返回或您在瀏覽器中手動重新加載它。

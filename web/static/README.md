@@ -1,17 +1,17 @@
-## Static files
+## 靜態文件
 
-This is the place to put static resources you want to serve from the 
-Evennia server. This is usually CSS and Javascript files but you _could_ also
-serve other media like images, videos and music files from here.
+這是放置您想要提供的靜態資源的地方
+埃文尼亞伺服器。這通常是 CSS 和 Javascript 文件，但你_也可以_
+從這裡提供其他媒體，例如圖像、影片和音樂檔案。
 
-> If you serve a lot of large files (especially videos) you will see a lot
-> better performance doing so from a separate dedicated media host.
+> 如果您提供大量大文件（尤其是影片），您會看到很多
+> 透過單獨的專用媒體主機實現更好的效能。
 
-You can also override default Evennia files from here. The original files are
-found in `evennia/web/static/`. Copy the original file into the same
-corresponding location/sublocation in this folder (such as website CSS files
-into `mygame/static/website/css/`) and modify it, then reload the server.
+您也可以從此處覆蓋預設的 Evennia 檔案。原始文件是
+在 `evennia/web/static/` 中找到。將原文件複製到同一個文件中
+此資料夾中的相應位置/子位置（例如網站 CSS 文件
+進入 `mygame/static/website/css/`) 並修改它，然後重新載入伺服器。
 
-Note that all static resources will be collected from all over Evennia into
-`mygame/server/.static` for serving by the webserver. That folder should not be
-modified manually.
+請注意，所有靜態資源將從 Evennia 各地收集到
+`mygame/server/.static` 由網路伺服器提供服務。該資料夾不應該是
+手動修改。

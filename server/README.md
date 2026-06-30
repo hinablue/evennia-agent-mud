@@ -1,38 +1,38 @@
-# server/ 
+# 伺服器/
 
-This directory holds files used by and configuring the Evennia server 
-itself.
+該目錄包含 Evennia 伺服器使用和配置的文件
+本身。
 
-Out of all the subdirectories in the game directory, Evennia does
-expect this directory to exist, so you should normally not delete,
-rename or change its folder structure.
+在遊戲目錄的所有子目錄中，Evennia 確實
+期望該目錄存在，因此通常不應刪除，
+重新命名或變更其資料夾結構。
 
-When running you will find four new files appear in this directory: 
+運行時你會發現目錄下出現了四個新檔案：
 
- - `server.pid` and `portal.pid`: These hold the process IDs of the
-   Portal and Server, so that they can be managed by the launcher. If
-   Evennia is shut down uncleanly (e.g. by a crash or via a kill
-   signal), these files might erroneously remain behind. If so Evennia
-   will tell you they are "stale" and they can be deleted manually.
- - `server.restart` and `portal.restart`: These hold flags to tell the
-   server processes if it should die or start again. You never need to
-   modify those files.
- - `evennia.db3`: This will only appear if you are using the default
-   SQLite3 database; it a binary file that holds the entire game
-   database; deleting this file will effectively reset the game for
-   you and you can start fresh with `evennia migrate` (useful during
-   development).  
+ - `server.pid` 和 `portal.pid`：它們保存了進程的進程 ID
+   Portal和Server，以便它們可以由啟動器管理。如果
+   Evennia 被不正常地關閉（例如，由於崩潰或透過殺死
+   信號），這些文件可能會錯誤地保留在後面。如果是這樣的話 埃文尼亞
+   會告訴您它們已“過時”並且可以手動刪除。
+ - `server.restart` 和 `portal.restart`：這些持有標誌來告訴
+   伺服器進程是否應該終止或重新啟動。你永遠不需要
+   修改這些文件。
+ - `evennia.db3`：僅當您使用預設值時才會出現
+   SQLite3資料庫；它是一個保存整個遊戲的二進位文件
+   資料庫;刪除此檔案將有效重置遊戲
+   你和你可以用 `evennia migrate` 重新開始（在
+   發展）。
 
-## server/conf/
+#＃伺服器/conf/
 
-This subdirectory holds the configuration modules for the server. With
-them you can change how Evennia operates and also plug in your own
-functionality to replace the default. You usually need to restart the
-server to apply changes done here. The most important file is the file
-`settings.py` which is the main configuration file of Evennia. 
+此子目錄包含伺服器的配置模組。和
+您可以變更 Evennia 的操作方式，也可以插入您自己的操作方式
+功能來替換預設值。通常需要重新啟動
+伺服器應用此處完成的變更。最重要的文件是文件
+`settings.py` 這是Evennia的主要設定檔。
 
-## server/logs/
+## 伺服器/日誌/
 
-This subdirectory holds various log files created by the running
-Evennia server. It is also the default location for storing any custom
-log files you might want to output using Evennia's logging mechanisms.
+此子目錄保存運行時創建的各種日誌文件
+埃文尼亞伺服器。它也是存儲任何自訂的預設位置
+您可能想要使用 Evennia 的日誌記錄機制輸出的日誌檔案。

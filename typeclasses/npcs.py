@@ -1,4 +1,4 @@
-"""NPC typeclasses for simple NPCs and LLM-backed NPCs."""
+"""簡單 NPC 和 LLM 支援的 NPC 的 NPC 類型類別。"""
 
 import random
 
@@ -44,7 +44,7 @@ def scale_stat(base_value, level, stat_key):
 
 
 class NPC(Character):
-    """A lightweight non-player character typeclass."""
+    """一個輕量級的非玩家角色類型類別。"""
 
     default_description = "這是一名 NPC。"
 
@@ -260,7 +260,7 @@ class NPC(Character):
 
 
 class LLMNPC(LocalLLMNPC):
-    """LLM-backed NPC with sane defaults for this game."""
+    """LLM 支援的 NPC 具有該遊戲的合理預設值。"""
 
     default_description = "這是一名會回話的 NPC。"
 

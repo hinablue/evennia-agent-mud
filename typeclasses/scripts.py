@@ -1,46 +1,42 @@
-"""
-Scripts
+"""腳本
 
-Scripts are powerful jacks-of-all-trades. They have no in-game
-existence and can be used to represent persistent game systems in some
-circumstances. Scripts can also have a time component that allows them
-to "fire" regularly or a limited number of times.
+腳本是強大的萬事通。他們沒有遊戲內
+存在並且可以用來表示某些持久性博弈系統
+情況。腳本還可以有一個時間組件，允許它們
+定期或有限次數地「開火」。
 
-There is generally no "tree" of Scripts inheriting from each other.
-Rather, each script tends to inherit from the base Script class and
-just overloads its hooks to have it perform its function.
-
-"""
+通常不存在相互繼承的腳本“樹”。
+相反，每個腳本都傾向於從 Script 基底類別繼承，並且
+只是重載它的鉤子讓它執行它的功能。"""
 
 from evennia.scripts.scripts import DefaultScript
 
 
 class Script(DefaultScript):
-    """
-    This is the base TypeClass for all Scripts. Scripts describe
-    all entities/systems without a physical existence in the game world
-    that require database storage (like an economic system or
-    combat tracker). They
-    can also have a timer/ticker component.
+    """這是所有腳本的基本類型類別。腳本描述
+    遊戲世界中沒有物理存在的所有實體/系統
+    需要資料庫儲存（如經濟系統或
+    戰鬥追蹤器）。他們
+    還可以有計時器/自動收報機組件。
 
-    A script type is customized by redefining some or all of its hook
-    methods and variables.
+    腳本類型是透過重新定義其部分或全部鉤子來自訂的
+    方法和變數。
 
-    * available properties (check docs for full listing, this could be
-      outdated).
+    * 可用屬性（查看文件以取得完整列表，這可能是
+      已過時）。
 
-     key (string) - name of object
-     name (string)- same as key
-     aliases (list of strings) - aliases to the object. Will be saved
-              to database as AliasDB entries but returned as strings.
-     dbref (int, read-only) - unique #id-number. Also "id" can be used.
-     date_created (string) - time stamp of object creation
-     permissions (list of strings) - list of permission strings
+     key（字串）- 物件名稱
+     名稱（字串）- 與鍵相同
+     別名（字串列表）- 物件的別名。將會被拯救
+              作為 AliasDB 條目發送到資料庫，但作為字串傳回。
+     dbref（int，唯讀）- 唯一的#id 號。也可以使用“id”。
+     date_created (string) - 物件建立的時間戳
+     權限（字串列表）- 權限字串列表
 
-     desc (string)      - optional description of script, shown in listings
-     obj (Object)       - optional object that this script is connected to
-                          and acts on (set automatically by obj.scripts.add())
-     interval (int)     - how often script should run, in seconds. <0 turns
+     desc (字串) - 腳本的可選描述，顯示在清單中
+     obj (Object) - 此腳本連接到的可選對象
+                          並作用於（由 obj.scripts.add() 自動設定）
+     Interval (int) - 腳本運行的頻率（以秒為單位）。 <0 turns
                           off ticker
      start_delay (bool) - if the script should start repeating right away or
                           wait self.interval seconds
@@ -67,47 +63,45 @@ class Script(DefaultScript):
                is persistent, the pause state will survive a shutdown.
      unpause() - restart a previously paused script. The script will continue
                  from the paused timer (but at_start() will be called).
-     time_until_next_repeat() - if a timed script (interval>0), returns time
-                 until next tick
+     time_until_next_repeat() - if a timed script (interval>0)，返回時間
+                 直到下一個刻度
 
-    * Hook methods (should also include self as the first argument):
+    * Hook 方法（也應該包含 self 作為第一個參數）：
 
-     at_script_creation() - called only once, when an object of this
-                            class is first created.
-     is_valid() - is called to check if the script is valid to be running
-                  at the current time. If is_valid() returns False, the running
-                  script is stopped and removed from the game. You can use this
-                  to check state changes (i.e. an script tracking some combat
-                  stats at regular intervals is only valid to run while there is
-                  actual combat going on).
-      at_start() - Called every time the script is started, which for persistent
-                  scripts is at least once every server start. Note that this is
-                  unaffected by self.delay_start, which only delays the first
-                  call to at_repeat().
-      at_repeat() - Called every self.interval seconds. It will be called
-                  immediately upon launch unless self.delay_start is True, which
-                  will delay the first call of this method by self.interval
-                  seconds. If self.interval==0, this method will never
-                  be called.
+     at_script_creation() - 只呼叫一次，當 this 的對象
+                            類別首先被創建。
+     is_valid() - 呼叫以檢查腳本是否有效執行
+                  目前。如果 is_valid() 傳回 False，則執行
+                  腳本被停止並從遊戲中刪除。你可以用這個
+                  檢查狀態變化（即追蹤某些戰鬥的腳本
+                  定期統計數據僅在存在時才有效
+                  實戰正在進行中）。
+      at_start() - 每次啟動腳本時調用，這用於持久
+                  腳本至少在每個伺服器啟動一次。請注意，這是
+                  不受 self.delay_start 影響，只延遲第一個
+                  呼叫 at_repeat()。
+      at_repeat() - 每 self.interval 秒呼叫一次。它將被稱為
+                  啟動後立即啟動，除非 self.delay_start 為 True，即
+                  將延遲此方法的第一次呼叫 self.interval
+                  秒。如果 self.interval==0，這個方法永遠不會
+                  被召喚。
       at_pause()
-      at_stop() - Called as the script object is stopped and is about to be
-                  removed from the game, e.g. because is_valid() returned False.
+      at_stop() - 在腳本物件停止並即將停止時調用
+                  從遊戲中刪除，例如因為 is_valid() 回傳 False。
       at_script_delete()
-      at_server_reload() - Called when server reloads. Can be used to
-                  save temporary variables you want should survive a reload.
-      at_server_shutdown() - called at a full server shutdown.
-      at_server_start()
-
-    """
+      at_server_reload() - 伺服器重新載入時呼叫。可以用來
+                  保存您想要的臨時變數應該在重新載入後仍然存在。
+      at_server_shutdown() - 在伺服器完全關閉時呼叫。
+      at_server_start()"""
 
     pass
 
 
 # ---------------------------------------------------------------------------
-# CombatScript — Evennia-persistent combat session
+# CombatScript — Evennia 持續戰鬥會話
 #
-# Persists across `evennia reload` by storing CombatSession state in ScriptDB.
-# On every server start, at_start() recovers active sessions into manager.sessions.
+# 透過將 CombatSession 狀態儲存在 ScriptDB 中，在 `evennia reload` 上保持不變。
+# 每次伺服器啟動時，at_start() 都會將活動會話還原到 manager.sessions 中。
 # ---------------------------------------------------------------------------
 
 import random
@@ -116,68 +110,66 @@ from typing import List, Optional
 
 
 class CombatScript(DefaultScript):
-    """
-    A turn-based combat session backed by Evennia's ScriptDB for persistence.
+    """由 Evennia 的 ScriptDB 支援的回合製戰鬥會話，以實現持久性。
 
-    This wraps a CombatSession (plain Python class). On creation the session is
-    stored in Both the Evennia ScriptDB (persistent) AND manager.sessions
-    (for fast in-process access).  After a reload, at_start() recovers all
-    CombatScripts from the database and rebuilds the in-memory session.
+    這包裝了 CombatSession（普通 Python 類別）。創建時會話是
+    儲存在 Evennia ScriptDB（持久）和 manager.sessions 中
+    （用於快速進程內存取）。  重新載入後，at_start() 恢復所有
+    來自資料庫的 CombatScript 並重建記憶體中會話。
 
-    Combat advances on player action (not on a timer), so:
-      - interval = 0  (no at_repeat)
-      - is_valid() checks has_ended() — expired sessions are auto-deleted
-      - at_stop() cleans up the manager.sessions entry
-    """
+    戰鬥的進展取決於玩家的行動（而不是計時器），因此：
+      - 間隔 = 0（無 at_repeat）
+      - is_valid() 檢查 has_end() — 過期會話會自動刪除
+      - at_stop() 清理 manager.sessions 條目"""
 
-    # ScriptDB stored attributes — these survive server reload
-    # Stored in ScriptDB via self.db.<name>
+    # ScriptDB 儲存的屬性 - 這些屬性在伺服器重新載入後仍然存在
+    # 透過 self.db.<name> 儲存在 ScriptDB 中
 
     def at_script_creation(self):
-        """Called once when the script is first created."""
-        self.db.combatant_ids = []  # list of object dbrefs
+        """首次建立腳本時呼叫一次。"""
+        self.db.combatant_ids = []  # 物件 dbref 列表
         self.db.session_id = None
-        self.db.session_state = {}  # serialized CombatSession state (dict)
+        self.db.session_state = {}  # 序列化的 CombatSession 狀態（字典）
         self.db.round_count = 1
         self.db.current_turn_index = 0
-        self.interval = 0  # no timer
-        self.repeats = 0  # infinite (ends via is_valid())
+        self.interval = 0  # 沒有計時器
+        self.repeats = 0  # 無限（以 is_valid() 結束）
         self.persistent = True
 
     def is_valid(self) -> bool:
-        """Return False when combat has ended → Evennia auto-deletes this script."""
+        """戰鬥結束時傳回 False → Evennia 會自動刪除此腳本。"""
         if not self.db.session_state:
             return False
-        # Reconstruct minimally to call has_ended()
+        # 至少重構以呼叫 has_end()
         from world.combat_manager import CombatSession
 
         state = self.db.session_state
-        # Check if any combatants have hp > 0
+        # 檢查是否有戰鬥者的hp > 0
         living = [
             cid for cid in state.get("combatants_ids", []) if self._get_hp(cid) > 0
         ]
-        return len(living) > 1  # valid while 2+ combatants alive
+        return len(living) > 1  # 當 2 名以上戰鬥人員活著時有效
 
     def _get_hp(self, combatant_id):
-        """Fetch hp from ScriptDB stored snapshot."""
+        """從 ScriptDB 儲存的快照中取得 hp。"""
         snapshot = self.db.session_state.get("combatant_snapshots", {})
         data = snapshot.get(combatant_id, {})
         return data.get("hp", 0)
 
     def at_start(self):
-        """Called on every server start / reload. Recovers session into manager."""
+        """在每個伺服器啟動/重新載入時調用。恢復到管理器的會話。"""
         state = self.db.session_state
         if not state:
             return
 
         from world.combat_manager import CombatSession, manager
 
-        # Recover combatants from ScriptDB snapshots (dbrefs + attributes)
+        # 從 ScriptDB 快照中還原戰鬥人員（dbrefs + 屬性）
         combatants = self._reconstruct_combatants()
         if not combatants:
             return
 
-        # Build CombatSession from recovered state
+        # 從恢復狀態建構 CombatSession
         session = CombatSession.__new__(CombatSession)
         session.session_id = self.db.session_id or str(self.dbref)
         session.combatants = combatants
@@ -192,10 +184,10 @@ class CombatScript(DefaultScript):
         session._turn_timer = None
         session.timer_factory = None
 
-        # Store in manager.sessions
+        # 儲存在manager.sessions中
         manager.sessions[session.session_id] = session
 
-        # Restore combatant state from snapshot
+        # 從快照恢復戰鬥狀態
         snapshot = self.db.session_state.get("combatant_snapshots", {})
         for combatant in combatants:
             snap = snapshot.get(combatant.dbref, {})
@@ -205,26 +197,26 @@ class CombatScript(DefaultScript):
             combatant.db.combat_session = session.session_id
 
     def _reconstruct_combatants(self):
-        """Load combatants from Evennia database using stored dbrefs."""
+        """使用儲存的 dbrefs 從 Evennia 資料庫載入戰鬥人員。"""
         from evennia.utils.utils import make_iter
 
         combatant_ids = self.db.combatant_ids or []
         combatants = []
         for cid in combatant_ids:
-            # cid might be a string dbref like "#12" or an int
+            # cid 可能是字串 dbref，如「#12」或一個 int
             cid_str = str(cid).lstrip("#")
             try:
                 from evennia.objects.models import ObjectDB
 
                 obj = ObjectDB.objects.get(id=int(cid_str))
-                # Re-fetch from actual DB to get current state
+                # 從實際資料庫重新取得以取得當前狀態
                 combatants.append(obj)
             except Exception:
                 pass
         return combatants
 
     def save_state(self):
-        """Snapshot the current session state into ScriptDB."""
+        """將目前會話狀態快照到 ScriptDB 中。"""
         if not hasattr(self, "_session"):
             return
         session = self._session
@@ -236,7 +228,7 @@ class CombatScript(DefaultScript):
         self.db.current_turn_index = session.current_turn_index
         self.db.round_count = session.round_count
 
-        # Snapshot key combatant attributes
+        # 關鍵戰鬥屬性快照
         snapshot = {}
         for c in session.combatants:
             cid = getattr(c, "dbref", None) or getattr(c, "id", None)
@@ -254,7 +246,7 @@ class CombatScript(DefaultScript):
         }
 
     def at_stop(self):
-        """Called when script is stopped/deleted. Remove from manager.sessions."""
+        """當腳本停止/刪除時呼叫。從 manager.sessions 中刪除。"""
         from world.combat_manager import manager
 
         sid = self.db.session_id or getattr(self, "dbref", None)
@@ -262,15 +254,15 @@ class CombatScript(DefaultScript):
             del manager.sessions[sid]
 
     def at_server_reload(self):
-        """Save state before server reload (Same as save_state)."""
+        """在伺服器重新載入之前儲存狀態（與 save_state 相同）。"""
         self.save_state()
 
     def at_server_shutdown(self):
-        """Save state before server shutdown."""
+        """儲存伺服器關閉前的狀態。"""
         self.save_state()
 
-    # --- Methods that delegate to the in-memory CombatSession ---
-    # Called by combat_commands.py via manager.sessions[session_id].method()
+    # --- 委託給記憶體中 CombatSession 的方法 ---
+    # 由 Battle_commands.py 透過 manager.sessions[session_id].method() 調用
 
     def next_turn(self):
         from world.combat_manager import manager
@@ -279,7 +271,7 @@ class CombatScript(DefaultScript):
         session = manager.sessions.get(sid)
         if not session:
             return None
-        self._session = session  # mark for save_state
+        self._session = session  # 儲存狀態標記
         result = session.next_turn()
         self._auto_save()
         return result
@@ -326,7 +318,7 @@ class CombatScript(DefaultScript):
             self._auto_save()
 
     def _auto_save(self):
-        """Save state after every mutation."""
+        """每次突變後保存狀態。"""
         try:
             self.save_state()
         except Exception:

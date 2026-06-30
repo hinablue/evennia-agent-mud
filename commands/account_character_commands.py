@@ -1,4 +1,4 @@
-"""Account-level commands that lock players to a single managed Character."""
+"""將玩家鎖定到單一託管角色的帳戶級命令。"""
 
 from evennia.commands.default.account import CmdIC
 from evennia.contrib.rpg.character_creator.character_creator import ContribCmdCharCreate
@@ -7,7 +7,7 @@ from commands.command import MuxCommand
 
 
 class CmdLockedIC(CmdIC):
-    """Only allow non-admin players to puppet their primary character."""
+    """只允許非管理員玩家操縱他們的主要角色。"""
 
     def func(self):
         account = self.account
@@ -35,7 +35,7 @@ class CmdLockedIC(CmdIC):
                 aliases = []
             allowed = {primary.key.lower(), str(primary.id), f"#{primary.id}", *aliases}
             if query not in allowed:
-                self.msg("你的帳號已綁定固定角色，不能切換到其他 Character。")
+                self.msg("你的帳號已綁定固定角色，不能切換到其他角色。")
                 return
 
         self.args = primary.key
@@ -43,20 +43,20 @@ class CmdLockedIC(CmdIC):
 
 
 class CmdLockedCharCreate(ContribCmdCharCreate):
-    """Disable self-service character creation for normal players."""
+    """停用普通玩家的自助角色創建。"""
 
     def func(self):
         account = self.account
         if account.check_permstring("Developer") or account.check_permstring("Admin"):
             return super().func()
-        self.msg("一般玩家不能自行新增 Character。")
+        self.msg("一般玩家不能自行新增角色。")
 
 
 class CmdCharacterRoster(MuxCommand):
     """
     查看自己的預設角色。
 
-    Usage:
+    用法:
       characters
       charstatus
     """
@@ -64,7 +64,7 @@ class CmdCharacterRoster(MuxCommand):
     key = "characters"
     aliases = ["charstatus"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
     account_caller = True
 
     def func(self):
@@ -77,5 +77,5 @@ class CmdCharacterRoster(MuxCommand):
             self.msg("你目前沒有綁定角色。")
             return
         self.msg(
-            f"你的預設角色是：{primary.key}。此帳號不能自行新增、刪除或切換 Character。"
+            f"你的預設角色是：{primary.key}。此帳號不能自行新增、刪除或切換角色。"
         )

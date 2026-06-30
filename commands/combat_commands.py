@@ -10,16 +10,15 @@ from world.combat_manager import manager
 
 
 def clamp(value, minimum=0.05, maximum=0.95):
-    """Clamp a probability value into a safe range."""
+    """將機率值限制在安全範圍內。"""
     return max(minimum, min(maximum, value))
 
 
 def _get_spell_metadata(skill_key):
-    """P0-2: Load spell metadata from magic_tools.py (ScriptDB).
+    """P0-2：從 magic_tools.py (ScriptDB) 載入咒語元資料。
 
-    Returns a dict of spell attributes if found, or None if not registered.
-    This replaces the need to maintain two separate skill tables.
-    """
+    如果找到則傳回法術屬性的字典，如果未註冊則傳回 None 。
+    這取代了維護兩個單獨的技能表的需要。"""
     try:
         from world.magic_tools import get_spell_by_name
 
@@ -30,7 +29,7 @@ def _get_spell_metadata(skill_key):
 
 
 def _scriptdb_to_spell_dict(scr):
-    """Convert a ScriptDB spell entry to a flat dict for execute_combat_action."""
+    """將 ScriptDB 拼字條目轉換為執行_combat_action 的平面字典。"""
     return {
         "spell_id": getattr(scr.db, "spell_id", getattr(scr, "key", "")),
         "name": getattr(scr.db, "name", getattr(scr, "key", "")),
@@ -59,12 +58,12 @@ def _scriptdb_to_spell_dict(scr):
         "target_self": getattr(scr.db, "target_self", False),
         "target_enemy": getattr(scr.db, "target_enemy", True),
         "spell_level": getattr(scr.db, "spell_level", 1),
-        "mult": 1.5,  # default multiplier if not specified
+        "mult": 1.5,  # 如果未指定則預設乘數
     }
 
 
 def _apply_status_effect(target, status):
-    """Apply a combat status and initialize duration when needed."""
+    """應用戰鬥狀態並在需要時初始化持續時間。"""
     if not status:
         return
     target.db.combat_status = status
@@ -75,7 +74,7 @@ def _apply_status_effect(target, status):
 
 
 def _apply_stat_effect(recipient, stat_key, amount, duration, is_debuff=False):
-    """Apply a buff or debuff using the recipient's available API surface."""
+    """使用接收者可用的 API 表面套用增益或減益。"""
     if not recipient or not stat_key or duration <= 0:
         return False
 
@@ -184,7 +183,7 @@ def maybe_start_combat(caller, target):
 
 
 def find_session_target(session, target_name):
-    """Resolve a target name only among current combatants."""
+    """僅在目前戰鬥人員中解析目標名稱。"""
     if not session or not target_name:
         return None
 
@@ -207,11 +206,10 @@ def find_session_target(session, target_name):
 
 
 def execute_combat_action(actor, action_type, target, skill_key=None):
-    """Execute one combat action for an actor.
+    """為演員執行一個戰鬥動作。
 
-    P0-1: Cancels the turn timeout timer on every player action.
-    P0-2: Reads spell metadata dynamically from magic_tools.py (ScriptDB).
-    """
+    P0-1：取消每位玩家動作的回合超時計時器。
+    P0-2：從 magic_tools.py (ScriptDB) 動態讀取法術元資料。"""
     if not actor or not target:
         return
 
@@ -220,7 +218,7 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
         actor.msg("找不到對應的戰鬥會話。")
         return
 
-    # P0-1: Player acted — cancel their pending timeout immediately
+    # P0-1：玩家採取行動 - 立即取消等待的暫停
     session._cancel_turn_timer()
 
     if session.has_ended():
@@ -350,7 +348,7 @@ def execute_combat_action(actor, action_type, target, skill_key=None):
 
 
 def apply_result(actor, target, damage, action_name, status):
-    """Apply damage and optional status effect to the target."""
+    """對目標施加傷害和可選狀態效果。"""
     raw_hp = max(0, getattr(target.db, "hp", 0) - damage)
     prevented_death = bool(
         getattr(target.db, "is_npc", False)
@@ -408,7 +406,7 @@ def attempt_npc_flee(npc, player_target):
 
 
 def broadcast_msg(actor, msg):
-    """Broadcast a combat message to all participants."""
+    """向所有參與者廣播戰鬥訊息。"""
     session = manager.sessions.get(actor.db.combat_session)
     if session:
         for combatant in session.combatants:
@@ -418,7 +416,7 @@ def broadcast_msg(actor, msg):
 
 
 def session_next_turn(actor):
-    """Advance combat and end the session when only one side remains."""
+    """推進戰鬥並在只剩下一方時結束比賽。"""
     session_id = actor.db.combat_session
     session = manager.sessions.get(session_id)
     if not session:
@@ -428,26 +426,26 @@ def session_next_turn(actor):
         manager.end_combat(session_id)
         return
 
-    # Use _advance_past_actor which correctly handles:
-    # - index advancement
-    # - round count increment + status effect processing (poison tick)
-    # - NPC AI triggering
-    # - turn announcement
+    # 使用 _advance_past_actor 正確處理：
+    # - 指數進步
+    # - 輪數增量+狀態效果處理（毒蜱）
+    # - NPC AI觸發
+    # - 輪流公告
     session._advance_past_actor()
 
 
 class CmdCombatAttack(Command):
-    """Basic combat attack command."""
+    """基本戰鬥攻擊指令。"""
 
     key = "attack"
     aliases = ["atk", "攻擊"]
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         caller = self.caller
         args = self.args.strip()
         if not args:
-            caller.msg("用法: attack <目標>")
+            caller.msg("用法：attack <目標>")
             return
 
         if caller.db.combat_state != "fighting":
@@ -479,17 +477,17 @@ class CmdCombatAttack(Command):
 
 
 class CmdCombatSkill(Command):
-    """Combat skill command."""
+    """戰鬥技能指揮。"""
 
     key = "skill"
     aliases = ["sk", "技能"]
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         caller = self.caller
         args = self.args.strip().split(maxsplit=1)
         if len(args) < 2:
-            caller.msg("用法: skill <技能id> <目標>")
+            caller.msg("用法：skill <技能 ID> <目標>")
             return
         skill_id, target_name = args[0], args[1]
 
@@ -547,7 +545,7 @@ class CmdCombatFlee(Command):
 
     key = "flee"
     aliases = ["逃跑", "run"]
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         caller = self.caller
@@ -583,13 +581,13 @@ class CmdPick(Command):
 
     key = "pick"
     aliases = ["撿", "拾取", "get"]
-    help_category = "World"
+    help_category = "世界"
 
     def func(self):
         caller = self.caller
         args = (self.args or "").strip()
         if not args:
-            caller.msg("用法: pick <物品名稱> 或 pick all")
+            caller.msg("用法：pick <物品名稱> 或 pick all")
             return
 
         location = getattr(caller, "location", None)
@@ -648,8 +646,8 @@ class CmdCast(Command):
 
     用法：
       cast <法術名稱> <目標>    - 對敵人施放法術
-      cast <法術名稱> self      - 對自己施放治療/buff 法術
-      cast <法術名稱>           - 不帶目標時嘗試自我施放（治療/buff）
+      cast <法術名稱> self      - 對自己施放治療/增益法術
+      cast <法術名稱>           - 不帶目標時嘗試自我施放（治療/增益）
 
     範例：
       cast 火球術 哥布林
@@ -659,14 +657,14 @@ class CmdCast(Command):
 
     key = "cast"
     aliases = ["施法", "castspell"]
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         caller = self.caller
         args = self.args.strip() if self.args else ""
 
         if not args:
-            caller.msg("用法: cast <法術名稱> [目標]，或 cast <法術名稱> self")
+            caller.msg("用法：cast <法術名稱> [目標]，或 cast <法術名稱> self")
             return
 
         # 解析法術名稱與目標
@@ -735,7 +733,7 @@ class CmdCast(Command):
                 actual = caller.heal_self(heal_amount, heal_amount)
             elif effect_type == "buff" and buff_stat:
                 if buff_min <= 0 and buff_max <= 0:
-                    caller.msg(f"{spell_display_name} 沒有 buff 效果。")
+                    caller.msg(f"{spell_display_name} 沒有增益效果。")
                     return
                 import random
 
@@ -763,7 +761,7 @@ class CmdCast(Command):
                         f"✨ 你對自己施放了 {spell_display_name}，{buff_stat} +{amount}（持續 {buff_duration or 3} 回合）。"
                     )
             else:
-                caller.msg(f"{spell_display_name} 無法对自己施放。")
+                caller.msg(f"{spell_display_name} 無法對自己施放。")
                 return
 
             # 扣 MP
@@ -774,7 +772,7 @@ class CmdCast(Command):
         # 對敵人施放
         if not target_str:
             caller.msg(
-                f"用法: cast <法術名稱> <目標>（{spell_display_name} 是攻擊法術，需要指定目標）"
+                f"用法：cast <法術名稱> <目標>（{spell_display_name} 是攻擊法術，需要指定目標）"
             )
             return
 
@@ -836,17 +834,17 @@ class CmdCast(Command):
 
 
 class CmdCombatNoMatch(Command):
-    """Fallback command while combat cmdset is active."""
+    """戰鬥命令集處於活動狀態時後備指令。"""
 
     key = cmdhandler.CMD_NOMATCH
-    help_category = "Combat"
+    help_category = "戰鬥"
 
     def func(self):
         self.caller.msg("⚠️ 你正處於激烈的戰鬥中，現在只能使用 attack、skill 或 flee。")
 
 
 class CombatCmdSet(CmdSet):
-    """Combat-only command set used to lock normal commands during battle."""
+    """僅戰鬥命令集，用於在戰鬥期間鎖定正常命令。"""
 
     key = "CombatCmdSet"
     priority = 120

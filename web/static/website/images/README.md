@@ -1,3 +1,3 @@
-You can replace the image files for Evennia's home page here.
+您可以在此處替換 Evennia 主頁的圖像檔案。
 
-You can find the original files in `evennia/web/static/website/images/`
+您可以在`evennia/web/static/website/images/`中找到原始文件

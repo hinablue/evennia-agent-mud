@@ -1,3 +1,3 @@
-The templates involving login/logout can be overwritten here.
+涉及登入/登出的模板可以在這裡覆蓋。
 
-You can find the original files in `evennia/web/website/templates/website/registration/`
+您可以在`evennia/web/website/templates/website/registration/`中找到原始文件

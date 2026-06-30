@@ -8,7 +8,7 @@ from typeclasses.rooms import Room
 
 
 def _clean_text(value):
-    """Return a stripped string for command-facing text fields."""
+    """傳回面向命令的文字欄位的剝離字串。"""
 
     return (value or "").strip()
 
@@ -21,7 +21,7 @@ class Kingdom(DefaultScript):
 
     def at_script_creation(self):
         self.key = ""  # 國名
-        self.db.king = None  # Character (King)
+        self.db.king = None  # 角色（國王）
         self.db.gm_continent_rooms = []  # GM 大陸上連結到此國的房間 dbref 清單
         self.db.entrance_room = None  # King 的第一個房間（Home，GM 指定）
         self.db.room_quota = 0  # GM 分配的空房間額度
@@ -175,7 +175,7 @@ def add_room_quota(kingdom, additional_quota):
 
 
 def list_kingdoms():
-    """Return all live kingdom scripts."""
+    """傳回所有即時王國腳本。"""
 
     manager = getattr(Kingdom, "objects", None)
     if not manager:
@@ -184,7 +184,7 @@ def list_kingdoms():
 
 
 def rename_kingdom(kingdom, new_name):
-    """Rename a kingdom after validating uniqueness and no-op cases."""
+    """在驗證唯一性和無操作情況後重新命名王國。"""
 
     new_name = _clean_text(new_name)
     if not new_name:
@@ -207,7 +207,7 @@ def rename_kingdom(kingdom, new_name):
 
 
 def set_kingdom_quota(kingdom, new_total):
-    """Set a kingdom's total room quota to an exact value."""
+    """將王國的總房間配額設定為精確值。"""
 
     try:
         new_total = int(new_total)
@@ -228,7 +228,7 @@ def set_kingdom_quota(kingdom, new_total):
 
 
 def set_kingdom_entrance(kingdom, room):
-    """Set the kingdom entrance room and sync the king's home."""
+    """設置王國入口房間並同步國王的家。"""
 
     kingdom.set_entrance_room(room)
     king_char = kingdom.db.king
@@ -243,7 +243,7 @@ def set_kingdom_entrance(kingdom, room):
 
 
 def resolve_caller_kingdom(caller):
-    """Resolve the caller's owned kingdom when acting as a King."""
+    """扮演國王時解決呼叫者擁有的王國。"""
 
     if not caller or not hasattr(caller, "db"):
         return None
@@ -253,7 +253,7 @@ def resolve_caller_kingdom(caller):
 
 
 def _collect_kingdom_owned_objects(kingdom_name):
-    """Return live objects tagged as belonging to the target kingdom."""
+    """傳回標記為屬於目標王國的活動物件。"""
 
     from evennia.objects.models import ObjectDB
 
@@ -266,7 +266,7 @@ def _collect_kingdom_owned_objects(kingdom_name):
 
 
 def delete_kingdom(kingdom):
-    """Delete a kingdom only when no residents or owned world objects remain."""
+    """僅當沒有居民或擁有的世界物件剩餘時才刪除王國。"""
 
     from typeclasses.characters import Character
 

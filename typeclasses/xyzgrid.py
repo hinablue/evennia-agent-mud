@@ -7,7 +7,7 @@ from .rooms import Room
 
 
 class AgentXYZRoom(XYZRoom, Room):
-    """XYZ-aware version of the game's main room typeclass."""
+    """遊戲主要房間類型的 XYZ 感知版本。"""
 
     map_mode = "nodes"
     map_visual_range = 2
@@ -17,6 +17,6 @@ class AgentXYZRoom(XYZRoom, Room):
 
 
 class AgentXYZExit(XYZExit, Exit):
-    """XYZ-aware version of the game's main exit typeclass."""
+    """遊戲主要退出類型類別的 XYZ 感知版本。"""
 
     default_description = Exit.default_description

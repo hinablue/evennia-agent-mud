@@ -1,55 +1,50 @@
-"""
-Changing the default command parser
+"""更改預設命令解析器
 
-The cmdparser is responsible for parsing the raw text inserted by the
-user, identifying which command/commands match and return one or more
-matching command objects. It is called by Evennia's cmdhandler and
-must accept input and return results on the same form. The default
-handler is very generic so you usually don't need to overload this
-unless you have very exotic parsing needs; advanced parsing is best
-done at the Command.parse level.
+cmdparser 負責解析插入的原始文本
+用戶，識別哪些命令匹配並返回一個或多個
+匹配命令對象。它由 Evennia 的 cmdhandler 調用並且
+必須以同一表單接受輸入並傳回結果。預設
+處理程序非常通用，因此您通常不需要重載它
+除非你有非常奇特的解析需求；高階解析是最好的
+在 Command.parse 層級完成。
 
-The default cmdparser understands the following command combinations
-(where [] marks optional parts.)
+預設的 cmdparser 理解以下命令組合
+（其中 [] 標記可選部分。）
 
-[cmdname[ cmdname2 cmdname3 ...] [the rest]
+[cmdname[ cmdname2 cmdname3 ...] [其餘]
 
-A command may consist of any number of space-separated words of any
-length, and contain any character. It may also be empty.
+命令可以由任意數量的空格分隔的單字組成
+長度，並包含任何字元。它也可能是空的。
 
-The parser makes use of the cmdset to find command candidates. The
-parser return a list of matches. Each match is a tuple with its first
-three elements being the parsed cmdname (lower case), the remaining
-arguments, and the matched cmdobject from the cmdset.
+解析器利用 cmdset 來找出候選指令。的
+解析器傳回匹配列表。每場比賽都是一個元組及其第一個
+三個元素是解析的 cmdname（小寫），其餘的
+參數以及 cmdset 中匹配的 cmdobject。
 
 
-This module is not accessed by default. To tell Evennia to use it
-instead of the default command parser, add the following line to
-your settings file:
+預設情況下不存取該模組。告訴 Evennia 使用它
+將以下行新增至而不是預設的命令解析器
+您的設定檔：
 
     COMMAND_PARSER = "server.conf.cmdparser.cmdparser"
-
 """
 
 
 def cmdparser(raw_string, cmdset, caller, match_index=None):
-    """
-    This function is called by the cmdhandler once it has
-    gathered and merged all valid cmdsets valid for this particular parsing.
+    """一旦 cmdhandler 完成此操作，就會呼叫此函數
+    收集並合併對此特定解析有效的所有有效命令集。
 
-    raw_string - the unparsed text entered by the caller.
-    cmdset - the merged, currently valid cmdset
-    caller - the caller triggering this parsing
-    match_index - an optional integer index to pick a given match in a
-                  list of same-named command matches.
+    raw_string - 呼叫者輸入的未解析文字。
+    cmdset - 合併後的目前有效的 cmdset
+    caller - 觸發此解析的呼叫者
+    match_index - 一個可選的整數索引，用於在 a 中選擇給定的匹配項
+                  同名指令匹配的列表。
 
-    Returns:
-     list of tuples: [(cmdname, args, cmdobj, cmdlen, mratio), ...]
-            where cmdname is the matching command name and args is
-            everything not included in the cmdname. Cmdobj is the actual
-            command instance taken from the cmdset, cmdlen is the length
-            of the command name and the mratio is some quality value to
-            (possibly) separate multiple matches.
-
-    """
-    # Your implementation here
+    返回：
+     元組列表：[(cmdname, args, cmdobj, cmdlen, mratio), ...]
+            其中 cmdname 是符合的指令名稱，args 是
+            cmdname 中未包含的所有內容。 Cmdobj 是實際的
+            從cmdset中取得的命令實例，cmdlen是長度
+            指令名稱和 mratio 的質量值
+            （可能）分開多個比賽。"""
+    # 您的實施在這裡

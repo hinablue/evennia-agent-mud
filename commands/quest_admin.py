@@ -1,4 +1,4 @@
-"""Quest management command."""
+"""任務管理命令。"""
 
 from commands.command import MuxCommand
 from world.quest_tools import (
@@ -23,7 +23,7 @@ class CmdAgentQuest(MuxCommand):
     key = "@agentquest"
     aliases = ["@quest"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = ("status", "give", "complete", "help")
 
     def _msg(self, text):

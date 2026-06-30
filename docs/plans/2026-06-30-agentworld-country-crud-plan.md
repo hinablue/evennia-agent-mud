@@ -13,17 +13,17 @@
 ## 1. 現況摘要（依目前程式）
 
 ### 已存在
-- `world/kingdom.py`
-  - `Kingdom` script
-  - `create_kingdom()`
-  - `get_kingdom_by_name()`
-  - `get_kingdom_status()`
-  - `change_name()` / `delete()` instance methods
-- `commands/kingdom_admin.py`
+- __面具_0__
+  - `Kingdom` 腳本
+  - __面具_0__
+  - __面具_0__
+  - __面具_0__
+  - `change_name()` / `delete()` 實例方法
+- __面具_0__
   - GM 用的 `@kingdom/create|list|status|quota|delete`
-- `commands/king_admin.py`
+- __面具_0__
   - King 用的 `@king/status`、`@king/name`
-- `commands/world_admin.py`
+- __面具_0__
   - 目前只有 live world build / addroom / adddetail / addscenery / addexit / move / role
   - 已有 per-switch 權限閘道，King 僅能用少數 switch
 
@@ -44,7 +44,7 @@
 
 #### GM 全功能
 - `@agentworld/countrycreate <King名稱>=<國名>,<入口房間>,<額度>`
-- `@agentworld/countries`
+- __面具_0__
 - `@agentworld/countrystatus <國名>`
 - `@agentworld/countryrename <國名>=<新國名>`
 - `@agentworld/countryquota <國名>=<新總額度>`
@@ -52,9 +52,9 @@
 - `@agentworld/countrydelete <國名>`
 
 #### King 只開 UR
-- `@agentworld/countries`
+- __面具_0__
   - 只顯示自己的國家
-- `@agentworld/countrystatus`
+- __面具_0__
   - 不帶參數時預設看自己的國家
   - 若帶別國名，拒絕
 - `@agentworld/countryrename <新國名>`
@@ -63,9 +63,9 @@
 
 ### 為什麼不用 `countryupdate`
 `update` 在這裡實際上不是單一欄位更新，而是多種更新操作：
-- rename
-- quota
-- entrance room
+- 重新命名
+- 配額
+- 入口室
 
 拆成多個 switch 可讓權限矩陣更清楚：
 - King 只開 `countryrename`
@@ -97,29 +97,29 @@
 
 **目標：** 讓 command layer 不再直接拼業務流程。
 
-**Modify:** `world/kingdom.py`
+**修改：** `world/kingdom.py`
 
 新增/整理 helper：
-- `list_kingdoms()`
-- `rename_kingdom(kingdom, new_name)`
-- `set_kingdom_quota(kingdom, new_total)`
-- `set_kingdom_entrance(kingdom, room)`
-- `delete_kingdom(kingdom)`
-- `resolve_caller_kingdom(caller)`
+- __面具_0__
+- __面具_0__
+- __面具_0__
+- __面具_0__
+- __面具_0__
+- __面具_0__
 
 建議規則：
-1. `rename_kingdom()`
+1. __面具_0__
    - 包住現有 `kingdom.change_name(new_name)`
    - 先做空字串 / 同名 / 重名驗證
    - 回傳標準 dict payload（`message`, `old_name`, `new_name`）
-2. `set_kingdom_quota()`
+2. __面具_0__
    - 不要沿用 `add_room_quota()` 做差值心算
    - 改成明確設定總額度，回傳 `old_quota`, `new_quota`
-3. `set_kingdom_entrance()`
+3. __面具_0__
    - 重設 `entrance_room`
    - 補 `king_entrance` / `kingdom:<name>` tag
    - 同步更新 `king.home`
-4. `delete_kingdom()`
+4. __面具_0__
    - 包住 `Kingdom.delete()`，但補上前置檢查與報告
    - 最少要決定：
      - 是否允許刪除仍有 King / 玩家 / 自建房的國家
@@ -134,41 +134,41 @@
 
 **目標：** 讓 `@agentworld` 成為唯一主要入口。
 
-**Modify:** `commands/world_admin.py`
+**修改：** `commands/world_admin.py`
 
 要改的地方：
-1. `switch_options`
+1. __面具_0__
    - 加入：
-     - `countrycreate`
-     - `countries`
-     - `countrystatus`
-     - `countryrename`
-     - `countryquota`
-     - `countryentrance`
-     - `countrydelete`
-2. `KING_ALLOWED_SWITCHES`
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+2. __面具_0__
    - 在既有 live-world switches 之外，加入：
-     - `countries`
-     - `countrystatus`
-     - `countryrename`
-3. `_ensure_switch_access()`
+     - __面具_0__
+     - __面具_0__
+     - __面具_0__
+3. __面具_0__
    - 目前 King 只允許 addroom/adddetail/addscenery/addexit
    - 要擴成「King 可用 live-building + country R/U subset」
    - 建議拆成：
-     - `KING_WORLD_ALLOWED_SWITCHES`
-     - `KING_COUNTRY_ALLOWED_SWITCHES`
+     - __面具_0__
+     - __面具_0__
    - 避免一個 set 越長越難讀
-4. `_show_help()`
+4. __面具_0__
    - 明寫 country switches 與權限差異
    - 避免 stale help
-5. `func()` routing
+5. `func()` 路由
    - 新增 `_handle_countrycreate()` / `_handle_countries()` / `_handle_countrystatus()` / `_handle_countryrename()` / `_handle_countryquota()` / `_handle_countryentrance()` / `_handle_countrydelete()`
 
 ### C. `commands/king_admin.py` —— 避免雙重邏輯漂移
 
 **目標：** 若 `@king` 保留，至少不要再自己維護 rename/status 邏輯。
 
-**Modify:** `commands/king_admin.py`
+**修改：** `commands/king_admin.py`
 
 建議：
 - `_handle_status()` 改呼叫 `world.kingdom.get_kingdom_status()` + 共用 formatter
@@ -181,7 +181,7 @@
 
 **目標：** 避免舊 GM 操作馬上壞掉。
 
-**Modify:** `commands/kingdom_admin.py`
+**修改：** `commands/kingdom_admin.py`
 
 建議兩種做法二選一：
 1. **保守相容**：保留 `@kingdom`，但內部改呼叫新的 `world.kingdom` helper
@@ -191,14 +191,14 @@
 
 ### E. 測試
 
-**Modify:**
-- `tests/test_world_admin.py`
-- `tests/test_kingdom.py`
+**調整：**
+- __面具_0__
+- __面具_0__
 - 視需要新增 `tests/test_king_admin.py`（如果目前沒有，就先把 rename/status 的 shared helper 測到位）
 
 #### 必補測試案例
 
-`tests/test_world_admin.py`
+__面具_0__
 - Admin 可 route `countrycreate`
 - Admin 可 route `countrydelete`
 - King 可 route `countries`
@@ -209,7 +209,7 @@
 - King 不可 route `countryquota`
 - King 不可看別國 `countrystatus`
 
-`tests/test_kingdom.py`
+__面具_0__
 - `rename_kingdom()` 同名拒絕
 - `rename_kingdom()` 重名拒絕
 - `set_kingdom_quota()` 正確覆寫總額度
@@ -219,9 +219,9 @@
 
 ### F. 文件
 
-**Modify:**
-- `docs/module-reference.md`
-- `docs/permission-hierarchy-design.md`
+**調整：**
+- __面具_0__
+- __面具_0__
 
 文件要同步反映：
 - `@agentworld` 新增 country 管理面
@@ -229,8 +229,8 @@
 - 但 `King` 對 country entity 仍只有 UR，沒有 CD
 
 如果之後還要同步外部 HTML，再另外補：
-- `agentworld-admin-command.html`
-- `game-admin-manual.html`
+- __面具_0__
+- __面具_0__
 - 其他對外頁面
 
 ---
@@ -241,9 +241,9 @@
 
 **Objective:** 先把國家業務規則固定下來，再讓 command layer 接上去。
 
-**Files:**
-- Modify: `tests/test_kingdom.py`
-- Modify: `world/kingdom.py`
+**文件：**
+- 修改：`tests/test_kingdom.py`
+- 修改：`world/kingdom.py`
 
 **Step 1: 寫 failing tests**
 - 補 `rename_kingdom`, `set_kingdom_quota`, `set_kingdom_entrance`, `delete_kingdom`
@@ -251,7 +251,7 @@
 
 **Step 2: 跑測試確認失敗**
 
-Run:
+跑步：
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom -v
 ```
@@ -262,7 +262,7 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom -
 
 **Step 4: 重跑測試確認 pass**
 
-Run:
+跑步：
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom -v
 ```
@@ -273,16 +273,16 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom -
 
 **Objective:** 把 country CRUD 的公開入口正式掛到 `@agentworld`。
 
-**Files:**
-- Modify: `commands/world_admin.py`
-- Test: `tests/test_world_admin.py`
+**文件：**
+- 修改：`commands/world_admin.py`
+- 測試：`tests/test_world_admin.py`
 
 **Step 1: 寫 failing routing/access tests**
 - 先補 King/GM 的 switch 權限矩陣
 
 **Step 2: 跑測試確認失敗**
 
-Run:
+跑步：
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_world_admin -v
 ```
@@ -295,7 +295,7 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_world_adm
 
 **Step 4: 重跑測試確認 pass**
 
-Run:
+跑步：
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_world_admin -v
 ```
@@ -306,9 +306,9 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_world_adm
 
 **Objective:** 避免 rename/status/create/delete 的業務規則分岔。
 
-**Files:**
-- Modify: `commands/king_admin.py`
-- Modify: `commands/kingdom_admin.py`
+**文件：**
+- 修改：`commands/king_admin.py`
+- 修改：`commands/kingdom_admin.py`
 
 **Step 1: 將 rename/status/create/delete/quota 改呼叫 `world.kingdom` helper**
 
@@ -317,7 +317,7 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_world_adm
 
 **Step 3: 跑 targeted tests**
 
-Run:
+跑步：
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom tests.test_world_admin -v
 ```
@@ -328,9 +328,9 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom t
 
 **Objective:** 讓 repo 內設計文件不要再寫舊入口。
 
-**Files:**
-- Modify: `docs/module-reference.md`
-- Modify: `docs/permission-hierarchy-design.md`
+**文件：**
+- 修改：`docs/module-reference.md`
+- 修改：`docs/permission-hierarchy-design.md`
 
 **Step 1: 更新 command reference**
 - `@agentworld` 補 country switches
@@ -346,10 +346,10 @@ cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom t
 
 **Objective:** 確認 helper、command、文件一致。
 
-**Files:**
-- No code changes expected
+**文件：**
+- 預計不會更改程式碼
 
-**Run:**
+**跑步：**
 ```bash
 cd /home/hina/services/data/agent-mud && python -m unittest tests.test_kingdom tests.test_world_admin -v
 ```

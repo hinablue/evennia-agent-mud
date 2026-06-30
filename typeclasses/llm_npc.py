@@ -43,7 +43,7 @@ DEFAULT_LLM_REQUEST_BODY = {
     "chat_template_kwargs": {"enable_thinking": False},
     "options": {"enable_thinking": False},
 }
-DEFAULT_LLM_API_FORMAT = "chat_completions"  # completions | chat_completions | legacy
+DEFAULT_LLM_API_FORMAT = "chat_completions"  # 竣工 |聊天完成 |遺產
 
 
 @implementer(IBodyProducer)
@@ -251,14 +251,14 @@ class LocalLLMNPC(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPChar
     @property
     def llm_client(self):
         if not self.ndb.llm_client:
-            # Check for per-object LLM settings first
+            # 首先檢查每個物件的 LLM 設定
             custom_host = getattr(self.db, "llm_host", None)
             custom_api_key = getattr(self.db, "llm_api_key", None)
             custom_model = getattr(self.db, "llm_model", None)
 
             client_kwargs = {}
             if custom_host:
-                # Extract hostname and pathname from custom URL
+                # 從自訂 URL 中提取主機名稱和路徑名
                 import urllib.parse
 
                 parsed = urllib.parse.urlparse(custom_host)

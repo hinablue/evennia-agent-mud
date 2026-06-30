@@ -1,34 +1,31 @@
-"""
-This is the starting point when a user enters a url in their web browser.
+"""這是使用者在 Web 瀏覽器中輸入 URL 時的起點。
 
-The urls is matched (by regex) and mapped to a 'view' - a Python function or
-callable class that in turn (usually) makes use of a 'template' (a html file
-with slots that can be replaced by dynamic content) in order to render a HTML
-page to show the user.
+url 匹配（透過正規表示式）並映射到「視圖」—Python 函數或
+可調用類別（通常）使用“模板”（一個 html 文件
+帶有可以被動態內容替換的插槽）以呈現 HTML
+向使用者顯示的頁面。
 
-This file includes the urls in website, webclient and admin. To override you
-should modify urls.py in those sub directories.
+該文件包含網站、Web 用戶端和管理中的 URL。來凌駕於你之上
+應該修改這些子目錄中的 urls.py 。
 
-Search the Django documentation for "URL dispatcher" for more help.
-
-"""
+在 Django 文件中搜尋「URL 排程器」以獲得更多協助。"""
 
 from django.urls import include, path
 
-# default evennia patterns
+# 預設 Evennia 模式
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
 
-# add patterns
+# 添加圖案
 urlpatterns = [
-    # website
+    # 網站
     path("", include("web.website.urls")),
-    # webclient
+    # 網路客戶端
     path("webclient/", include("web.webclient.urls")),
-    # web admin
+    # 網路管理員
     path("admin/", include("web.admin.urls")),
-    # add any extra urls here:
-    # path("mypath/", include("path.to.my.urls.file")),
+    # 在這裡添加任何額外的網址：
+    # 路徑（“mypath/”，包括（“path.to.my.urls.file”）），
 ]
 
-# 'urlpatterns' must be named such for Django to find it.
+# 'urlpatterns' 必須這樣命名才能讓 Django 找到它。
 urlpatterns = urlpatterns + evennia_default_urlpatterns

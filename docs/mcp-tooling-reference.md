@@ -63,9 +63,13 @@
 ### 國家管理
 | 工具名 | 對應函數 | 說明 |
 |--------|----------|------|
-| `create_kingdom` | `world.kingdom.create_kingdom` | 建立國家 |
-| `add_room_quota` | `world.kingdom.add_room_quota` | 追加額度 |
-| `get_kingdom_status` | `world.kingdom.get_kingdom_status` | 國家狀態 |
+| `agent_kingdom_countrycreate` | `@agentkingdom/countrycreate` | 建立國家 |
+| `agent_kingdom_countries` | `@agentkingdom/countries` | 列出國家；King 只會看到自己的國家 |
+| `agent_kingdom_countrystatus` | `@agentkingdom/countrystatus` | 查看國家狀態 |
+| `agent_kingdom_countryrename` | `@agentkingdom/countryrename` | 改國名；King 可直接改自己的國名 |
+| `agent_kingdom_countryquota` | `@agentkingdom/countryquota` | 調整房間總額度 |
+| `agent_kingdom_countryentrance` | `@agentkingdom/countryentrance` | 調整國家入口房 |
+| `agent_kingdom_countrydelete` | `@agentkingdom/countrydelete` | 刪除國家 |
 
 ### 帳號管理
 | 工具名 | 對應函數 | 說明 |

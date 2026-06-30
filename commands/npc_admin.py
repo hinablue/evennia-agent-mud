@@ -1,4 +1,4 @@
-"""NPC / LLMNPC management command."""
+"""NPC/LLMNPC管理指令。"""
 
 from commands.command import MuxCommand
 from world.npc_tools import (
@@ -63,7 +63,7 @@ class CmdAgentNPC(MuxCommand):
     key = "@agentnpc"
     aliases = ["@npcworld", "@npc"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "status",
@@ -117,7 +117,7 @@ class CmdAgentNPC(MuxCommand):
             "  |w@agentnpc/thinking 名稱=秒數|訊息1|訊息2...|n：更新 LLMNPC thinking 設定。\n"
             "  |w@agentnpc/level 名稱=等級|n：設定 NPC 等級（影響屬性倍率）。\n"
             "  |w@agentnpc/cooldown 名稱=秒數|n：設定死亡/逃跑後重生冷卻時間。\n"
-            "  |w@agentnpc/tokens 名稱=最小,最大|n：設定 Token 掉落範圍。\n"
+            "  |w@agentnpc/tokens 名稱=最小,最大|n：設定代幣掉落範圍。\n"
             "  |w@agentnpc/flee 名稱=開關,fail_chance|n：設定逃跑功能與基礎失敗率。\n"
             "  |w@agentnpc/aggro 名稱=機率|n：設定被 look 時主動攻擊的機率（0~1）。\n"
             "  |w@agentnpc/delete 名稱|n：刪除 NPC。\n\n"

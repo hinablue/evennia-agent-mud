@@ -1,4 +1,4 @@
-Replace Evennia's webclient django template with your own here.
+在這裡將 Evennia 的 webclient django 模板替換為您自己的模板。
 
-You can find the original files in `evennia/web/templates/webclient/`. Just copy
-the original here and modify - after a reload the new template will be used.
+您可以在`evennia/web/templates/webclient/`中找到原始文件。只需複製
+此處為原始模板並進行修改 - 重新加載後將使用新模板。

@@ -1,4 +1,4 @@
-"""Admin helpers for creating and managing NPC / LLMNPC objects."""
+"""用於建立和管理 NPC / LLMNPC 物件的管理助手。"""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ class NPCSpecError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Shared helpers
+# 共享助手
 # ---------------------------------------------------------------------------
 
 
@@ -249,7 +249,7 @@ def _place_equipment_on_npc(npc, item, slot):
 
 
 # ---------------------------------------------------------------------------
-# Summaries
+# 摘要
 # ---------------------------------------------------------------------------
 
 
@@ -314,7 +314,7 @@ def summarize_npcs(room_name=None):
 
 
 # ---------------------------------------------------------------------------
-# Mutations
+# 突變
 # ---------------------------------------------------------------------------
 
 
@@ -496,7 +496,7 @@ def set_npc_skills(npc_key, skills):
 
 
 def _format_llm_config(obj):
-    """Format LLM configuration for display."""
+    """設定 LLM 配置的格式以供顯示。"""
     parts = []
     llm_host = getattr(obj.db, "llm_host", None)
     llm_api_key = getattr(obj.db, "llm_api_key", None)
@@ -504,7 +504,7 @@ def _format_llm_config(obj):
     if llm_host:
         parts.append(f"host={llm_host}")
     if llm_api_key:
-        # Mask API key for display
+        # 用於顯示的遮罩 API 金鑰
         masked = (
             llm_api_key[:4] + "***" + llm_api_key[-4:]
             if len(llm_api_key) > 8
@@ -517,7 +517,7 @@ def _format_llm_config(obj):
 
 
 def set_llm_config(npc_key, base_url=None, model=None, api_key=None):
-    """Set LLM configuration for an LLMNPC."""
+    """為 LLMNPC 設定 LLM 配置。"""
     obj = _get_npc_or_error(npc_key)
     if not _is_llm_npc(obj):
         raise NPCSpecError(f"`{npc_key}` 不是 LLMNPC，不能設定 LLM 參數。")
@@ -533,7 +533,7 @@ def set_llm_config(npc_key, base_url=None, model=None, api_key=None):
         updates.append("api_key=***(已設定)")
     if not updates:
         raise NPCSpecError("llm 至少要提供一個設定：base_url、model 或 api_key。")
-    # Clear cached client so it picks up new settings
+    # 清除快取的客戶端，以便它可以獲取新設置
     if hasattr(obj, "ndb") and getattr(obj.ndb, "llm_client", None):
         obj.ndb.llm_client = None
     obj.save()
@@ -544,7 +544,7 @@ def set_llm_config(npc_key, base_url=None, model=None, api_key=None):
 
 
 def get_llm_config(npc_key):
-    """Get LLM configuration for an LLMNPC."""
+    """取得 LLMNPC 的 LLM 配置。"""
     obj = _get_npc_or_error(npc_key)
     if not _is_llm_npc(obj):
         raise NPCSpecError(f"`{npc_key}` 不是 LLMNPC。")
@@ -732,7 +732,7 @@ def set_npc_loot_table(npc_key, loot_specs):
 
 
 def _format_npc_level(obj):
-    """Format NPC level and cooldown for display."""
+    """設定 NPC 等級和冷卻時間的顯示格式。"""
     level = getattr(obj.db, "level", 1)
     cooldown = getattr(obj.db, "npc_cooldown", 60)
     in_cooldown = False

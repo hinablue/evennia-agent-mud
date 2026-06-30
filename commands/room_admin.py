@@ -1,4 +1,4 @@
-"""Admin command to manage rooms and room-level PVP."""
+"""用於管理房間和房間級別 PVP 的管理員命令。"""
 
 from commands.command import MuxCommand
 from world.room_tools import RoomTools
@@ -23,7 +23,7 @@ class CmdAgentRoom(MuxCommand):
     key = "@agentroom"
     aliases = ["@room"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "status",

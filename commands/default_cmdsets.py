@@ -1,18 +1,15 @@
-"""
-Command sets
+"""命令集
 
-All commands in the game must be grouped in a cmdset.  A given command
-can be part of any number of cmdsets and cmdsets can be added/removed
-and merged onto entities at runtime.
+遊戲中的所有命令必須分組在一個命令集中。  給定的命令
+可以是任意數量的 cmdset 的一部分，並且可以添加/刪除 cmdset
+並在運行時合併到實體上。
 
-To create new commands to populate the cmdset, see
-`commands/command.py`.
+若要建立新指令來填入 cmdset，請參閱
+`commands/command.py`。
 
-This module wraps the default command sets of Evennia; overloads them
-to add/remove commands from the default lineup. You can create your
-own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
-
-"""
+該模組包裝了 Evennia 的預設命令集；使他們超載
+從預設隊列中新增/刪除命令。您可以創建您的
+透過繼承或直接從 `evennia.CmdSet` 來擁有自己的 cmdset。"""
 
 from evennia import default_cmds
 from evennia.contrib.base_systems.building_menu import GenericBuildingCmd
@@ -52,21 +49,17 @@ from .world_admin import CmdAgentWorld
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
-    """
-    The `CharacterCmdSet` contains general in-game commands like `look`,
-    `get`, etc available on in-game Character objects. It is merged with
-    the `AccountCmdSet` when an Account puppets a Character.
-    """
+    """`CharacterCmdSet` 包含通用遊戲內指令，例如 `look`、
+    `get` 等可用於遊戲中的角色物件。它合併於
+    當帳號操縱角色時的 `AccountCmdSet` 。"""
 
     key = "DefaultCharacter"
 
     def at_cmdset_creation(self):
-        """
-        Populates the cmdset
-        """
+        """填充 cmdset"""
         super().at_cmdset_creation()
         #
-        # any commands you add below will overload the default ones.
+        # 您在下面新增的任何命令都會超載預設命令。
         #
         self.add(extended_room.ExtendedRoomCmdSet)
         self.add(MapDisplayCmdSet)
@@ -111,22 +104,18 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
-    """
-    This is the cmdset available to the Account at all times. It is
-    combined with the `CharacterCmdSet` when the Account puppets a
-    Character. It holds game-account-specific commands, channel
-    commands, etc.
-    """
+    """這是帳戶始終可用的 cmdset。它是
+    當帳戶操縱 a 時與 `CharacterCmdSet` 結合
+    性格。它包含遊戲帳號特定的指令、頻道
+    命令等"""
 
     key = "DefaultAccount"
 
     def at_cmdset_creation(self):
-        """
-        Populates the cmdset
-        """
+        """填充 cmdset"""
         super().at_cmdset_creation()
         #
-        # any commands you add below will overload the default ones.
+        # 您在下面新增的任何命令都會超載預設命令。
         #
         self.add(ReportsCmdSet)
         self.add(CmdLockedIC())
@@ -135,40 +124,32 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
 
 
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
-    """
-    Command set available to the Session before being logged in.  This
-    holds commands like creating a new account, logging in, etc.
-    """
+    """登入前會話可用的命令集。這
+    包含建立新帳戶、登入等命令。"""
 
     key = "DefaultUnloggedin"
 
     def at_cmdset_creation(self):
-        """
-        Populates the cmdset
-        """
+        """填充 cmdset"""
         super().at_cmdset_creation()
         #
-        # any commands you add below will overload the default ones.
+        # 您在下面新增的任何命令都會超載預設命令。
         #
 
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
-    """
-    This cmdset is made available on Session level once logged in. It
-    is empty by default.
-    """
+    """登入後，此 cmdset 在會話層級可用。
+    預設為空。"""
 
     key = "DefaultSession"
 
     def at_cmdset_creation(self):
-        """
-        This is the only method defined in a cmdset, called during
-        its creation. It should populate the set with command instances.
+        """這是在 cmdset 中定義的唯一方法，在
+        它的創造。它應該用命令實例填充該集合。
 
-        As and example we just add the empty base `Command` object.
-        It prints some info.
-        """
+        例如，我們只需新增空的基本 `Command` 物件。
+        它會列印一些資訊。"""
         super().at_cmdset_creation()
         #
-        # any commands you add below will overload the default ones.
+        # 您在下面新增的任何命令都會超載預設命令。
         #

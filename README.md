@@ -1,40 +1,40 @@
-# Welcome to Evennia!
+# 歡迎來到埃文尼亞！
 
-This is your game directory, set up to let you start with
-your new game right away. An overview of this directory is found here:
+這是您的遊戲目錄，設定後可以讓您開始
+馬上你的新遊戲。該目錄的概述可在此處找到：
 https://github.com/evennia/evennia/wiki/Directory-Overview#the-game-directory
 
-You can delete this readme file when you've read it and you can
-re-arrange things in this game-directory to suit your own sense of
-organisation (the only exception is the directory structure of the
-`server/` directory, which Evennia expects). If you change the structure
-you must however also edit/add to your settings file to tell Evennia
-where to look for things.
+您可以在閱讀此自述文件後將其刪除
+重新排列此遊戲目錄中的內容以適合您自己的感覺
+組織（唯一的例外是目錄結構
+`server/` 目錄，這是 Evennia 所期望的）。如果你改變結構
+但是，您還必須編輯/添加到您的設定檔中以告訴 Evennia
+去哪裡找東西。
 
-Your game's main configuration file is found in
-`server/conf/settings.py` (but you don't need to change it to get
-started). If you just created this directory (which means you'll already
-have a `virtualenv` running if you followed the default instructions),
-`cd` to this directory then initialize a new database using
+您的遊戲的主設定檔位於
+`server/conf/settings.py` （但你不需要改變它來獲得
+開始）。如果您剛剛建立了這個目錄（這表示您已經
+如果您遵循預設說明，則有 `virtualenv` 正在執行），
+`cd` 到此目錄，然後使用初始化一個新資料庫
 
-    evennia migrate
+    埃文尼亞遷徙
 
-To start the server, stand in this directory and run
+若要啟動伺服器，請進入此目錄並執行
 
-    evennia start
+    埃文尼亞開始
 
-This will start the server, logging output to the console. Make
-sure to create a superuser when asked. By default you can now connect
-to your new game using a MUD client on `localhost`, port `4000`.  You can
-also log into the web client by pointing a browser to
-`http://localhost:4001`.
+這將啟動伺服器，並將輸出記錄到控制台。製作
+確保在詢問時創建超級用戶。預設情況下，您現在可以連接
+使用 `localhost`、連接埠 `4000` 上的 MUD 用戶端連接到您的新遊戲。  你可以
+也可以透過瀏覽器登入 Web 用戶端
+`http://localhost:4001`。
 
-# Getting started
+# 入門
 
-From here on you might want to look at one of the beginner tutorials:
+從這裡開始，您可能想查看初學者教程之一：
 http://github.com/evennia/evennia/wiki/Tutorials.
 
-Evennia's documentation is here:
+Evennia 的文檔在這裡：
 https://github.com/evennia/evennia/wiki.
 
-Enjoy!
+享受！

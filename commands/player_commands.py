@@ -1,4 +1,4 @@
-"""Player-facing commands for status, inventory, equipment, and shopping."""
+"""面向玩家的狀態、庫存、裝備和購物指令。"""
 
 from commands.command import MuxCommand
 from evennia.utils import utils
@@ -8,7 +8,7 @@ class CmdStatus(MuxCommand):
     """
     顯示角色狀態（HP、MP、屬性等）。
 
-    Usage:
+    用法:
       status
       stat
     """
@@ -16,12 +16,12 @@ class CmdStatus(MuxCommand):
     key = "status"
     aliases = ["stat", "狀態", "屬性"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
 
     def func(self):
         caller = self.caller
 
-        # Get base stats
+        # 取得基礎統計數據
         hp = getattr(caller.db, "hp", 0)
         max_hp = getattr(caller.db, "max_hp", 0)
         mp = getattr(caller.db, "mp", 0)
@@ -33,7 +33,7 @@ class CmdStatus(MuxCommand):
         max_exp = getattr(caller.db, "max_exp", 100)
         tokens = getattr(caller.db, "tokens", 0)
 
-        # Get computed stats (with equipment bonuses)
+        # 取得計算統計資料（有設備獎勵）
         str_val = caller.get_stat("str")
         def_val = caller.get_stat("def")
         spirit_val = caller.get_stat("spirit")
@@ -43,11 +43,11 @@ class CmdStatus(MuxCommand):
         spd_val = caller.get_stat("spd")
         atk_val = caller.get_stat("atk")
 
-        # Combat state
+        # 戰鬥狀態
         combat_state = getattr(caller.db, "combat_state", "idle")
         combat_status = getattr(caller.db, "combat_status", "normal")
 
-        # Build status display
+        # 建置狀態顯示
         hp_bar = self._make_bar(hp, max_hp, 20, "red")
         mp_bar = self._make_bar(mp, max_mp, 20, "blue")
         stam_bar = self._make_bar(stamina, max_stamina, 20, "green")
@@ -58,7 +58,7 @@ class CmdStatus(MuxCommand):
             f" HP：{hp}/{max_hp} {hp_bar}",
             f" MP：{mp}/{max_mp} {mp_bar}",
             f" 體力：{stamina}/{max_stamina} {stam_bar}",
-            f" Token：{tokens}",
+            f" 代幣：{tokens}",
             f" 戰鬥狀態：{combat_state} | 異常狀態：{combat_status}",
             f" 力量：{str_val}   智力：{intel_val}   敏捷：{agility_val}",
             f" 防禦：{def_val}   精神：{spirit_val}   體質：{stamina_val}",
@@ -68,7 +68,7 @@ class CmdStatus(MuxCommand):
         caller.msg("\n".join(lines))
 
     def _make_bar(self, current, maximum, length, color):
-        """Create a visual progress bar."""
+        """建立一個視覺進度條。"""
         if maximum <= 0:
             return "|x[" + " " * length + "]|n"
         filled = int((current / maximum) * length)
@@ -83,7 +83,7 @@ class CmdInventory(MuxCommand):
     """
     顯示背包內容。
 
-    Usage:
+    用法:
       inventory
       inv
       i
@@ -93,7 +93,7 @@ class CmdInventory(MuxCommand):
     key = "inventory"
     aliases = ["inv", "i", "背包"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
 
     def func(self):
         caller = self.caller
@@ -111,7 +111,7 @@ class CmdInventory(MuxCommand):
                 if not item:
                     continue
                 name = item.get_display_name(caller)
-                # Check if equipped
+                # 檢查是否配備
                 equip_info = ""
                 for slot, eq_item in equipped.items():
                     if eq_item and eq_item.id == item.id:
@@ -135,7 +135,7 @@ class CmdEquipment(MuxCommand):
     """
     顯示裝備欄位。
 
-    Usage:
+    用法:
       equipment
       eq
       裝備
@@ -144,7 +144,7 @@ class CmdEquipment(MuxCommand):
     key = "equipment"
     aliases = ["eq", "裝備"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
 
     def func(self):
         caller = self.caller
@@ -186,10 +186,10 @@ class CmdShop(MuxCommand):
     key = "shop"
     aliases = ["商店", "store"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
 
     def func(self):
-        """Show the current room's available stock."""
+        """顯示目前房間的可用庫存。"""
         caller = self.caller
         room = getattr(caller, "location", None)
         if not room:
@@ -210,10 +210,10 @@ class CmdBuy(MuxCommand):
     key = "buy"
     aliases = ["購買"]
     locks = "cmd:pperm(Player)"
-    help_category = "General"
+    help_category = "一般"
 
     def func(self):
-        """Buy one item by stock index or template name."""
+        """按股票指數或範本名稱購買一件商品。"""
         caller = self.caller
         selection = (self.args or "").strip()
         if not selection:

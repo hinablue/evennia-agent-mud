@@ -4,12 +4,12 @@ import random
 import uuid
 from typing import List, Optional
 
-# Default timeout for player action (seconds)
+# 玩家操作的預設逾時（秒）
 COMBAT_TURN_TIMEOUT = 60
 
 
 class CombatSession:
-    """Represents one active turn-based combat session."""
+    """代表一個活躍的回合製戰鬥會話。"""
 
     def __init__(self, combatants: List, timer_factory: Optional[Callable] = None):
         self.session_id = str(uuid.uuid4())
@@ -18,12 +18,12 @@ class CombatSession:
         self.current_turn_index = 0
         self.round_count = 1
         self.is_active = True
-        self._turn_timer = None  # Evennia delay() handle for timeout cancellation
+        self._turn_timer = None  # Evennia delay() 處理逾時取消
         self.timer_factory = timer_factory
         self.sort_turns()
 
     def sort_turns(self):
-        """Sort turn order based on final agility and speed."""
+        """根據最終的敏捷性和速度對轉彎順序進行排序。"""
         self.turn_order = sorted(
             self.combatants,
             key=lambda c: c.get_stat("agility") + c.get_stat("spd"),
@@ -31,24 +31,24 @@ class CombatSession:
         )
 
     def get_current_actor(self):
-        """Return the current actor, if combat is still active."""
+        """如果戰鬥仍處於活動狀態，則返回當前演員。"""
         if not self.is_active or not self.turn_order:
             return None
         return self.turn_order[self.current_turn_index]
 
     def living_combatants(self):
-        """Return all living combatants in this session."""
+        """返回本次會議中所有活著的戰鬥人員。"""
         return [c for c in self.combatants if getattr(c.db, "hp", 0) > 0]
 
     def has_ended(self):
-        """Check if combat has reached its end state."""
+        """檢查戰鬥是否已達到結束狀態。"""
         return len(self.living_combatants()) <= 1
 
     # ------------------------------------------------------------------
-    # P0-1: Turn timeout mechanism
+    # P0-1：開啟逾時機制
     # ------------------------------------------------------------------
     def _cancel_turn_timer(self):
-        """Cancel any pending turn-timeout callback."""
+        """取消任何待處理的輪次逾時回呼。"""
         if self._turn_timer is not None:
             try:
                 self._turn_timer.delete()
@@ -57,16 +57,15 @@ class CombatSession:
             self._turn_timer = None
 
     def _on_turn_timeout(self):
-        """Called when the player takes too long to act.
+        """當玩家採取行動的時間過長時調用。
 
-        P0-1: Force-skip the actor's turn and broadcast to all.
-        """
+        P0-1：強制跳過演員的回合並向所有人廣播。"""
         if not self.is_active:
             return
         actor = self.get_current_actor()
         if actor is None:
             return
-        # Only apply timeout to player-controlled characters
+        # 僅對玩家控制的角色應用超時
         if not getattr(actor, "account", None):
             return
 
@@ -75,7 +74,7 @@ class CombatSession:
         self._advance_past_actor()
 
     def _start_turn_timer(self):
-        """Start the Evennia delay() countdown for player turn timeout."""
+        """啟動 Evennia 延遲（）倒數計時，以實現玩家回合逾時。"""
         self._cancel_turn_timer()
         if hasattr(self, "timer_factory") and self.timer_factory:
             try:
@@ -97,12 +96,12 @@ class CombatSession:
                 self._turn_timer = None
 
     def _broadcast(self, msg: str):
-        """Send a message to all combatants."""
+        """向所有戰鬥人員發送訊息。"""
         for c in self.combatants:
             c.msg(msg)
 
     def _consume_control_status(self, actor, status_name, release_message):
-        """Consume one turn of a control status and clear it when exhausted."""
+        """消耗一回合控制狀態，耗儘後清除。"""
         duration = max(1, int(getattr(actor.db, "combat_status_duration", 1) or 1))
         duration -= 1
         actor.db.combat_status_duration = duration
@@ -112,10 +111,9 @@ class CombatSession:
         self._broadcast(release_message)
 
     def _advance_past_actor(self):
-        """Skip the current actor and advance to the next turn.
+        """跳過當前演員並前進到下一個回合。
 
-        Used by both timeout and normal next_turn() success path.
-        """
+        由逾時和正常的 next_turn() 成功路徑使用。"""
         while self.is_active:
             self.current_turn_index = (self.current_turn_index + 1) % len(
                 self.turn_order
@@ -129,7 +127,7 @@ class CombatSession:
             if not next_actor:
                 return
 
-            # Check for control status (stunned/frozen) on the next actor BEFORE triggering AI
+            # 在觸發 AI 之前檢查下一個演員的控制狀態（眩暈/凍結）
             if getattr(next_actor.db, "combat_status", "normal") == "stunned":
                 self._consume_control_status(
                     next_actor,
@@ -146,11 +144,11 @@ class CombatSession:
                 continue
 
             self._broadcast(f"\n➡️ 現在輪到 {next_actor.key} 行動。")
-            # If the next actor is NPC, check retaliates flag before triggering AI
+            # 如果下一個演員是NPC，在觸發AI之前檢查報復標誌
             if not getattr(next_actor, "account", None):
                 if not getattr(next_actor.db, "npc_retaliates", True):
                     self._broadcast(f"🕊️ {next_actor.key} 沒有反擊，回合略過。")
-                    # Advance past this non-retaliating NPC and continue the loop
+                    # 越過這個不報復的 NPC 並繼續循環
                     self.current_turn_index = (self.current_turn_index + 1) % len(
                         self.turn_order
                     )
@@ -159,27 +157,26 @@ class CombatSession:
                         self.process_status_effects()
                         if self.has_ended():
                             return
-                    # Check if we've looped through all combatants to avoid infinite loop
+                    # 檢查我們是否已經循環了所有戰鬥人員以避免無限循環
                     valid_count = sum(
                         1 for c in self.turn_order if getattr(c.db, "hp", 0) > 0
                     )
                     if valid_count <= 1:
                         return
-                    continue  # Let the while loop find the next valid actor
+                    continue  # 讓 while 迴圈找到下一個有效的 actor
                 self.trigger_ai_turn(next_actor)
             return
 
     # ------------------------------------------------------------------
-    # end P0-1
+    # 結束 P0-1
     # ------------------------------------------------------------------
 
     def next_turn(self):
-        """Advance to the next valid actor and trigger AI if needed.
+        """前進到下一個有效的演員並在需要時觸發人工智慧。
 
-        Bug-A fix: index is incremented at the END of the successful path
-        (not at the start of every iteration), so turn_order[0] is always
-        checked on the very first call.
-        """
+        Bug-A 修復：索引在成功路徑的末尾遞增
+        （不是在每次迭代開始時），所以turn_order[0]總是
+        在第一次通話時進行了檢查。"""
         if not self.turn_order or self.has_ended():
             return None
 
@@ -256,10 +253,10 @@ class CombatSession:
                         self._start_turn_timer()
                     return current_actor
 
-            # P0-1: Player's turn — start the timeout timer
+            # P0-1：輪到玩家了－啟動超時計時器
             self._start_turn_timer()
 
-            # Advance index for next call — only reached on success
+            # 下一次調用的高級索引 - 僅在成功時達到
             self.current_turn_index = (self.current_turn_index + 1) % len(
                 self.turn_order
             )
@@ -273,7 +270,7 @@ class CombatSession:
         return None
 
     def process_status_effects(self):
-        """Apply round-end status effects to combatants."""
+        """對戰鬥人員施加回合結束狀態效果。"""
         for combatant in self.combatants:
             if getattr(combatant.db, "hp", 0) <= 0:
                 continue
@@ -311,7 +308,7 @@ class CombatSession:
                         viewer.msg(f"💀 {combatant.key} 因中毒倒下了！")
 
     def trigger_ai_turn(self, actor):
-        """Let an NPC perform an automatic turn."""
+        """讓 NPC 執行自動轉彎。"""
         from commands.combat_commands import execute_combat_action
 
         targets = [
@@ -322,7 +319,7 @@ class CombatSession:
 
         target = random.choice(targets)
 
-        # P0-2: Pull spells from magic_tools instead of hardcoded SKILL_TABLE
+        # P0-2：從 magic_tools 中提取法術而不是硬編碼的 SKILL_TABLE
         usable_skills = self._get_usable_spells(actor)
         if usable_skills and random.random() > 0.4:
             execute_combat_action(
@@ -332,12 +329,11 @@ class CombatSession:
         execute_combat_action(actor, "attack", target)
 
     def _get_usable_spells(self, actor):
-        """P0-2: Return list of spell_keys the actor can currently cast.
+        """P0-2：傳回演員目前可以施放的spell_keys清單。
 
-        Reads from magic_tools.py spell registry (ScriptDB) instead of
-        the static SKILL_TABLE in combat_commands.py.
-        Returns spell keys (strings) the NPC AI can choose from.
-        """
+        從 magic_tools.py 拼字註冊表（ScriptDB）讀取而不是
+        Battle_commands.py 中的靜態 SKILL_TABLE。
+        傳回 NPC AI 可以選擇的拼字鍵（字串）。"""
         try:
             from world.magic_tools import _list_all_spells
         except Exception:
@@ -359,10 +355,10 @@ class CombatSession:
         return usable
 
     def get_npc_target(self, npc_obj):
-        """Return the player target that this NPC is fighting, if any."""
+        """傳回該 NPC 正在戰鬥的玩家目標（如果有）。"""
         for c in self.combatants:
             if c.db and getattr(c.db, "is_npc", False) and c is npc_obj:
-                # Return the first non-NPC combatant
+                # 返回第一個非 NPC 戰鬥人員
                 players = [
                     x for x in self.combatants if not getattr(x.db, "is_npc", False)
                 ]
@@ -371,7 +367,7 @@ class CombatSession:
 
 
 class CombatManager:
-    """Global singleton manager for all combat sessions."""
+    """所有戰鬥會話的全域單例管理器。"""
 
     _instance = None
 
@@ -382,12 +378,11 @@ class CombatManager:
         return cls._instance
 
     def start_combat(self, combatants: List, timer_factory: Optional[Callable] = None):
-        """Create and initialize a new combat session.
+        """建立並初始化一個新的戰鬥會話。
 
-        Always creates an in-memory CombatSession in manager.sessions.
-        When Evennia is available, also creates a CombatScript in ScriptDB
-        so the session survives server reload.
-        """
+        始終在 manager.sessions 中建立記憶體中 CombatSession。
+        當 Evennia 可用時，也會在 ScriptDB 中建立 CombatScript
+        所以會話在伺服器重新載入後仍然存在。"""
         session = CombatSession(combatants, timer_factory=timer_factory)
         self.sessions[session.session_id] = session
         for combatant in combatants:
@@ -395,7 +390,7 @@ class CombatManager:
             combatant.db.combat_session = session.session_id
             combatant.db.combat_status = "normal"
 
-        # Try to create a persistent Evennia ScriptDB entry
+        # 嘗試建立持久性 Evennia ScriptDB 條目
         self._create_combat_script(session, combatants)
 
         first_actor = session.get_current_actor()
@@ -408,7 +403,7 @@ class CombatManager:
         return session
 
     def _create_combat_script(self, session, combatants):
-        """Create an Evennia CombatScript in ScriptDB. Silently no-ops if Evennia is unavailable."""
+        """在 ScriptDB 中建立 Evennia CombatScript。如果 Evennia 不可用，則靜默無操作。"""
         try:
             from evennia import create_script
             from typeclasses.scripts import CombatScript
@@ -418,30 +413,29 @@ class CombatManager:
                 key=f"combat_{session.session_id}",
                 persistent=True,
             )
-            # Store session reference for delegation
+            # 儲存委派的會話參考
             script._session = session
             script.db.combatant_ids = [
                 getattr(c, "dbref", None) or getattr(c, "id", None) for c in combatants
             ]
-            # Save initial state
+            # 保存初始狀態
             script.save_state()
         except Exception:
-            # No Evennia — testing or standalone mode, pass
+            # 沒有 Evennia — 測試或獨立模式，通過
             pass
 
     def end_combat(self, session_id: str, reason: str = "normal"):
-        """End a combat session and clear state on all combatants.
+        """結束戰鬥並清除所有戰鬥人員的狀態。
 
-        Args:
-            session_id: The session to end.
-            reason: "normal"=normal end, "flee"=NPC escaped, "death"=NPC died.
-        """
+        參數：
+            session_id：要結束的會話。
+            原因：「normal」=正常結束，「flee」=NPC逃脫，「death」=NPC死亡。"""
         if session_id not in self.sessions:
             return
 
         session = self.sessions[session_id]
 
-        # P0-1: Cancel any pending timeout timer
+        # P0-1：取消任何掛起的逾時定時器
         session._cancel_turn_timer()
 
         session.is_active = False
@@ -450,11 +444,11 @@ class CombatManager:
             (c for c in session.combatants if getattr(c.db, "hp", 0) > 0), None
         )
 
-        # Calculate exp awards
+        # 計算經驗獎勵
         exp_per_player = self._calc_exp_for_session(session, winner, reason)
 
         for combatant in session.combatants:
-            # Skip combatants that have been deleted from DB
+            # 跳過已從資料庫中刪除的戰鬥人員
             if not getattr(combatant, "pk", None):
                 continue
             combatant.db.combat_state = "idle"
@@ -463,20 +457,20 @@ class CombatManager:
             combatant.db.combat_status_duration = 0
             combatant.msg("戰鬥已結束。")
 
-            # Award exp to players
+            # 獎勵經驗給玩家
             if winner and not getattr(combatant.db, "is_npc", False):
                 exp_amount = exp_per_player.get(id(combatant), 0)
                 if exp_amount > 0 and hasattr(combatant, "gain_exp"):
                     combatant.gain_exp(exp_amount)
                     combatant.msg(f"✨ 你獲得了 {exp_amount} 點經驗值！")
 
-        # Stop the Evennia CombatScript if it exists
+        # 停止 Evennia CombatScript（如果存在）
         self._stop_combat_script(session_id)
 
         del self.sessions[session_id]
 
     def _stop_combat_script(self, session_id):
-        """Stop and delete the Evennia CombatScript for this session."""
+        """停止並刪除此會話的 Evennia CombatScript。"""
         try:
             from evennia import search_script
 
@@ -487,15 +481,14 @@ class CombatManager:
             pass
 
     def is_combatant_locked_by_session(self, combatant, exclude_session_id=None):
-        """Check whether a combatant is locked by another active combat session.
+        """檢查戰鬥員是否被另一個活動的戰鬥會話鎖定。
 
-        Args:
-            combatant: Character or NPC object to inspect.
-            exclude_session_id: Session id to ignore, typically the attacker's own.
+        參數：
+            戰鬥員：要檢查的角色或 NPC 物件。
+            except_session_id：要忽略的會話 ID，通常是攻擊者自己的。
 
-        Returns:
-            bool: True if the combatant is already in another active session.
-        """
+        返回：
+            bool：如果戰鬥者已經在另一個活動會話中，則為 true。"""
         for sid, session in self.sessions.items():
             if sid == exclude_session_id:
                 continue
@@ -507,21 +500,20 @@ class CombatManager:
         return False
 
     def is_npc_locked_by_session(self, npc_obj, exclude_session_id=None):
-        """Backward-compatible wrapper for NPC combat lock checks."""
+        """用於 NPC 戰鬥鎖定檢查的向後相容包裝器。"""
         return self.is_combatant_locked_by_session(
             npc_obj, exclude_session_id=exclude_session_id
         )
 
     def _calc_exp_for_session(self, session, winner, reason):
-        """Calculate exp per player based on session outcome.
+        """根據會話結果計算每位玩家的經驗。
 
-        Bug-B fix: also require player to be alive (HP > 0).
-        """
+        Bug-B 修復：也要求玩家還活著（HP > 0）。"""
         exp_per_player = {}
         players = [c for c in session.combatants if not getattr(c.db, "is_npc", False)]
 
         def _get_hp(char):
-            """Safely get HP from character db, defaulting to 0 if not set."""
+            """從角色資料庫安全取得HP，如果不設定則預設為0。"""
             hp = getattr(char.db, "hp", None)
             return hp if hp is not None else 0
 
@@ -542,7 +534,7 @@ class CombatManager:
         return exp_per_player
 
     def npc_death(self, npc_obj, session_id):
-        """Handle NPC death: drop tokens, drop loot, enter cooldown, and only end combat if one side remains."""
+        """處理 NPC 死亡：掉落代幣、掉落戰利品、進入冷卻時間，並且僅在一側剩餘時結束戰鬥。"""
         session = self.sessions.get(session_id)
         token_drop = 0
         if hasattr(npc_obj, "get_tokens_for_drop"):
@@ -579,7 +571,7 @@ class CombatManager:
                 pass
 
     def npc_flee(self, npc_obj, session_id):
-        """Handle NPC fleeing: enter cooldown and end combat."""
+        """處理NPC逃跑：進入冷卻並結束戰鬥。"""
         session = self.sessions.get(session_id)
         if session:
             if hasattr(npc_obj, "enter_cooldown"):
@@ -597,5 +589,5 @@ class CombatManager:
                 pass
 
 
-# Module-level singleton
+# 模組級單例
 manager = CombatManager()

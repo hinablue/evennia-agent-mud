@@ -1,4 +1,4 @@
-"""Admin helpers for creating and managing player Character objects."""
+"""用於建立和管理玩家角色物件的管理助理。"""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class PlayerSpecError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Shared helpers
+# 共享助手
 # ---------------------------------------------------------------------------
 
 
@@ -180,7 +180,7 @@ def _apply_character_owner_locks(character, owners):
 
 
 # ---------------------------------------------------------------------------
-# Summaries
+# 摘要
 # ---------------------------------------------------------------------------
 
 
@@ -227,7 +227,7 @@ def summarize_players(room_name=None):
 
 
 # ---------------------------------------------------------------------------
-# Mutations
+# 突變
 # ---------------------------------------------------------------------------
 
 
@@ -245,7 +245,7 @@ def create_player(
     desc = _clean_text(desc) or DEFAULT_PLAYER_DESC
     account = _get_account_or_error(account_name) if account_name else None
 
-    # --- Kingdom/King logic ---
+    # --- 王國/國王邏輯 ---
     king_char = None
     nationality = ""
     if caller and hasattr(caller, "db") and getattr(caller.db, "is_king", False):

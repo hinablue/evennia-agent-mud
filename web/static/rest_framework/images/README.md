@@ -1,3 +1,3 @@
-# Static files for API 
+# API 的靜態文件
 
-Override images here.
+在這裡覆蓋圖像。

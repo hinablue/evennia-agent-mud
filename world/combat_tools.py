@@ -1,4 +1,4 @@
-"""Admin helpers for controlling combat and AI states."""
+"""用於控制戰鬥和人工智慧狀態的管理助理。"""
 
 from __future__ import annotations
 from evennia import search_object
@@ -29,12 +29,12 @@ def _get_object_or_error(obj_key):
 
 def stop_combat(char_key):
     char = _get_object_or_error(char_key)
-    # We assume CombatHandler is attached to the character as an attribute or via a global manager
-    # In Evennia, if you use a handler, it's often in char.db.combat_handler or similar.
-    # For a generic 'stop', we try to clear combat-related attributes.
+    # 我們假設 CombatHandler 作為屬性或透過全域管理器附加到角色
+    # 在 Evennia 中，如果您使用處理程序，它通常位於 char.db.combat_handler 或類似的位置。
+    # 對於通用的“停止”，我們嘗試清除與戰鬥相關的屬性。
     char.db.combat_state = "idle"
-    # If there's a handler instance, we would call its stop method.
-    # Since the exact handler implementation varies, we'll set a state and assume the system reacts.
+    # 如果有一個處理程序實例，我們將呼叫它的 stop 方法。
+    # 由於確切的處理程序實作有所不同，我們將設定一個狀態並假設系統做出反應。
     char.save()
     return {"message": f"已強行終止 `{char.key}` 的所有戰鬥狀態。"}
 

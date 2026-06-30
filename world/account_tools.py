@@ -1,4 +1,4 @@
-"""Admin helpers for managing Evennia Accounts."""
+"""用於管理 Evennia 帳戶的管理員助手。"""
 
 from __future__ import annotations
 
@@ -95,19 +95,18 @@ def list_accounts(filter_perm=None, nation=None):
 
 
 def create_account(account_name, password, email=None):
-    """Create a live Evennia account.
+    """建立一個即時 Evennia 帳戶。
 
-    Args:
-        account_name (str): Requested account name.
-        password (str): Cleartext password.
-        email (str, optional): Optional email address.
+    參數：
+        account_name (str)：請求的帳號名稱。
+        密碼 (str)：明文密碼。
+        email (str, 可選): 可選的電子郵件地址。
 
-    Returns:
-        dict: Result payload with a human-readable status message.
+    返回：
+        dict：帶有人類可讀狀態訊息的結果有效負載。
 
-    Raises:
-        AccountSpecError: If the inputs are missing or Evennia rejects creation.
-    """
+    加薪：
+        AccountSpecError：如果輸入遺失或 Evennia 拒絕建立。"""
 
     account_name = _clean_text(account_name)
     password = _clean_text(password)
@@ -155,7 +154,7 @@ def set_account_puppet(account_name, char_key):
 
 
 def normalize_hierarchy_role_name(role_name):
-    """Normalize a hierarchy role name and validate it."""
+    """標準化層次結構角色名稱並驗證它。"""
 
     role_name = _clean_text(role_name)
     lookup = {name.lower(): name for name in HIERARCHY_ROLE_PERMISSIONS}
@@ -167,7 +166,7 @@ def normalize_hierarchy_role_name(role_name):
 
 
 def normalize_account_command_permission(perm_name):
-    """Normalize a permission name allowed by @agentaccount."""
+    """規範化 @agentaccount 允許的權限名稱。"""
 
     perm_name = _clean_text(perm_name)
     lookup = {name.lower(): name for name in ACCOUNT_COMMAND_ALLOWED_PERMISSIONS}
@@ -181,7 +180,7 @@ def normalize_account_command_permission(perm_name):
 
 
 def set_account_role(account_name, role_name):
-    """Set one hierarchy role on an account, replacing existing hierarchy perms."""
+    """在帳號上​​設定一個層次結構角色，取代現有的層次結構權限。"""
 
     account = _get_account_or_error(account_name)
     normalized = normalize_hierarchy_role_name(role_name)
@@ -213,7 +212,7 @@ def set_account_role(account_name, role_name):
 
 
 def _iter_account_characters(account):
-    """Return a stable list of Characters owned by an account."""
+    """傳回帳戶擁有的穩定角色清單。"""
 
     try:
         return list(account.characters.all())
@@ -222,7 +221,7 @@ def _iter_account_characters(account):
 
 
 def _has_staff_role(account):
-    """Whether an account already has staff-level world permissions."""
+    """帳戶是否已經擁有員工級世界權限。"""
 
     perms = set(account.permissions.all())
 
@@ -231,7 +230,7 @@ def _has_staff_role(account):
 
 
 def _apply_role_to_holder(holder, normalized):
-    """Apply one hierarchy role to an Account or Character-like holder."""
+    """將一個層級角色應用於帳戶或類似角色的持有者。"""
 
     permissions = getattr(holder, "permissions", None)
     if not permissions:
@@ -255,7 +254,7 @@ def _apply_role_to_holder(holder, normalized):
 
 
 def ensure_first_player_account_is_gm():
-    """Promote the first playable account/character to GM if no staff account exists."""
+    """如果不存在員工帳戶，則將第一個可玩的帳戶/角色提升為 GM。"""
 
     accounts = list(AccountDB.objects.all())
     if any(_has_staff_role(account) for account in accounts):
@@ -311,17 +310,16 @@ def remove_account_permission(account_name, perm_name):
 
 
 def delete_account(account_name):
-    """Delete a live Evennia account.
+    """刪除真實的 Evennia 帳戶。
 
-    Args:
-        account_name (str): Exact account name to delete.
+    參數：
+        account_name (str)：要刪除的確切帳號名稱。
 
-    Returns:
-        dict: Result payload with a human-readable status message.
+    返回：
+        dict：帶有人類可讀狀態訊息的結果有效負載。
 
-    Raises:
-        AccountSpecError: If the account does not exist or is protected.
-    """
+    加薪：
+        AccountSpecError：如果帳戶不存在或受保護。"""
 
     account = _get_account_or_error(account_name)
     if getattr(account, "is_superuser", False):
@@ -390,7 +388,7 @@ def set_account_nationality(account_name, nationality, caller=None):
     }
 
 
-# --- King Appoint Tool (GM only) ---
+# --- King 任命工具（僅限 GM）---
 def appoint_king(account_name, target_char_key):
     """
     GM 強制指定/移交 King：將指定角色設為某國的 King。

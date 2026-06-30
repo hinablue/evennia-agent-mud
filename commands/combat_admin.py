@@ -1,4 +1,4 @@
-"""Combat and AI management command."""
+"""戰鬥和AI管理指揮。"""
 
 from commands.command import MuxCommand
 from world.combat_tools import (
@@ -23,7 +23,7 @@ class CmdAgentCombat(MuxCommand):
     key = "@agentcombat"
     aliases = ["@combat"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = ("stop", "forcewin", "setstate", "help")
 
     def _msg(self, text):

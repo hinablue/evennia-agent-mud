@@ -2,13 +2,11 @@ from typeclasses.objects import Object
 
 
 class DoorObject(Object):
-    """
-    A specialized object that acts as a door between rooms.
-    Attributes:
-    - db.direction: The direction this door controls (e.g. 'north')
-    - db.state: Current state ('open', 'closed', or 'locked')
-    - db.locked_by: Key required to unlock (optional)
-    """
+    """充當房間之間門的特殊物體。
+    屬性：
+    - db.direction：此門控制的方向（例如“北”）
+    - db.state：目前狀態（「開啟」、「關閉」或「鎖定」）
+    - db.locked_by：解鎖所需的金鑰（可選）"""
 
     def at_object_creation(self):
         self.db.direction = "north"

@@ -1,11 +1,8 @@
-"""
-Exits
+"""退出
 
-Exits are connectors between Rooms. An exit always has a destination property
-set and has a single command defined on itself with the same name as its key,
-for allowing Characters to traverse the exit to its destination.
-
-"""
+出口是房間之間的連接器。出口始終具有目標屬性
+set 並在其自身上定義了一個與其鍵同名的命令，
+用於允許角色穿過出口到達目的地。"""
 
 from evennia.objects.objects import DefaultExit
 
@@ -13,13 +10,11 @@ from .objects import ObjectParent
 
 
 class Exit(ObjectParent, DefaultExit):
-    """
-    Exits are connectors between rooms. Exits are normal Objects except
-    they defines the `destination` property and overrides some hooks
-    and methods to represent the exits.
+    """出口是房間之間的連接器。出口是普通對象，除了
+    他們定義了 `destination` 屬性並覆蓋了一些鉤子
+    以及表示出口的方法。
 
-    See mygame/typeclasses/objects.py for a list of
-    properties and methods available on all Objects child classes like this.
-    """
+    有關列表，請參閱 mygame/typeclasses/objects.py
+    像這樣的所有物件子類別都可用的屬性和方法。"""
 
     default_description = "這是一條可通行的出口。"

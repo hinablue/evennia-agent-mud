@@ -1,4 +1,4 @@
-"""Equipment / Weapon management command."""
+"""裝備/武器管理命令。"""
 
 from commands.command import MuxCommand
 from world.equipment_tools import (
@@ -63,7 +63,7 @@ class CmdAgentWeapon(MuxCommand):
     key = "@agentweapon"
     aliases = ["@agentequip", "@equip", "@weapon"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "Admin"
+    help_category = "管理"
     switch_options = (
         "list",
         "status",
@@ -96,7 +96,7 @@ class CmdAgentWeapon(MuxCommand):
             "  |w@agentweapon/move 名稱=房間|n：移動裝備。\n"
             "  |w@agentweapon/stats 名稱=atk=5,def=-2|n：設定屬性（覆寫）。\n"
             "  |w@agentweapon/addstat 名稱=atk=3|n：增加/減少屬性。\n"
-            "  |w@agentweapon/buff 名稱=atk=2|n：附加魔法 Buff。\n"
+            "  |w@agentweapon/buff 名稱=atk=2|n：附加魔法增益。\n"
             "  |w@agentweapon/alias 名稱=暱稱|n：設定 Player 暱稱。\n"
             "  |w@agentweapon/desc 名稱=描述|n：更新描述。\n"
             "  |w@agentweapon/dur 名稱=50/100|n：設定耐用度（當前/上限）。\n"
@@ -112,7 +112,7 @@ class CmdAgentWeapon(MuxCommand):
         )
 
     def _parse_key_value(self, expected_keys=None):
-        """Parse key=value pairs from rhs."""
+        """從 rhs 解析 key=value 對。"""
         pairs = {}
         if not self.rhs:
             return pairs
@@ -148,7 +148,7 @@ class CmdAgentWeapon(MuxCommand):
         if not raw or " " not in raw or "=" not in raw:
             raise EquipmentSpecError(usage)
 
-        # Parse: slot key=room|desc|aliases|stats|two_hand
+        # 解析：slot key=room|desc|aliases|stats|two_hand
         parts = raw.split(None, 1)
         if len(parts) < 2:
             raise EquipmentSpecError(usage)

@@ -21,7 +21,7 @@ agent-mud/
 
 ## 2. world/ — 遊戲邏輯
 
-### 2.1 combat_manager.py
+### 2.1戰鬥管理器.py
 CombatManager 單例 + CombatSession，管理回合制戰鬥流程。
 
 | 方法 | 說明 |
@@ -34,7 +34,7 @@ CombatManager 單例 + CombatSession，管理回合制戰鬥流程。
 | `npc_flee(npc, session_id)` | NPC 逃跑：冷却、不掉落 |
 | `is_combatant_locked()` | 檢查是否被其他 session 鎖定 |
 
-### 2.2 combat_tools.py
+### 2.2戰鬥工具.py
 GM 戰鬥控制工具。
 
 | 方法 | 說明 |
@@ -43,7 +43,7 @@ GM 戰鬥控制工具。
 | `force_win(char_key)` | 強制設為獲勝 |
 | `set_npc_state(npc_key, state)` | 切換 NPC AI 狀態 |
 
-### 2.3 kingdom.py
+### 2.3 王國.py
 Kingdom (國家) Script + GM 建國工具。
 
 **Kingdom 類別方法：**
@@ -97,7 +97,7 @@ NPC/LLMNPC CRUD 工具。
 | `set_npc_flee/aggro/equipment/loot_table` | 戰鬥行為 |
 | `delete_npc(key)` | 刪除 NPC |
 
-### 2.6 object_tools.py
+### 2.6 物件工具.py
 遊戲物件管理工具。
 
 | 函數 | 說明 |
@@ -109,7 +109,7 @@ NPC/LLMNPC CRUD 工具。
 | `equip_object(char_key, obj_key, slot)` | 穿戴裝備 |
 | `delete_object(key)` | 刪除物件 |
 
-### 2.7 player_tools.py
+### 2.7 玩家工具.py
 玩家角色管理工具。
 
 | 函數 | 說明 |
@@ -156,7 +156,7 @@ NPC/LLMNPC CRUD 工具。
 | `appoint_king(account, char_key)` | 指派 King |
 | `delete_account(name)` | 刪除帳號 |
 
-### 2.11 equipment_tools.py
+### 2.11 裝置工具.py
 裝備 CRUD 工具。
 
 | 函數 | 說明 |
@@ -178,7 +178,7 @@ NPC/LLMNPC CRUD 工具。
 | `buy_from_room_shop(caller, selection)` | 購買商品 |
 | `summarize_room_shop/for_player` | 商店摘要 |
 
-### 2.13 agent_world.py
+### 2.13 代理世界.py
 世界建立、檢查與管理工具。
 
 | 函數 | 說明 |
@@ -189,7 +189,7 @@ NPC/LLMNPC CRUD 工具。
 | `create/add_live_room/detail/scenery/exit` | 增建元件 |
 | `move_live_entity(key, dest)` | 移動實體 |
 
-### 2.14 agent_xyzgrid.py
+### 2.14 代理_xyzgrid.py
 XYZGrid 地圖與遷移工具。
 
 ---
@@ -235,7 +235,7 @@ XYZGrid 地圖與遷移工具。
 | 類別 | 模組 | 說明 |
 |------|------|------|
 | `Character` | characters.py | 玩家角色（屬性、背包、裝備、buff） |
-| `NPC` / `LLMNPC` | npcs.py / llm_npc.py | NPC（cooldown、aggro、flee、loot） |
+| `NPC` / `LLMNPC` | npcs.py / llm_npc.py | NPC（冷卻、仇恨、逃跑、掠奪） |
 | `Equipment` | equipment.py | 裝備（耐久、魔法增幅） |
 | `Room` | rooms.py | 房間 |
 | `Object` | objects.py | 遊戲物件 |
@@ -248,25 +248,25 @@ XYZGrid 地圖與遷移工具。
 
 | 測試檔 | 目標模組 | 測試數量 |
 |--------|----------|----------|
-| test_combat_system.py | combat_manager + combat_commands | 35 |
+|測試戰鬥系統.py |戰鬥管理器 + 戰鬥指令 | 35 | 35
 | test_combat_session_behavior.py | CombatSession 行為 | 34 |
 | test_combat_live_smoke.py | 線上 smoke test | 14 |
-| test_equipment_system.py | Equipment + Inventory | 31 |
-| test_account_admin.py | account_tools + CmdAgentAccount | 11 |
-| test_player_commands.py | player-facing commands | 7 |
-| test_world_admin.py | world_admin command | 5 |
-| test_agent_xyzgrid.py | XYZGrid | 4 |
-| test_agent_world.py | agent_world | 3 |
-| test_shop_tools.py | shop_tools | 4 |
-| test_kingdom.py | kingdom.py | 🆕 |
-| test_magic_tools.py | magic_tools.py | 🆕 |
-| test_quest_tools.py | quest_tools.py | 🆕 |
-| test_combat_tools.py | combat_tools.py | 🆕 |
-| test_combat_socket_cmd.py | combat_socket.py | 🆕 |
-| test_npc_tools.py | npc_tools.py | 🆕 |
-| test_object_tools.py | object_tools.py | 🆕 |
-| test_player_tools.py | player_tools.py | 🆕 |
-| test_room_tools.py | room_tools.py | 🆕 |
+|測試設備系統.py |設備+庫存| 31 |
+|測試帳號管理.py | account_tools + CmdAgentAccount | 11 | 11
+|測試玩家指令.py |面向玩家的指令 | 7 |
+|測試世界管理.py | world_admin 指令 | 5 |
+|測試_代理_xyzgrid.py | XYZ網格| 4 |
+|測試_代理_世界.py |代理世界 | 3 |
+|測試商店工具.py |商店工具 | 4 |
+|測試_kingdom.py |王國.py | 🆕 |
+|測試魔法工具.py | magic_tools.py | 🆕 |
+|測試任務工具.py | quest_tools.py | 🆕 |
+|測試戰鬥工具.py |戰鬥工具.py | 🆕 |
+|測試_combat_socket_cmd.py | Battle_socket.py | 🆕 |
+|測試_npc_tools.py | npc_tools.py | 🆕 |
+|測試物件工具.py |物件工具.py | 🆕 |
+|測試玩家工具.py |玩家工具.py | 🆕 |
+|測試室工具.py | room_tools.py | 🆕 |
 
 ---
 
