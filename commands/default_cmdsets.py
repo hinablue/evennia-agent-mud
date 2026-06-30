@@ -15,12 +15,6 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 """
 
 from evennia import default_cmds
-
-from evennia.contrib.grid import extended_room, mapbuilder, simpledoor, slow_exit
-from evennia.contrib.grid.ingame_map_display import MapDisplayCmdSet
-from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
-from typeclasses.llm_npc import CmdLocalLLMTalk
-
 from evennia.contrib.base_systems.building_menu import GenericBuildingCmd
 from evennia.contrib.base_systems.ingame_reports import ReportsCmdSet
 from evennia.contrib.game_systems.achievements.achievements import CmdAchieve
@@ -29,32 +23,32 @@ from evennia.contrib.game_systems.clothing import ClothedCharacterCmdSet
 from evennia.contrib.game_systems.containers import ContainerCmdSet
 from evennia.contrib.game_systems.gendersub import SetGender
 from evennia.contrib.game_systems.storage import StorageCmdSet
+from evennia.contrib.grid import (extended_room, mapbuilder, simpledoor,
+                                  slow_exit)
+from evennia.contrib.grid.ingame_map_display import MapDisplayCmdSet
+from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 from evennia.contrib.rpg.rpsystem import RPSystemCmdSet
 
-from .account_character_commands import (
-    CmdCharacterRoster,
-    CmdLockedCharCreate,
-    CmdLockedIC,
-)
+from typeclasses.llm_npc import CmdLocalLLMTalk
+
+from .account_admin import CmdAgentAccount
+from .account_character_commands import (CmdCharacterRoster,
+                                         CmdLockedCharCreate, CmdLockedIC)
 from .combat_admin import CmdAgentCombat
-from .combat_commands import (
-    CmdCombatAttack,
-    CmdCombatSkill,
-    CmdCombatFlee,
-    CmdPick,
-    CmdCast,
-)
+from .combat_commands import (CmdCast, CmdCombatAttack, CmdCombatFlee,
+                              CmdCombatSkill, CmdPick)
 from .combat_socket import CmdSocketGem
 from .equipment_admin import CmdAgentWeapon
+from .kingdom_admin import CmdKingdomAdmin
+from .magic_admin import CmdAgentMagic
 from .npc_admin import CmdAgentNPC
 from .object_admin import CmdAgentObject
 from .player_admin import CmdAgentPlayer
-from .player_commands import CmdStatus, CmdInventory, CmdEquipment, CmdShop, CmdBuy
-from .account_admin import CmdAgentAccount
+from .player_commands import (CmdBuy, CmdEquipment, CmdInventory, CmdShop,
+                              CmdStatus)
 from .quest_admin import CmdAgentQuest
 from .room_admin import CmdAgentRoom
 from .world_admin import CmdAgentWorld
-from .magic_admin import CmdAgentMagic
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -98,6 +92,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdCast())
 
         self.add(CmdAgentWorld())
+        self.add(CmdKingdomAdmin())
         self.add(CmdAgentNPC())
         self.add(CmdAgentPlayer())
         self.add(CmdAgentAccount())

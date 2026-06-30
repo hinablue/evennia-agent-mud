@@ -19,8 +19,8 @@
 │  • 在額度內自建房間/出口/物件，完整擁有權                           │
 │  • 可設定國家名稱                                                   │
 │  • Home = 第一個房間（GM 指定）                                     │
-│  • 可使用 `@agentworld` 的國家子功能：`/countries`、`/countrystatus`、`/countryrename` │
-│  • 不能用 `@agentworld` 建國 / 刪國 / 改額度 / 改入口房               │
+│  • 可使用 `@agentkingdom` 的國家子功能：`/countries`、`/countrystatus`、`/countryrename` │
+│  • 不能用 `@agentkingdom` 建國 / 刪國 / 改額度 / 改入口房             │
 │  • 不能碰其他 King 的任何東西                                       │
 ├─────────────────────────────────────────────────────────────────┤
 │  Player（人民）——由 King 建立                                       │
@@ -220,7 +220,8 @@ class CmdKingAdmin(MuxCommand):
 
 | 指令 | 原 Lock | 新 Lock | 說明 |
 |------|---------|---------|------|
-| `@agentworld` | `cmd:perm(Admin) or perm(Developer)` | `cmd:perm(Admin) or perm(Developer) or perm(King)` | **GM 可用完整世界/國家管理；King 僅可用 `/addroom`、`/adddetail`、`/addscenery`、`/addexit`、`/countries`、`/countrystatus`、`/countryrename`** |
+| `@agentworld` | `cmd:perm(Admin) or perm(Developer)` | `cmd:perm(Admin) or perm(Developer) or perm(King)` | **King 僅可用 `/addroom`、`/adddetail`、`/addscenery`、`/addexit` 的世界編輯功能** |
+| `@agentkingdom` | `cmd:perm(Admin) or perm(Developer)` | `cmd:perm(Admin) or perm(Developer) or perm(King)` | **GM 可用完整國家 CRUD；King 僅可用 `/countries`、`/countrystatus`、`/countryrename`** |
 | `@agentaccount` | `cmd:perm(Admin) or perm(Developer)` | 同上 | GM 專用 |
 | `@agentplayer` | `cmd:perm(Admin) or perm(Developer)` | `cmd:perm(Admin) or perm(Developer) or perm(King)` | **King 可用**（建立/管理自國 Player） |
 | 一般玩家指令 | `cmd:pperm(Player)` | 同上 | Player 正常使用 |

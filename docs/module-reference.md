@@ -200,7 +200,7 @@ XYZGrid 地圖與遷移工具。
 
 | 指令 | 模組 | 說明 |
 |------|------|------|
-| `@agentworld` | world_admin.py | 世界管理（含國家 CRUD 主入口；King 限 countries/countrystatus/countryrename） |
+| `@agentworld` | world_admin.py | 世界管理（King 限 addroom/adddetail/addscenery/addexit） |
 | `@agentaccount` | account_admin.py | 帳號管理 |
 | `@agentplayer` | player_admin.py | 角色管理 |
 | `@agentnpc` | npc_admin.py | NPC 管理 |
@@ -210,7 +210,7 @@ XYZGrid 地圖與遷移工具。
 | `@agentcombat` | combat_admin.py | 戰鬥控制 |
 | `@agentmagic` | magic_admin.py | 法術管理 |
 | `@agentquest` | quest_admin.py | 任務管理 |
-| `@kingdom` | kingdom_admin.py | GM 建國/管理（legacy 相容入口） |
+| `@agentkingdom` / `@kingdom` | kingdom_admin.py | 國家管理主入口（GM 完整 CRUD；King 限 countries/countrystatus/countryrename） |
 
 ### 3.2 King 指令
 
