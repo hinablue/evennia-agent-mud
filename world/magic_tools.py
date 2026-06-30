@@ -7,7 +7,9 @@
   - db.desc: 描述
   - db.aliases: 別名清單
   - db.mp_cost: 消耗 MP
-  - db.magic_type: 屬性類型（fire/ice/lightning/heal/buff/debuff/physical）
+  - db.damage_type: 傷害類型（physical/fire/ice/lightning/...）
+  - db.effect_type: 效果類型（damage/heal/buff/debuff/...）
+  - db.magic_type: 舊版相容欄位（由 damage_type / effect_type 推導）
   - db.dmg_min: 最小傷害
   - db.dmg_max: 最大傷害
   - db.buff_stat: 增幅屬性（str/def/spirit/intel/agility/stamina）
@@ -31,8 +33,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from evennia import search_object, search_script
-from evennia.objects.models import ObjectDB
+from evennia import search_script
 from evennia.scripts.models import ScriptDB
 from evennia.utils.utils import make_iter
 
@@ -47,6 +48,93 @@ class MagicSpecError(ValueError):
         return self.message
 
 
+DAMAGE_TYPES = {
+    "physical": "物理",
+    "fire": "火焰",
+    "ice": "冰冷",
+    "lightning": "雷電",
+    "water": "水系傷害",
+    "wind": "風系傷害",
+    "earth": "土系傷害",
+    "nature": "自然系傷害",
+    "poison": "毒素",
+    "acid": "酸蝕",
+    "holy": "神聖",
+    "shadow": "暗影",
+    "arcane": "奧術",
+    "psychic": "心靈",
+    "sonic": "音波",
+    "radiant": "光輝",
+    "void": "虛空",
+    "blood": "血系傷害",
+}
+
+
+EFFECT_TYPES = {
+    "damage": "傷害",
+    "heal": "治療",
+    "regeneration": "持續恢復",
+    "revive": "復活",
+    "cleanse": "淨化",
+    "restore": "恢復資源/狀態",
+    "barrier": "護盾",
+    "buff": "增益",
+    "debuff": "減益",
+    "haste": "加速",
+    "strengthen": "強化攻擊",
+    "fortify": "強化防禦",
+    "focus": "專注",
+    "blessing": "祝福",
+    "camouflage": "隱匿",
+    "reflect": "傷害反射",
+    "absorb": "傷害吸收",
+    "curse": "詛咒",
+    "slow": "緩速",
+    "weaken": "虛弱",
+    "fragile": "破甲",
+    "blind": "致盲",
+    "silence": "沉默",
+    "fear": "恐懼",
+    "taunt": "嘲諷",
+    "vulnerability": "易傷",
+    "stun": "暈眩",
+    "freeze": "冰凍",
+    "sleep": "睡眠",
+    "paralyze": "麻痺",
+    "root": "定身",
+    "confuse": "混亂",
+    "charm": "魅惑",
+    "burn": "燃燒",
+    "bleed": "流血",
+    "poisoned": "中毒",
+    "disease": "疾病",
+    "frostbite": "凍傷",
+    "illusion": "幻術",
+    "seal": "封印",
+    "drain": "吸取",
+    "time": "時間操控",
+}
+
+
+SELF_EFFECT_TYPES = {
+    "heal",
+    "regeneration",
+    "revive",
+    "cleanse",
+    "restore",
+    "barrier",
+    "buff",
+    "haste",
+    "strengthen",
+    "fortify",
+    "focus",
+    "blessing",
+    "camouflage",
+    "reflect",
+    "absorb",
+}
+
+
 DEFAULT_SPELL_DEFS = [
     {
         "spell_key": "heavy_strike",
@@ -54,7 +142,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "消耗 MP 的強力單體攻擊。",
         "aliases": ["重擊"],
         "mp_cost": 10,
-        "magic_type": "physical",
+        "damage_type": "physical",
+        "effect_type": "damage",
         "chance": 0.7,
     },
     {
@@ -63,7 +152,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "嘗試使目標眩暈。",
         "aliases": ["震盪擊"],
         "mp_cost": 15,
-        "magic_type": "physical",
+        "damage_type": "physical",
+        "effect_type": "stun",
         "chance": 0.5,
         "status_effect": "stunned",
     },
@@ -73,7 +163,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "造成中毒效果。",
         "aliases": ["毒鏢"],
         "mp_cost": 5,
-        "magic_type": "physical",
+        "damage_type": "physical",
+        "effect_type": "poisoned",
         "chance": 0.8,
         "status_effect": "poisoned",
     },
@@ -83,7 +174,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "發射一顆灼熱的火球攻擊敵人。",
         "aliases": ["火球術"],
         "mp_cost": 20,
-        "magic_type": "fire",
+        "damage_type": "fire",
+        "effect_type": "damage",
         "dmg_min": 18,
         "dmg_max": 32,
         "chance": 0.85,
@@ -94,7 +186,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "發射銳利的冰刺攻擊敵人，並有概率凍住目標。",
         "aliases": ["冰刺術"],
         "mp_cost": 18,
-        "magic_type": "ice",
+        "damage_type": "ice",
+        "effect_type": "freeze",
         "dmg_min": 14,
         "dmg_max": 26,
         "chance": 0.6,
@@ -106,7 +199,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "召喚一道閃電攻擊敵人。",
         "aliases": ["閃電術"],
         "mp_cost": 25,
-        "magic_type": "lightning",
+        "damage_type": "lightning",
+        "effect_type": "damage",
         "dmg_min": 24,
         "dmg_max": 38,
         "chance": 0.75,
@@ -117,7 +211,8 @@ DEFAULT_SPELL_DEFS = [
         "desc": "回復自己的 HP。",
         "aliases": ["治療術"],
         "mp_cost": 12,
-        "magic_type": "heal",
+        "damage_type": "holy",
+        "effect_type": "heal",
         "is_heal": True,
         "heal_min": 18,
         "heal_max": 30,
@@ -152,6 +247,96 @@ def _format_aliases(aliases):
     return "、".join(aliases) if aliases else "無"
 
 
+def _coerce_bool(value):
+    if isinstance(value, str):
+        return _clean_text(value).lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def _normalize_damage_type(value):
+    value = _clean_text(value or "physical").lower()
+    if value not in DAMAGE_TYPES:
+        raise MagicSpecError(
+            "damage_type 不合法，可用值：%s" % ", ".join(sorted(DAMAGE_TYPES))
+        )
+    return value
+
+
+def _normalize_effect_type(value):
+    value = _clean_text(value or "damage").lower()
+    if value not in EFFECT_TYPES:
+        raise MagicSpecError(
+            "effect_type 不合法，可用值：%s" % ", ".join(sorted(EFFECT_TYPES))
+        )
+    return value
+
+
+def _resolve_spell_types(spec):
+    legacy_magic_type = _clean_text(spec.get("magic_type") or "").lower()
+    damage_type = _clean_text(spec.get("damage_type") or "").lower()
+    effect_type = _clean_text(spec.get("effect_type") or "").lower()
+
+    if legacy_magic_type:
+        if not damage_type and legacy_magic_type in DAMAGE_TYPES:
+            damage_type = legacy_magic_type
+        if not effect_type and legacy_magic_type in EFFECT_TYPES:
+            effect_type = legacy_magic_type
+
+    if not effect_type:
+        status_effect = _clean_text(spec.get("status_effect") or "").lower()
+        if _coerce_bool(spec.get("is_heal", False)):
+            effect_type = "heal"
+        elif status_effect == "stunned":
+            effect_type = "stun"
+        elif status_effect == "frozen":
+            effect_type = "freeze"
+        elif status_effect in EFFECT_TYPES:
+            effect_type = status_effect
+        elif _clean_text(spec.get("debuff_stat") or ""):
+            effect_type = "debuff"
+        elif _clean_text(spec.get("buff_stat") or ""):
+            effect_type = "buff"
+        else:
+            effect_type = "damage"
+
+    if not damage_type:
+        damage_type = "holy" if effect_type == "heal" else "physical"
+
+    return _normalize_damage_type(damage_type), _normalize_effect_type(effect_type)
+
+
+def _legacy_magic_type(damage_type, effect_type):
+    return effect_type if effect_type != "damage" else damage_type
+
+
+def _refresh_legacy_types(spell):
+    damage_type, effect_type = _resolve_spell_types(
+        {
+            "damage_type": getattr(spell.db, "damage_type", None),
+            "effect_type": getattr(spell.db, "effect_type", None),
+            "magic_type": getattr(spell.db, "magic_type", None),
+            "is_heal": getattr(spell.db, "is_heal", False),
+            "status_effect": getattr(spell.db, "status_effect", None),
+            "buff_stat": getattr(spell.db, "buff_stat", None),
+            "debuff_stat": getattr(spell.db, "debuff_stat", None),
+        }
+    )
+    spell.db.damage_type = damage_type
+    spell.db.effect_type = effect_type
+    spell.db.magic_type = _legacy_magic_type(damage_type, effect_type)
+
+
+def _refresh_target_defaults(spell):
+    effect_type = getattr(spell.db, "effect_type", "damage")
+    target_self_default = (
+        bool(getattr(spell.db, "is_heal", False))
+        or bool(getattr(spell.db, "buff_stat", ""))
+        or effect_type in SELF_EFFECT_TYPES
+    )
+    spell.db.target_self = bool(target_self_default)
+    spell.db.target_enemy = not bool(target_self_default)
+
+
 def _is_spell_script(scr):
     """Return True when the script row should be treated as a spell entry."""
     if not scr:
@@ -178,13 +363,16 @@ def _get_spell_identifier(scr):
 
 def _apply_spell_fields(obj, spec):
     """Write normalized spell fields onto a ScriptDB row."""
+    damage_type, effect_type = _resolve_spell_types(spec)
     obj.db.is_spell = True
     obj.db.spell_id = spec["spell_key"]
     obj.db.name = _clean_text(spec.get("name") or spec["spell_key"])
     obj.db.desc = _clean_text(spec.get("desc") or "")
     obj.db.aliases = _normalize_aliases(spec.get("aliases") or [])
     obj.db.mp_cost = int(spec.get("mp_cost", 0))
-    obj.db.magic_type = _clean_text(spec.get("magic_type") or "physical")
+    obj.db.damage_type = damage_type
+    obj.db.effect_type = effect_type
+    obj.db.magic_type = _legacy_magic_type(damage_type, effect_type)
     obj.db.dmg_min = int(spec.get("dmg_min", 0))
     obj.db.dmg_max = int(spec.get("dmg_max", 0))
     obj.db.buff_stat = _clean_text(spec.get("buff_stat") or "")
@@ -194,13 +382,13 @@ def _apply_spell_fields(obj, spec):
     obj.db.debuff_min = int(spec.get("debuff_min", 0))
     obj.db.debuff_max = int(spec.get("debuff_max", 0))
     obj.db.buff_duration = int(spec.get("buff_duration", 0))
-    obj.db.is_heal = bool(spec.get("is_heal", False))
+    obj.db.is_heal = _coerce_bool(spec.get("is_heal", effect_type == "heal"))
     obj.db.heal_min = int(spec.get("heal_min", 0))
     obj.db.heal_max = int(spec.get("heal_max", 0))
     obj.db.chance = float(spec.get("chance", 0.8))
     obj.db.status_effect = _clean_text(spec.get("status_effect") or "") or None
     obj.db.spell_level = int(spec.get("spell_level", 1))
-    target_self_default = obj.db.is_heal or bool(obj.db.buff_stat)
+    target_self_default = obj.db.is_heal or bool(obj.db.buff_stat) or effect_type in SELF_EFFECT_TYPES
     obj.db.target_self = bool(spec.get("target_self", target_self_default))
     obj.db.target_enemy = bool(spec.get("target_enemy", not obj.db.target_self))
     obj.save()
@@ -244,6 +432,7 @@ def _get_spell_or_error(spell_key):
     ]
     for result in results:
         if _is_spell_script(result):
+            _refresh_legacy_types(result)
             return result
 
     all_spells = [scr for scr in ScriptDB.objects.all() if _is_spell_script(scr)]
@@ -252,10 +441,13 @@ def _get_spell_or_error(spell_key):
 
     for scr in all_spells:
         if _get_spell_identifier(scr) == spell_key:
+            _refresh_legacy_types(scr)
             return scr
         if getattr(scr.db, "name", "") == spell_key:
+            _refresh_legacy_types(scr)
             return scr
         if spell_key in (getattr(scr.db, "aliases", []) or []):
+            _refresh_legacy_types(scr)
             return scr
 
     raise MagicSpecError(f"找不到法術：{spell_key}")
@@ -266,6 +458,8 @@ def _list_all_spells():
     spells = [scr for scr in ScriptDB.objects.all() if _is_spell_script(scr)]
     if not spells and _bootstrap_default_spells():
         spells = [scr for scr in ScriptDB.objects.all() if _is_spell_script(scr)]
+    for spell in spells:
+        _refresh_legacy_types(spell)
     return spells
 
 
@@ -278,7 +472,8 @@ def _format_spell(spell):
     lines.append(f"- 別名：{_format_aliases(getattr(spell.db, 'aliases', []) or [])}")
     lines.append(f"- 描述：{_clean_text(getattr(spell.db, 'desc', '') or '無')}")
     lines.append(f"- 消耗 MP：{getattr(spell.db, 'mp_cost', 0)}")
-    lines.append(f"- 屬性：{getattr(spell.db, 'magic_type', 'physical')}")
+    lines.append(f"- 傷害類型：{getattr(spell.db, 'damage_type', 'physical')}")
+    lines.append(f"- 效果類型：{getattr(spell.db, 'effect_type', 'damage')}")
     lines.append(
         f"- 傷害：{getattr(spell.db, 'dmg_min', 0)}~{getattr(spell.db, 'dmg_max', 0)}"
     )
@@ -314,7 +509,9 @@ def create_spell(
     desc=None,
     aliases=None,
     mp_cost=10,
-    magic_type="physical",
+    damage_type="physical",
+    effect_type="damage",
+    magic_type=None,
     dmg_min=0,
     dmg_max=0,
     buff_stat=None,
@@ -352,6 +549,8 @@ def create_spell(
             "desc": desc,
             "aliases": aliases,
             "mp_cost": mp_cost,
+            "damage_type": damage_type,
+            "effect_type": effect_type,
             "magic_type": magic_type,
             "dmg_min": dmg_min,
             "dmg_max": dmg_max,
@@ -382,6 +581,8 @@ def update_spell(
     desc=None,
     aliases=None,
     mp_cost=None,
+    damage_type=None,
+    effect_type=None,
     magic_type=None,
     dmg_min=None,
     dmg_max=None,
@@ -402,6 +603,8 @@ def update_spell(
     """更新法術屬性。"""
     spell = _get_spell_or_error(spell_key)
     updates = []
+    recompute_target_defaults = False
+
     if name is not None:
         spell.db.name = _clean_text(name)
         updates.append(f"name={spell.db.name}")
@@ -414,9 +617,26 @@ def update_spell(
     if mp_cost is not None:
         spell.db.mp_cost = int(mp_cost)
         updates.append(f"mp_cost={spell.db.mp_cost}")
+    if damage_type is not None:
+        spell.db.damage_type = _normalize_damage_type(damage_type)
+        updates.append(f"damage_type={spell.db.damage_type}")
+    if effect_type is not None:
+        spell.db.effect_type = _normalize_effect_type(effect_type)
+        updates.append(f"effect_type={spell.db.effect_type}")
+        recompute_target_defaults = True
     if magic_type is not None:
-        spell.db.magic_type = _clean_text(magic_type)
-        updates.append(f"magic_type={spell.db.magic_type}")
+        legacy_magic_type = _clean_text(magic_type).lower()
+        if legacy_magic_type in DAMAGE_TYPES:
+            spell.db.damage_type = _normalize_damage_type(legacy_magic_type)
+            updates.append(f"damage_type={spell.db.damage_type}")
+        elif legacy_magic_type in EFFECT_TYPES:
+            spell.db.effect_type = _normalize_effect_type(legacy_magic_type)
+            updates.append(f"effect_type={spell.db.effect_type}")
+            recompute_target_defaults = True
+        else:
+            raise MagicSpecError(
+                "magic_type 已拆分為 damage_type / effect_type，請使用新欄位或合法舊值。"
+            )
     if dmg_min is not None:
         spell.db.dmg_min = int(dmg_min)
         updates.append(f"dmg_min={spell.db.dmg_min}")
@@ -426,6 +646,7 @@ def update_spell(
     if buff_stat is not None:
         spell.db.buff_stat = _clean_text(buff_stat)
         updates.append(f"buff_stat={spell.db.buff_stat}")
+        recompute_target_defaults = True
     if buff_min is not None:
         spell.db.buff_min = int(buff_min)
         updates.append(f"buff_min={spell.db.buff_min}")
@@ -445,10 +666,9 @@ def update_spell(
         spell.db.buff_duration = int(buff_duration)
         updates.append(f"buff_duration={spell.db.buff_duration}")
     if is_heal is not None:
-        spell.db.is_heal = bool(is_heal)
-        spell.db.target_self = bool(spell.db.is_heal or spell.db.buff_stat)
-        spell.db.target_enemy = not bool(spell.db.target_self)
+        spell.db.is_heal = _coerce_bool(is_heal)
         updates.append(f"is_heal={spell.db.is_heal}")
+        recompute_target_defaults = True
     if heal_min is not None:
         spell.db.heal_min = int(heal_min)
         updates.append(f"heal_min={spell.db.heal_min}")
@@ -464,6 +684,11 @@ def update_spell(
     if spell_level is not None:
         spell.db.spell_level = int(spell_level)
         updates.append(f"spell_level={spell.db.spell_level}")
+
+    _refresh_legacy_types(spell)
+    if recompute_target_defaults:
+        _refresh_target_defaults(spell)
+
     spell.save()
     if not updates:
         raise MagicSpecError("至少需要提供一個要更新的欄位。")
@@ -492,12 +717,13 @@ def list_spells():
     for spell in spells:
         spell_id = _get_spell_identifier(spell)
         name = getattr(spell.db, "name", spell_id)
-        spell_type = getattr(spell.db, "magic_type", "physical")
+        damage_type = getattr(spell.db, "damage_type", "physical")
+        effect_type = getattr(spell.db, "effect_type", "damage")
         mp = getattr(spell.db, "mp_cost", 0)
         dmg = f"{getattr(spell.db, 'dmg_min', 0)}~{getattr(spell.db, 'dmg_max', 0)}"
         aliases = _format_aliases(getattr(spell.db, "aliases", []) or [])
         lines.append(
-            f"- {spell_id}｜{name}｜屬性：{spell_type}｜MP：{mp}｜傷害：{dmg}｜別名：{aliases}"
+            f"- {spell_id}｜{name}｜damage_type：{damage_type}｜effect_type：{effect_type}｜MP：{mp}｜傷害：{dmg}｜別名：{aliases}"
         )
     return "\n".join(lines)
 

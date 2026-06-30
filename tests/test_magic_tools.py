@@ -6,8 +6,8 @@ import importlib
 import sys
 import types
 import unittest
-from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -19,6 +19,7 @@ _SPELL_REGISTRY = []
 
 class FakeScriptDB:
     """In-memory script registry."""
+
     def __init__(self):
         self._scripts = list(_SPELL_REGISTRY)
 
@@ -34,11 +35,7 @@ def _install_stubs():
     def search_script(key):
         return []
 
-    def search_object(key, exact=True):
-        return []
-
     evennia.search_script = search_script
-    evennia.search_object = search_object
     evennia.create_script = MagicMock()
     sys.modules["evennia"] = evennia
 
@@ -46,12 +43,10 @@ def _install_stubs():
     scripts_models.ScriptDB = FakeScriptDB
     sys.modules["evennia.scripts.models"] = scripts_models
 
-    objects_models = types.ModuleType("evennia.objects.models")
-    objects_models.ObjectDB = SimpleNamespace(objects=SimpleNamespace(all=lambda: []))
-    sys.modules["evennia.objects.models"] = objects_models
-
     utils_utils = types.ModuleType("evennia.utils.utils")
-    utils_utils.make_iter = lambda v: list(v) if isinstance(v, (list, tuple, set)) else [v] if v else []
+    utils_utils.make_iter = (
+        lambda v: list(v) if isinstance(v, (list, tuple, set)) else [v] if v else []
+    )
     sys.modules["evennia.utils.utils"] = utils_utils
 
     utils_pkg = types.ModuleType("evennia.utils")
@@ -59,11 +54,15 @@ def _install_stubs():
     utils_pkg.utils = utils_utils
 
     scripts_s = types.ModuleType("evennia.scripts.scripts")
-    scripts_s.MuxScript = type("MuxScript", (), {"save": lambda self: None, "delete": lambda self: None})
+    scripts_s.MuxScript = type(
+        "MuxScript", (), {"save": lambda self: None, "delete": lambda self: None}
+    )
     sys.modules["evennia.scripts.scripts"] = scripts_s
-    evennia.create_script = MagicMock(return_value=SimpleNamespace(
-        db=SimpleNamespace(), save=MagicMock(), delete=MagicMock(), key="spell"
-    ))
+    evennia.create_script = MagicMock(
+        return_value=SimpleNamespace(
+            db=SimpleNamespace(), save=MagicMock(), delete=MagicMock(), key="spell"
+        )
+    )
 
     typeclasses_scripts = types.ModuleType("typeclasses.scripts")
     typeclasses_scripts.Script = scripts_s.MuxScript
@@ -78,6 +77,7 @@ MagicSpecError = magic.MagicSpecError
 # ---------------------------------------------------------------------------
 # Tests — helpers
 # ---------------------------------------------------------------------------
+
 
 class TestMagicHelpers(unittest.TestCase):
     def test_clean_text_strips(self):
@@ -124,56 +124,114 @@ class TestMagicHelpers(unittest.TestCase):
         scr = SimpleNamespace(db=SimpleNamespace(spell_id="", name="display_name"), key="spell")
         self.assertEqual(magic._get_spell_identifier(scr), "display_name")
 
+    def test_resolve_spell_types_from_legacy_damage_type(self):
+        damage_type, effect_type = magic._resolve_spell_types({"magic_type": "fire"})
+        self.assertEqual(damage_type, "fire")
+        self.assertEqual(effect_type, "damage")
+
+    def test_resolve_spell_types_from_legacy_effect_type(self):
+        damage_type, effect_type = magic._resolve_spell_types({"magic_type": "heal"})
+        self.assertEqual(damage_type, "holy")
+        self.assertEqual(effect_type, "heal")
+
 
 # ---------------------------------------------------------------------------
 # Tests — CRUD
 # ---------------------------------------------------------------------------
 
+
 class TestMagicCRUD(unittest.TestCase):
+    def _make_spell(self):
+        return SimpleNamespace(
+            db=SimpleNamespace(
+                is_spell=True,
+                spell_id="fireball",
+                name="火球",
+                aliases=[],
+                mp_cost=20,
+                damage_type="fire",
+                effect_type="damage",
+                magic_type="fire",
+                dmg_min=10,
+                dmg_max=20,
+                buff_stat="",
+                buff_min=0,
+                buff_max=0,
+                debuff_stat="",
+                debuff_min=0,
+                debuff_max=0,
+                buff_duration=0,
+                is_heal=False,
+                heal_min=0,
+                heal_max=0,
+                chance=0.8,
+                status_effect=None,
+                spell_level=1,
+                target_self=False,
+                target_enemy=True,
+            ),
+            key="fireball",
+            save=MagicMock(),
+            delete=MagicMock(),
+        )
+
     def test_create_spell_empty_key_raises(self):
         with self.assertRaises(MagicSpecError) as err:
             magic.create_spell("")
         self.assertIn("ID", str(err.exception))
 
-    def test_update_spell_no_fields_raises(self):
-        spell = SimpleNamespace(
-            db=SimpleNamespace(
-                is_spell=True, spell_id="fireball", name="火球",
-                aliases=[], mp_cost=20, magic_type="fire",
-                dmg_min=10, dmg_max=20, buff_stat="", buff_min=0, buff_max=0,
-                debuff_stat="", debuff_min=0, debuff_max=0, buff_duration=0,
-                is_heal=False, heal_min=0, heal_max=0, chance=0.8,
-                status_effect=None, spell_level=1, target_self=False, target_enemy=True,
-            ),
-            key="fireball", save=MagicMock(), delete=MagicMock(),
+    def test_create_spell_stores_new_types(self):
+        fake_obj = SimpleNamespace(
+            db=SimpleNamespace(), save=MagicMock(), delete=MagicMock(), key="ember"
         )
+        with patch("evennia.create_script", return_value=fake_obj, create=True):
+            result = magic.create_spell(
+                "ember",
+                name="餘燼",
+                damage_type="fire",
+                effect_type="burn",
+            )
+        spell = result["spell"]
+        self.assertEqual(spell.db.damage_type, "fire")
+        self.assertEqual(spell.db.effect_type, "burn")
+        self.assertEqual(spell.db.magic_type, "burn")
+
+    def test_update_spell_no_fields_raises(self):
+        spell = self._make_spell()
         with patch.object(magic, "_get_spell_or_error", return_value=spell):
             with self.assertRaises(MagicSpecError) as err:
                 magic.update_spell("fireball")
         self.assertIn("至少", str(err.exception))
 
     def test_update_spell_name_field(self):
-        spell = SimpleNamespace(
-            db=SimpleNamespace(
-                is_spell=True, spell_id="fireball", name="火球",
-                aliases=[], mp_cost=20, magic_type="fire",
-                dmg_min=10, dmg_max=20, buff_stat="", buff_min=0, buff_max=0,
-                debuff_stat="", debuff_min=0, debuff_max=0, buff_duration=0,
-                is_heal=False, heal_min=0, heal_max=0, chance=0.8,
-                status_effect=None, spell_level=1, target_self=False, target_enemy=True,
-            ),
-            key="fireball", save=MagicMock(), delete=MagicMock(),
-        )
+        spell = self._make_spell()
         with patch.object(magic, "_get_spell_or_error", return_value=spell):
             result = magic.update_spell("fireball", name="大火球")
         self.assertIn("name=", result["message"])
         self.assertEqual(spell.db.name, "大火球")
 
+    def test_update_spell_damage_and_effect_type_fields(self):
+        spell = self._make_spell()
+        with patch.object(magic, "_get_spell_or_error", return_value=spell):
+            result = magic.update_spell(
+                "fireball", damage_type="arcane", effect_type="illusion"
+            )
+        self.assertIn("damage_type=arcane", result["message"])
+        self.assertIn("effect_type=illusion", result["message"])
+        self.assertEqual(spell.db.damage_type, "arcane")
+        self.assertEqual(spell.db.effect_type, "illusion")
+        self.assertEqual(spell.db.magic_type, "illusion")
+
+    def test_update_spell_legacy_magic_type_routes_to_effect_type(self):
+        spell = self._make_spell()
+        with patch.object(magic, "_get_spell_or_error", return_value=spell):
+            result = magic.update_spell("fireball", magic_type="heal")
+        self.assertIn("effect_type=heal", result["message"])
+        self.assertEqual(spell.db.effect_type, "heal")
+        self.assertEqual(spell.db.damage_type, "fire")
+
     def test_delete_spell_calls_delete(self):
-        spell = SimpleNamespace(
-            db=SimpleNamespace(is_spell=True, spell_id="fireball", name="火球"),
-            key="fireball", delete=MagicMock(), save=MagicMock(),
-        )
+        spell = self._make_spell()
         with patch.object(magic, "_get_spell_or_error", return_value=spell):
             result = magic.delete_spell("fireball")
         spell.delete.assert_called_once()
@@ -190,7 +248,11 @@ class TestMagicCRUD(unittest.TestCase):
 
     def test_get_spell_or_error_not_found_raises(self):
         with patch.object(magic, "search_script", return_value=[]):
-            with patch.object(magic, "ScriptDB", SimpleNamespace(objects=SimpleNamespace(all=lambda: []))):
+            with patch.object(
+                magic,
+                "ScriptDB",
+                SimpleNamespace(objects=SimpleNamespace(all=lambda: [])),
+            ):
                 with self.assertRaises(MagicSpecError):
                     magic._get_spell_or_error("nonexistent_spell_xyz")
 

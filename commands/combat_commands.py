@@ -49,6 +49,12 @@ def _scriptdb_to_spell_dict(scr):
         "debuff_stat": getattr(scr.db, "debuff_stat", None),
         "debuff_min": getattr(scr.db, "debuff_min", 0),
         "debuff_max": getattr(scr.db, "debuff_max", 0),
+        "damage_type": getattr(
+            scr.db,
+            "damage_type",
+            getattr(scr.db, "magic_type", "physical"),
+        ),
+        "effect_type": getattr(scr.db, "effect_type", "damage"),
         "magic_type": getattr(scr.db, "magic_type", "physical"),
         "target_self": getattr(scr.db, "target_self", False),
         "target_enemy": getattr(scr.db, "target_enemy", True),
@@ -679,7 +685,7 @@ class CmdCast(Command):
         # 讀取法術參數
         mp_cost = getattr(spell.db, "mp_cost", 0)
         is_heal = getattr(spell.db, "is_heal", False)
-        magic_type = getattr(spell.db, "magic_type", "physical")
+        effect_type = getattr(spell.db, "effect_type", getattr(spell.db, "magic_type", "damage"))
         dmg_min = getattr(spell.db, "dmg_min", 0)
         dmg_max = getattr(spell.db, "dmg_max", 0)
         heal_min = getattr(spell.db, "heal_min", 0)
@@ -713,13 +719,13 @@ class CmdCast(Command):
         # 自我施法：heal / buff 類型，或者 target_str == "self"
         is_self_cast = (
             is_heal
-            or magic_type in ("heal", "buff")
+            or effect_type in ("heal", "buff")
             or target_str.lower() in ("self", "自己", "me")
         )
 
         if is_self_cast:
             # 自我施放（治療 / buff）
-            if is_heal or magic_type == "heal":
+            if is_heal or effect_type == "heal":
                 if heal_min <= 0 and heal_max <= 0:
                     caller.msg(f"{spell_display_name} 沒有治療效果。")
                     return
@@ -727,7 +733,7 @@ class CmdCast(Command):
 
                 heal_amount = random.randint(int(heal_min), int(heal_max))
                 actual = caller.heal_self(heal_amount, heal_amount)
-            elif magic_type == "buff" and buff_stat:
+            elif effect_type == "buff" and buff_stat:
                 if buff_min <= 0 and buff_max <= 0:
                     caller.msg(f"{spell_display_name} 沒有 buff 效果。")
                     return

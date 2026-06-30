@@ -56,10 +56,20 @@ sys.modules["typeclasses.objects"].Object = MagicMock()
 sys.modules["typeclasses.rooms"] = ModuleType("typeclasses.rooms")
 sys.modules["typeclasses.rooms"].Room = MagicMock()
 
+from world import agent_world
 from world.agent_world import ROOM_DEFS, LIMBO_ROOM_KEY
 
 
+class _FakeQuerySet(list):
+    def order_by(self, *_args, **_kwargs):
+        return self
+
+
 class TestAgentWorld(unittest.TestCase):
+    def setUp(self):
+        evennia.search_object.reset_mock()
+        agent_world.ObjectDB.objects.filter.reset_mock()
+
     def test_room_defs_structure(self):
         self.assertIn(LIMBO_ROOM_KEY, ROOM_DEFS)
         room = ROOM_DEFS[LIMBO_ROOM_KEY]
@@ -77,6 +87,27 @@ class TestAgentWorld(unittest.TestCase):
                 self.assertIn("key", obj)
                 self.assertIn("desc", obj)
                 self.assertIn("aliases", obj)
+
+    def test_find_by_key_prefers_objectdb_over_search_cache(self):
+        fresh_room = object()
+        agent_world.ObjectDB.objects.filter.return_value = _FakeQuerySet([fresh_room])
+        evennia.search_object.return_value = [object()]
+
+        result = agent_world._find_by_key("莫比爾站")
+
+        self.assertIs(result, fresh_room)
+        agent_world.ObjectDB.objects.filter.assert_called_with(db_key="莫比爾站")
+        evennia.search_object.assert_not_called()
+
+    def test_find_by_key_falls_back_to_search_object_when_db_empty(self):
+        cached_room = object()
+        agent_world.ObjectDB.objects.filter.return_value = _FakeQuerySet()
+        evennia.search_object.return_value = [cached_room]
+
+        result = agent_world._find_by_key("迎賓大廳")
+
+        self.assertIs(result, cached_room)
+        evennia.search_object.assert_called_with("迎賓大廳", exact=True)
 
 
 if __name__ == "__main__":

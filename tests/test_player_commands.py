@@ -169,6 +169,7 @@ def _install_evennia_stubs():
             "CmdLockedCharCreate": type("CmdLockedCharCreate", (), {}),
             "CmdLockedIC": type("CmdLockedIC", (), {}),
         },
+        "commands.character_admin": {"CmdAgentChar": type("CmdAgentChar", (), {})},
         "commands.combat_admin": {"CmdAgentCombat": type("CmdAgentCombat", (), {})},
         "commands.combat_commands": {
             "CmdCombatAttack": type("CmdCombatAttack", (), {}),

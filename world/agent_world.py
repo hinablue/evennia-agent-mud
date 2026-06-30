@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from evennia import create_object, search_object
+from evennia.objects.models import ObjectDB
 
 from typeclasses.exits import Exit
 from typeclasses.objects import Object
@@ -862,11 +863,16 @@ def _component_selection(*components):
 
 
 def _find_by_key(key):
-    matches = search_object(key, exact=True)
+    matches = list(ObjectDB.objects.filter(db_key=key).order_by("id"))
+    if not matches:
+        matches = search_object(key, exact=True)
     return matches[0] if matches else None
 
 
 def _find_all_by_key(key):
+    matches = list(ObjectDB.objects.filter(db_key=key).order_by("id"))
+    if matches:
+        return matches
     return list(search_object(key, exact=True))
 
 
