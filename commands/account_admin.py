@@ -69,7 +69,8 @@ class CmdAgentAccount(MuxCommand):
     def _has_account_delete_access(self):
         """Check whether caller can use @agentaccount/delete."""
 
-        return bool(self._caller_permissions() & {"GM", "Developer", "Admin"})
+        perms = {perm.lower() for perm in (self._caller_permissions() or [])}
+        return bool(perms & {"gm", "developer", "admin"})
 
     def _get_caller_kingdom(self):
         """取得 caller 的 Kingdom（King 才有）"""

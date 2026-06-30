@@ -225,7 +225,9 @@ def _has_staff_role(account):
     """Whether an account already has staff-level world permissions."""
 
     perms = set(account.permissions.all())
-    return bool(perms & {"Admin", "Developer", "GM"})
+
+    perms = {perm.lower() for perm in (account.permissions.all() or [])}
+    return bool(perms & {"gm", "developer", "admin"})
 
 
 def _apply_role_to_holder(holder, normalized):
@@ -357,10 +359,11 @@ def set_account_nationality(account_name, nationality, caller=None):
 
     # 權限檢查：只有 King、GM、Developer 可用
     if caller:
-        perms = set(caller.account.permissions.all()) if caller.account else set()
-        is_king = getattr(caller.db, "is_king", False)
-        if not (is_king or "GM" in perms or "Developer" in perms or "Admin" in perms):
-            raise AccountSpecError("只有 King 或以上權限才能設定國籍。")
+        perms = {perm.lower() for perm in caller.account.permissions.all()} if caller.account else set()
+        is_king = bool(getattr(caller.db, "is_king", False))
+
+        if not (is_king or perms & {"gm", "developer", "admin"}):
+            raise AccountSpecError(f"只有 King 或以上權限才能設定國籍。{perms}")
 
     account = _get_account_or_error(account_name)
 

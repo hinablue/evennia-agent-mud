@@ -98,7 +98,8 @@ class CmdAgentWorld(MuxCommand):
     def _has_staff_world_access(self):
         """Check whether caller can use staff-only @agentworld switches."""
 
-        return bool(self._caller_permissions() & {"GM", "Developer", "Admin"})
+        perms = {perm.lower() for perm in (self._caller_permissions() or [])}
+        return bool(perms & {"gm", "developer", "admin"})
 
     def _has_king_world_access(self):
         """Check whether caller can use King-allowed @agentworld switches."""
@@ -124,8 +125,9 @@ class CmdAgentWorld(MuxCommand):
             return
 
         if not self._has_staff_world_access():
+            account = getattr(self.caller, "account", None)
             raise WorldSpecError(
-                "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。"
+                f"King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。{account.permissions.all()}"
             )
 
     def _room_arg(self):
