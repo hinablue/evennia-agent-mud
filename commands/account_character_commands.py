@@ -1,13 +1,54 @@
 """將玩家鎖定到單一託管角色的帳戶級命令。"""
 
-from evennia.commands.default.account import CmdIC
+from evennia.commands.default.account import CmdIC, CmdOOC, CmdOOCLook
 from evennia.contrib.rpg.character_creator.character_creator import ContribCmdCharCreate
 
 from commands.command import MuxCommand
 
 
+class CmdChineseOOCLook(CmdOOCLook):
+    """中文化的 OOC look。"""
+
+    help_category = "一般"
+
+    def func(self):
+        if self.session.puppet:
+            self.msg("你目前無法查看周遭。")
+            return
+
+        if self.playable and not self.args:
+            self.msg(self.account.at_look(target=self.playable, session=self.session))
+            return
+
+        return super().func()
+
+
+class CmdChineseOOC(CmdOOC):
+    """中文化的 ooc 指令。"""
+
+    help_category = "一般"
+
+    def func(self):
+        account = self.account
+        session = self.session
+        old_char = account.get_puppet(session)
+        if not old_char:
+            self.msg("你已經在 OOC 狀態。")
+            return
+
+        account.db._last_puppet = old_char
+        try:
+            account.unpuppet_object(session)
+            self.msg("\n|G你已回到 OOC 狀態。|n\n")
+            self.msg(account.at_look(target=self.playable, session=session))
+        except RuntimeError as exc:
+            self.msg(f"|r無法從 |c{old_char}|n 解除控制：{exc}|n")
+
+
 class CmdLockedIC(CmdIC):
     """只允許非管理員玩家操縱他們的主要角色。"""
+
+    help_category = "一般"
 
     def func(self):
         account = self.account

@@ -7,7 +7,7 @@
 若要建立新指令來填入 cmdset，請參閱
 `commands/command.py`。
 
-該模組包裝了 Evennia 的預設命令集；使他們超載
+該模組包裝了 Evennia 的預設命令集；使他們覆寫
 從預設隊列中新增/刪除命令。您可以創建您的
 透過繼承或直接從 `evennia.CmdSet` 來擁有自己的 cmdset。"""
 
@@ -30,7 +30,10 @@ from typeclasses.llm_npc import CmdLocalLLMTalk
 
 from .account_admin import CmdAgentAccount
 from .account_character_commands import (CmdCharacterRoster,
-                                         CmdLockedCharCreate, CmdLockedIC)
+                                         CmdChineseOOC,
+                                         CmdChineseOOCLook,
+                                         CmdLockedCharCreate,
+                                         CmdLockedIC)
 from .combat_admin import CmdAgentCombat
 from .combat_commands import (CmdCast, CmdCombatAttack, CmdCombatFlee,
                               CmdCombatSkill, CmdPick)
@@ -58,8 +61,37 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
     def at_cmdset_creation(self):
         """填充 cmdset"""
         super().at_cmdset_creation()
+
+        # Building
+        for cmdname in (
+            "@open", "alias", "batchcode", "batchcommands", "cmdsets",
+            "copy", "cpattr", "create", "desc", "destroy", "detail", "dig",
+            "edit", "examine", "find", "force", "link", "lock", "mapbuilder",
+            "mvattr", "name", "roomstate", "set", "sethelp", "sethome",
+            "spawn", "tag", "teleport", "tunnel", "typeclass", "unlink", "wipe",
+        ):
+            self.remove(cmdname)
+
+        # Admin
+        for cmdname in (
+            "ban", "boot", "emit", "perm", "unban", "wall",
+        ):
+            self.remove(cmdname)
+
+        # System
+        for cmdname in (
+            "shutdown", "reset", "py",
+        ):
+            self.remove(cmdname)
+
+        # World
+        for cmdname in (
+            "pick", "evennia"
+        ):
+            self.remove(cmdname)
+
         #
-        # 您在下面新增的任何命令都會超載預設命令。
+        # 您在下面新增的任何命令都會覆寫預設命令。
         #
         self.add(extended_room.ExtendedRoomCmdSet)
         self.add(MapDisplayCmdSet)
@@ -115,9 +147,11 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         """填充 cmdset"""
         super().at_cmdset_creation()
         #
-        # 您在下面新增的任何命令都會超載預設命令。
+        # 您在下面新增的任何命令都會覆寫預設命令。
         #
         self.add(ReportsCmdSet)
+        self.add(CmdChineseOOCLook())
+        self.add(CmdChineseOOC())
         self.add(CmdLockedIC())
         self.add(CmdLockedCharCreate())
         self.add(CmdCharacterRoster())
@@ -133,8 +167,37 @@ class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
         """填充 cmdset"""
         super().at_cmdset_creation()
         #
-        # 您在下面新增的任何命令都會超載預設命令。
+        # 您在下面新增的任何命令都會覆寫預設命令。
         #
+
+        # Building
+        for cmdname in (
+            "@open", "alias", "batchcode", "batchcommands", "cmdsets",
+            "copy", "cpattr", "create", "desc", "destroy", "detail", "dig",
+            "edit", "examine", "find", "force", "link", "lock", "mapbuilder",
+            "mvattr", "name", "roomstate", "set", "sethelp", "sethome",
+            "spawn", "tag", "teleport", "tunnel", "typeclass", "unlink", "wipe",
+        ):
+            self.remove(cmdname)
+
+        # Admin
+        for cmdname in (
+            "ban", "boot", "emit", "perm", "unban", "wall",
+        ):
+            self.remove(cmdname)
+
+        # System
+        for cmdname in (
+            "shutdown", "reset", "py",
+        ):
+            self.remove(cmdname)
+
+        # World
+        for cmdname in (
+            "pick", "evennia"
+        ):
+            self.remove(cmdname)
+
 
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
@@ -151,5 +214,5 @@ class SessionCmdSet(default_cmds.SessionCmdSet):
         它會列印一些資訊。"""
         super().at_cmdset_creation()
         #
-        # 您在下面新增的任何命令都會超載預設命令。
+        # 您在下面新增的任何命令都會覆寫預設命令。
         #
