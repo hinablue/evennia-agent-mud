@@ -62,31 +62,16 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         """填充 cmdset"""
         super().at_cmdset_creation()
 
-        # Building
+        # Remove commands
         for cmdname in (
-            "@open", "alias", "batchcode", "batchcommands", "cmdsets",
-            "copy", "cpattr", "create", "desc", "destroy", "detail", "dig",
-            "edit", "examine", "find", "force", "link", "lock", "mapbuilder",
-            "mvattr", "name", "roomstate", "set", "sethelp", "sethome",
-            "spawn", "tag", "teleport", "tunnel", "typeclass", "unlink", "wipe",
-        ):
-            self.remove(cmdname)
-
-        # Admin
-        for cmdname in (
-            "ban", "boot", "emit", "perm", "unban", "wall",
-        ):
-            self.remove(cmdname)
-
-        # System
-        for cmdname in (
-            "shutdown", "reset", "py",
-        ):
-            self.remove(cmdname)
-
-        # World
-        for cmdname in (
-            "pick", "evennia"
+            "@open", "force", "@mapbuilder", "@userpassword",
+            "batchcode", "batchcommands", "examine", "mapbuilder", "@roomstate", "sethelp", "unlink",
+            "roomstate", "ban", "boot", "emit", "perm", "unban", "wall",
+            "shutdown", "reset", "py", "evennia",
+            '@alias','@cmdsets','@copy','@cpattr','@create','@desc','@destroy',
+            '@detail','@dig','@edit','@examine','@find','@link','@lock',
+            '@mvattr','@name','@set','@sethelp','@sethome','@spawn','@tag',
+            '@teleport','@tunnel','@typeclass','@unlink','@wipe','@py',
         ):
             self.remove(cmdname)
 
@@ -169,36 +154,6 @@ class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
         #
         # 您在下面新增的任何命令都會覆寫預設命令。
         #
-
-        # Building
-        for cmdname in (
-            "@open", "alias", "batchcode", "batchcommands", "cmdsets",
-            "copy", "cpattr", "create", "desc", "destroy", "detail", "dig",
-            "edit", "examine", "find", "force", "link", "lock", "mapbuilder",
-            "mvattr", "name", "roomstate", "set", "sethelp", "sethome",
-            "spawn", "tag", "teleport", "tunnel", "typeclass", "unlink", "wipe",
-        ):
-            self.remove(cmdname)
-
-        # Admin
-        for cmdname in (
-            "ban", "boot", "emit", "perm", "unban", "wall",
-        ):
-            self.remove(cmdname)
-
-        # System
-        for cmdname in (
-            "shutdown", "reset", "py",
-        ):
-            self.remove(cmdname)
-
-        # World
-        for cmdname in (
-            "pick", "evennia"
-        ):
-            self.remove(cmdname)
-
-
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
     """登入後，此 cmdset 在會話層級可用。

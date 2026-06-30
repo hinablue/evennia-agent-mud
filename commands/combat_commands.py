@@ -581,7 +581,7 @@ class CmdPick(Command):
 
     key = "pick"
     aliases = ["撿", "拾取", "get"]
-    help_category = "世界"
+    help_category = "一般"
 
     def func(self):
         caller = self.caller
