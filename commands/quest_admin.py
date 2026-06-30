@@ -23,7 +23,7 @@ class CmdAgentQuest(MuxCommand):
     key = "@agentquest"
     aliases = ["@quest"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "管理"
+    help_category = "Admin"
     switch_options = ("status", "give", "complete", "help")
 
     def _msg(self, text):

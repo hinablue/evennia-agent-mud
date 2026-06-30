@@ -62,19 +62,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         """填充 cmdset"""
         super().at_cmdset_creation()
 
-        # Remove commands
-        for cmdname in (
-            "@open", "force", "@mapbuilder", "@userpassword",
-            "batchcode", "batchcommands", "examine", "mapbuilder", "@roomstate", "sethelp", "unlink",
-            "roomstate", "ban", "boot", "emit", "perm", "unban", "wall",
-            "shutdown", "reset", "py", "evennia",
-            '@alias','@cmdsets','@copy','@cpattr','@create','@desc','@destroy',
-            '@detail','@dig','@edit','@examine','@find','@link','@lock',
-            '@mvattr','@name','@set','@sethelp','@sethome','@spawn','@tag',
-            '@teleport','@tunnel','@typeclass','@unlink','@wipe','@py',
-        ):
-            self.remove(cmdname)
-
         #
         # 您在下面新增的任何命令都會覆寫預設命令。
         #
@@ -119,6 +106,21 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdShop())
         self.add(CmdBuy())
 
+        # Remove commands
+        for cmdname in (
+            "@open", "force", "@mapbuilder", "@userpassword", "userpassword",
+            "batchcode", "batchcommands", "examine", "mapbuilder", "@roomstate", "sethelp", "unlink",
+            "roomstate", "ban", "boot", "emit", "perm", "unban", "wall",
+            "shutdown", "reset", "py", "evennia",
+            '@alias','@cmdsets','@copy','@cpattr','@create','@desc','@destroy',
+            '@detail','@dig','@edit','@examine','@find','@link','@lock',
+            '@mvattr','@name','@set','@sethelp','@sethome','@spawn','@tag',
+            '@teleport','@tunnel','@typeclass','@unlink','@wipe','@py',
+
+            '@time', '@about', '@objects', '@reload', '@reset', '@scripts',
+            '@server', '@service', '@shutdown', '@tasks', '@tickers',
+        ):
+            self.remove(cmdname)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """這是帳戶始終可用的 cmdset。它是

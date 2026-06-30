@@ -35,7 +35,7 @@ class CmdKingAdmin(MuxCommand):
     key = "@king"
     aliases = ["@kingdom"]  # 同名不同 lock，King 用這個
     locks = "cmd:perm(King)"
-    help_category = "國王"
+    help_category = "Admin"
     switch_options = (
         "status",
         "buildroom",

@@ -39,7 +39,7 @@ class CmdAgentWorld(MuxCommand):
     key = "@agentworld"
     aliases = ["@worldbuild", "@world"]
     locks = "cmd:perm(Admin) or perm(Developer) or perm(King)"
-    help_category = "管理"
+    help_category = "Admin"
     switch_options = (
         "build",
         "status",

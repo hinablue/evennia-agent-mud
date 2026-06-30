@@ -63,7 +63,7 @@ class CmdAgentNPC(MuxCommand):
     key = "@agentnpc"
     aliases = ["@npcworld", "@npc"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "管理"
+    help_category = "Admin"
     switch_options = (
         "list",
         "status",

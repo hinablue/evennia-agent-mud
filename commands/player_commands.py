@@ -16,7 +16,7 @@ class CmdStatus(MuxCommand):
     key = "status"
     aliases = ["stat", "狀態", "屬性"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -93,7 +93,7 @@ class CmdInventory(MuxCommand):
     key = "inventory"
     aliases = ["inv", "i", "背包"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -144,7 +144,7 @@ class CmdEquipment(MuxCommand):
     key = "equipment"
     aliases = ["eq", "裝備"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -186,7 +186,7 @@ class CmdShop(MuxCommand):
     key = "shop"
     aliases = ["商店", "store"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         """顯示目前房間的可用庫存。"""
@@ -210,7 +210,7 @@ class CmdBuy(MuxCommand):
     key = "buy"
     aliases = ["購買"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         """按股票指數或範本名稱購買一件商品。"""

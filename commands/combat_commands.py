@@ -439,7 +439,7 @@ class CmdCombatAttack(Command):
 
     key = "attack"
     aliases = ["atk", "攻擊"]
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -481,7 +481,7 @@ class CmdCombatSkill(Command):
 
     key = "skill"
     aliases = ["sk", "技能"]
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -545,7 +545,7 @@ class CmdCombatFlee(Command):
 
     key = "flee"
     aliases = ["逃跑", "run"]
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -581,7 +581,7 @@ class CmdPick(Command):
 
     key = "pick"
     aliases = ["撿", "拾取", "get"]
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -657,7 +657,7 @@ class CmdCast(Command):
 
     key = "cast"
     aliases = ["施法", "castspell"]
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
@@ -837,7 +837,7 @@ class CmdCombatNoMatch(Command):
     """戰鬥命令集處於活動狀態時後備指令。"""
 
     key = cmdhandler.CMD_NOMATCH
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         self.caller.msg("⚠️ 你正處於激烈的戰鬥中，現在只能使用 attack、skill 或 flee。")

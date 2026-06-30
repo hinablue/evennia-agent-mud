@@ -9,7 +9,7 @@ from commands.command import MuxCommand
 class CmdChineseOOCLook(CmdOOCLook):
     """中文化的 OOC look。"""
 
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         if self.session.puppet:
@@ -26,7 +26,7 @@ class CmdChineseOOCLook(CmdOOCLook):
 class CmdChineseOOC(CmdOOC):
     """中文化的 ooc 指令。"""
 
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         account = self.account
@@ -48,7 +48,7 @@ class CmdChineseOOC(CmdOOC):
 class CmdLockedIC(CmdIC):
     """只允許非管理員玩家操縱他們的主要角色。"""
 
-    help_category = "一般"
+    help_category = "General"
 
     def func(self):
         account = self.account
@@ -105,7 +105,7 @@ class CmdCharacterRoster(MuxCommand):
     key = "characters"
     aliases = ["charstatus"]
     locks = "cmd:pperm(Player)"
-    help_category = "一般"
+    help_category = "General"
     account_caller = True
 
     def func(self):

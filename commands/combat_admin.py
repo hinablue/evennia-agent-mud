@@ -23,7 +23,7 @@ class CmdAgentCombat(MuxCommand):
     key = "@agentcombat"
     aliases = ["@combat"]
     locks = "cmd:perm(Admin) or perm(Developer)"
-    help_category = "管理"
+    help_category = "Admin"
     switch_options = ("stop", "forcewin", "setstate", "help")
 
     def _msg(self, text):

@@ -23,7 +23,7 @@ class CmdSocketGem(Command):
 
     key = "socket"
     aliases = ["鑲嵌", "gem"]
-    help_category = "戰鬥"
+    help_category = "General"
 
     def func(self):
         caller = self.caller
