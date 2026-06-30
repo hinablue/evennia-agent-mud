@@ -2,20 +2,16 @@
 
 from commands.command import MuxCommand
 from world.account_tools import AccountSpecError, set_account_role
-from world.agent_world import (
-    WorldSpecError,
-    add_live_exit,
-    add_live_room_detail,
-    add_live_scenery,
-    analyze_agent_world,
-    build_agent_world,
-    create_live_room,
-    force_rebuild_agent_world,
-    is_spec_room,
-    move_live_entity,
-    render_analysis,
-    summarize_agent_world,
-)
+from world.agent_world import (WorldSpecError, add_live_exit,
+                               add_live_room_detail, add_live_scenery,
+                               analyze_agent_world, build_agent_world,
+                               create_live_room, force_rebuild_agent_world,
+                               is_spec_room, move_live_entity, render_analysis,
+                               summarize_agent_world)
+from world.kingdom import (create_kingdom, delete_kingdom, get_kingdom_by_name,
+                           get_kingdom_status, list_kingdoms, rename_kingdom,
+                           resolve_caller_kingdom, set_kingdom_entrance,
+                           set_kingdom_quota)
 
 
 class CmdAgentWorld(MuxCommand):
@@ -67,10 +63,19 @@ class CmdAgentWorld(MuxCommand):
         "addexit",
         "move",
         "role",
+        "countrycreate",
+        "countries",
+        "countrystatus",
+        "countryrename",
+        "countryquota",
+        "countryentrance",
+        "countrydelete",
     )
 
     GRANULAR_SWITCHES = {"rooms", "objects", "exits", "details", "npcs"}
-    KING_ALLOWED_SWITCHES = {"addroom", "adddetail", "addscenery", "addexit"}
+    KING_WORLD_ALLOWED_SWITCHES = {"addroom", "adddetail", "addscenery", "addexit"}
+    KING_COUNTRY_ALLOWED_SWITCHES = {"countries", "countrystatus", "countryrename"}
+    KING_ALLOWED_SWITCHES = KING_WORLD_ALLOWED_SWITCHES | KING_COUNTRY_ALLOWED_SWITCHES
     ACTION_SWITCHES = {
         "status",
         "check",
@@ -82,6 +87,13 @@ class CmdAgentWorld(MuxCommand):
         "addexit",
         "move",
         "role",
+        "countrycreate",
+        "countries",
+        "countrystatus",
+        "countryrename",
+        "countryquota",
+        "countryentrance",
+        "countrydelete",
     }
 
     def _msg(self, text):
@@ -109,26 +121,26 @@ class CmdAgentWorld(MuxCommand):
     def _ensure_switch_access(self):
         """Validate per-switch access for @agentworld."""
 
+        king_help = (
+            "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit、"
+            "/countries、/countrystatus、/countryrename。"
+        )
         active_switches = set(self.switches)
         if not active_switches:
             if not self._has_staff_world_access():
-                raise WorldSpecError(
-                    "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。"
-                )
+                raise WorldSpecError(king_help)
             return
 
         if active_switches <= self.KING_ALLOWED_SWITCHES:
             if not self._has_king_world_access():
                 raise WorldSpecError(
-                    "@agentworld/addroom、/adddetail、/addscenery、/addexit 僅限 King 或 GM/Developer/Admin。"
+                    "@agentworld/addroom、/adddetail、/addscenery、/addexit、/countries、"
+                    "/countrystatus、/countryrename 僅限 King 或 GM/Developer/Admin。"
                 )
             return
 
         if not self._has_staff_world_access():
-            account = getattr(self.caller, "account", None)
-            raise WorldSpecError(
-                f"King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit。{account.permissions.all()}"
-            )
+            raise WorldSpecError(king_help)
 
     def _room_arg(self):
         return (self.args or self.lhs or "").strip()
@@ -175,6 +187,48 @@ class CmdAgentWorld(MuxCommand):
             f"{summarize_agent_world(scope[0] if len(scope) == 1 else None)}"
         )
 
+    def _format_country_status(self, status):
+        """Render a compact country status block."""
+
+        return (
+            f"|w{status['name']} 國狀態：|n\n"
+            f"- 國王：{status['king']}\n"
+            f"- 入口房間：{status['entrance_room']}\n"
+            f"- 房間額度：{status['used']}/{status['quota']} (剩餘 {status['remaining']})\n"
+            f"- 國籍標籤：{status['nationality_tag']}"
+        )
+
+    def _require_staff_country(self, name):
+        """Resolve a kingdom by name for staff-only country actions."""
+
+        kingdom = get_kingdom_by_name(name)
+        if not kingdom:
+            raise WorldSpecError(f"找不到國家：{name}")
+        return kingdom
+
+    def _require_king_actor_country(self):
+        """Resolve the caller's own kingdom for King-scoped country actions."""
+
+        kingdom = resolve_caller_kingdom(self.caller)
+        if not kingdom:
+            raise WorldSpecError("找不到你的國家資料。")
+        return kingdom
+
+    def _resolve_country_for_read(self):
+        """Resolve the visible country based on caller role and args."""
+
+        if self._has_staff_world_access():
+            name = (self.args or self.lhs or "").strip()
+            if not name:
+                raise WorldSpecError("countrystatus 格式需要 `國名`。")
+            return self._require_staff_country(name)
+
+        kingdom = self._require_king_actor_country()
+        requested = (self.args or self.lhs or "").strip()
+        if requested and requested != kingdom.key:
+            raise WorldSpecError("King 只能查看自己的國家。")
+        return kingdom
+
     def _show_help(self):
         self._msg(
             "|w@agentworld|n\n"
@@ -190,8 +244,15 @@ class CmdAgentWorld(MuxCommand):
             "  |w@agentworld/addscenery 房間=物件名|alias1,alias2|描述|n：新增 live 場景物（King 可用）。\n"
             "  |w@agentworld/addexit 來源房間=出口名|目標房間|alias1,alias2|n：新增 live 出口（King 可用）。\n"
             "  |w@agentworld/move 物件或角色=房間|n：移動 live 物件或角色。\n"
-            "  |w@agentworld/role 帳號=GM|King|Player|n：指定帳號的三層角色。\n\n"
-            "註：King 僅開放 /addroom、/adddetail、/addscenery、/addexit；其餘 switch 仍限 GM/Developer/Admin。\n"
+            "  |w@agentworld/role 帳號=GM|King|Player|n：指定帳號的三層角色。\n"
+            "  |w@agentworld/countrycreate King名稱=國名,入口房間,額度|n：建立國家（GM 專用）。\n"
+            "  |w@agentworld/countries|n：列出國家；King 只會看到自己的國家。\n"
+            "  |w@agentworld/countrystatus [國名]|n：查看國家狀態；King 只可看自己。\n"
+            "  |w@agentworld/countryrename 國名=新國名|n：GM 改任一國；King 可直接用 `@agentworld/countryrename 新國名` 改自己的國名。\n"
+            "  |w@agentworld/countryquota 國名=新總額度|n：調整房間總額度（GM 專用）。\n"
+            "  |w@agentworld/countryentrance 國名=入口房間|n：調整國家入口房（GM 專用）。\n"
+            "  |w@agentworld/countrydelete 國名|n：刪除國家（GM 專用）。\n\n"
+            "註：King 僅開放 /addroom、/adddetail、/addscenery、/addexit、/countries、/countrystatus、/countryrename；其餘 switch 仍限 GM/Developer/Admin。\n"
             "註：add/move 系列只修改 live DB，不會自動回寫 world/agent_world.py。"
         )
 
@@ -321,6 +382,118 @@ class CmdAgentWorld(MuxCommand):
             raise WorldSpecError(str(err)) from err
         self._msg(result["message"])
 
+    def _parse_countrycreate_args(self):
+        """Parse staff country-create arguments."""
+
+        if not self.args or "=" not in self.args:
+            raise WorldSpecError(
+                "countrycreate 格式需要 `King名稱=國名,入口房間,額度`。"
+            )
+        king_name, rest = self.args.split("=", 1)
+        parts = [part.strip() for part in rest.split(",")]
+        if len(parts) != 3:
+            raise WorldSpecError(
+                "countrycreate 格式需要 `King名稱=國名,入口房間,額度`。"
+            )
+        return king_name.strip(), parts[0], parts[1], parts[2]
+
+    def _handle_countrycreate(self):
+        from evennia import search_object
+
+        king_name, country_name, entrance_name, quota = self._parse_countrycreate_args()
+        king_matches = search_object(king_name, exact=True)
+        if not king_matches:
+            raise WorldSpecError(f"找不到 King 角色：{king_name}")
+        entrance_matches = search_object(entrance_name, exact=True)
+        if not entrance_matches:
+            raise WorldSpecError(f"找不到入口房間：{entrance_name}")
+        try:
+            result = create_kingdom(
+                king_matches[0], country_name, entrance_matches[0], int(quota)
+            )
+        except ValueError as err:
+            raise WorldSpecError(str(err)) from err
+        self._msg(f"已建立國家：{result.key}")
+
+    def _handle_countries(self):
+        if self._has_staff_world_access():
+            kingdoms = list_kingdoms()
+            if not kingdoms:
+                self._msg("目前沒有任何國家。")
+                return
+            lines = ["|w國家列表：|n"]
+            for kingdom in kingdoms:
+                status = get_kingdom_status(kingdom)
+                lines.append(
+                    f"- {status['name']} (King: {status['king']}, 額度: {status['used']}/{status['quota']}, 入口: {status['entrance_room']})"
+                )
+            self._msg("\n".join(lines))
+            return
+
+        kingdom = self._require_king_actor_country()
+        self._msg(self._format_country_status(get_kingdom_status(kingdom)))
+
+    def _handle_countrystatus(self):
+        kingdom = self._resolve_country_for_read()
+        self._msg(self._format_country_status(get_kingdom_status(kingdom)))
+
+    def _handle_countryrename(self):
+        if self._has_staff_world_access():
+            country_name = (self.lhs or "").strip()
+            new_name = (self.rhs or "").strip()
+            if not country_name or not new_name:
+                raise WorldSpecError(
+                    "countryrename 格式需要 `國名=新國名`；King 可用 `@agentworld/countryrename 新國名`。"
+                )
+            kingdom = self._require_staff_country(country_name)
+        else:
+            new_name = (self.args or self.rhs or self.lhs or "").strip()
+            if not new_name:
+                raise WorldSpecError("countryrename 格式需要 `新國名`。")
+            kingdom = self._require_king_actor_country()
+        try:
+            result = rename_kingdom(kingdom, new_name)
+        except ValueError as err:
+            raise WorldSpecError(str(err)) from err
+        self._msg(result["message"])
+
+    def _handle_countryquota(self):
+        country_name = (self.lhs or "").strip()
+        new_total = (self.rhs or "").strip()
+        if not country_name or not new_total:
+            raise WorldSpecError("countryquota 格式需要 `國名=新總額度`。")
+        kingdom = self._require_staff_country(country_name)
+        try:
+            result = set_kingdom_quota(kingdom, new_total)
+        except ValueError as err:
+            raise WorldSpecError(str(err)) from err
+        self._msg(result["message"])
+
+    def _handle_countryentrance(self):
+        from evennia import search_object
+
+        country_name = (self.lhs or "").strip()
+        entrance_name = (self.rhs or "").strip()
+        if not country_name or not entrance_name:
+            raise WorldSpecError("countryentrance 格式需要 `國名=入口房間`。")
+        kingdom = self._require_staff_country(country_name)
+        entrance_matches = search_object(entrance_name, exact=True)
+        if not entrance_matches:
+            raise WorldSpecError(f"找不到入口房間：{entrance_name}")
+        result = set_kingdom_entrance(kingdom, entrance_matches[0])
+        self._msg(result["message"])
+
+    def _handle_countrydelete(self):
+        country_name = (self.args or self.lhs or "").strip()
+        if not country_name:
+            raise WorldSpecError("countrydelete 格式需要 `國名`。")
+        kingdom = self._require_staff_country(country_name)
+        try:
+            result = delete_kingdom(kingdom)
+        except ValueError as err:
+            raise WorldSpecError(str(err)) from err
+        self._msg(result["message"])
+
     def func(self):
         try:
             self._ensure_switch_access()
@@ -346,6 +519,27 @@ class CmdAgentWorld(MuxCommand):
                 return
             if "role" in self.switches:
                 self._handle_role()
+                return
+            if "countrycreate" in self.switches:
+                self._handle_countrycreate()
+                return
+            if "countries" in self.switches:
+                self._handle_countries()
+                return
+            if "countrystatus" in self.switches:
+                self._handle_countrystatus()
+                return
+            if "countryrename" in self.switches:
+                self._handle_countryrename()
+                return
+            if "countryquota" in self.switches:
+                self._handle_countryquota()
+                return
+            if "countryentrance" in self.switches:
+                self._handle_countryentrance()
+                return
+            if "countrydelete" in self.switches:
+                self._handle_countrydelete()
                 return
 
             if "room" in self.switches:

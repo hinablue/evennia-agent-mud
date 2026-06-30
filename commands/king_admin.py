@@ -3,13 +3,12 @@
 King 管理自己的國家：建房、建出口、放物件、改國名、刪房、看狀態。
 """
 
-from commands.command import MuxCommand
 from evennia import search_object
 from evennia.utils.utils import inherits_from
-from world.kingdom import (
-    get_kingdom_by_king,
-    get_kingdom_status,
-)
+
+from commands.command import MuxCommand
+from world.kingdom import (get_kingdom_by_king, get_kingdom_status,
+                           rename_kingdom)
 
 
 class CmdKingAdmin(MuxCommand):
@@ -131,6 +130,7 @@ class CmdKingAdmin(MuxCommand):
 
         # 建立房間
         from evennia import create_object
+
         from typeclasses.rooms import Room
 
         new_room = create_object(Room, key=room_name, location=parent_room)
@@ -190,6 +190,7 @@ class CmdKingAdmin(MuxCommand):
 
         # 建立出口（雙向）
         from evennia import create_object
+
         from typeclasses.exits import Exit
 
         # 出口：source -> dest
@@ -246,6 +247,7 @@ class CmdKingAdmin(MuxCommand):
 
         # 建立物件
         from evennia import create_object
+
         from typeclasses.objects import Object
 
         new_obj = create_object(Object, key=obj_name, location=room)
@@ -326,21 +328,16 @@ class CmdKingAdmin(MuxCommand):
             self._msg("國名不可為空。")
             return
 
-        old_name = kingdom.key
-        if old_name == new_name:
-            self._msg("新舊國名相同。")
-            return
-
         try:
-            kingdom.change_name(new_name)
+            result = rename_kingdom(kingdom, new_name)
         except ValueError as e:
             self._msg(f"改名失敗：{e}")
             return
 
         self._msg(
             f"|w改名成功！|n\n"
-            f"- 舊國名：{old_name}\n"
-            f"- 新國名：{new_name}\n"
+            f"- 舊國名：{result['old_name']}\n"
+            f"- 新國名：{result['new_name']}\n"
             f"- 已同步更新所有自國物件 tag、Player nationality、頻道"
         )
 

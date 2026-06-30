@@ -2,8 +2,15 @@
 
 from evennia import DefaultScript, create_object, search_object
 from evennia.utils.utils import inherits_from
-from typeclasses.rooms import Room
+
 from typeclasses.exits import Exit
+from typeclasses.rooms import Room
+
+
+def _clean_text(value):
+    """Return a stripped string for command-facing text fields."""
+
+    return (value or "").strip()
 
 
 class Kingdom(DefaultScript):
@@ -165,6 +172,118 @@ def add_room_quota(kingdom, additional_quota):
     kingdom.db.room_quota += additional_quota
     kingdom.save()
     return kingdom.db.room_quota
+
+
+def list_kingdoms():
+    """Return all live kingdom scripts."""
+
+    manager = getattr(Kingdom, "objects", None)
+    if not manager:
+        return []
+    return list(manager.all())
+
+
+def rename_kingdom(kingdom, new_name):
+    """Rename a kingdom after validating uniqueness and no-op cases."""
+
+    new_name = _clean_text(new_name)
+    if not new_name:
+        raise ValueError("國名不可為空。")
+
+    old_name = kingdom.key
+    if old_name == new_name:
+        raise ValueError("新舊國名相同。")
+
+    existing = get_kingdom_by_name(new_name)
+    if existing and existing != kingdom:
+        raise ValueError(f"國名已存在：{new_name}")
+
+    kingdom.change_name(new_name)
+    return {
+        "message": f"已將國名從 `{old_name}` 改為 `{new_name}`。",
+        "old_name": old_name,
+        "new_name": new_name,
+    }
+
+
+def set_kingdom_quota(kingdom, new_total):
+    """Set a kingdom's total room quota to an exact value."""
+
+    try:
+        new_total = int(new_total)
+    except (TypeError, ValueError) as err:
+        raise ValueError("房間額度必須是整數。") from err
+
+    if new_total < 0:
+        raise ValueError("房間額度不可小於 0。")
+
+    old_total = kingdom.db.room_quota
+    kingdom.db.room_quota = new_total
+    kingdom.save()
+    return {
+        "message": f"已將 `{kingdom.key}` 的房間總額度從 {old_total} 調整為 {new_total}。",
+        "old_quota": old_total,
+        "new_quota": new_total,
+    }
+
+
+def set_kingdom_entrance(kingdom, room):
+    """Set the kingdom entrance room and sync the king's home."""
+
+    kingdom.set_entrance_room(room)
+    king_char = kingdom.db.king
+    if king_char:
+        king_char.home = room
+        king_char.save()
+    kingdom.save()
+    return {
+        "message": f"已將 `{kingdom.key}` 的入口房間設為 `{room.key}`。",
+        "entrance_room": room.key,
+    }
+
+
+def resolve_caller_kingdom(caller):
+    """Resolve the caller's owned kingdom when acting as a King."""
+
+    if not caller or not hasattr(caller, "db"):
+        return None
+    if not getattr(caller.db, "is_king", False):
+        return None
+    return getattr(caller.db, "kingdom", None)
+
+
+def _collect_kingdom_owned_objects(kingdom_name):
+    """Return live objects tagged as belonging to the target kingdom."""
+
+    from evennia.objects.models import ObjectDB
+
+    owned = []
+    expected_tag = f"kingdom:{kingdom_name}"
+    for obj in ObjectDB.objects.all():
+        if hasattr(obj, "tags") and obj.tags.has(expected_tag, category="ownership"):
+            owned.append(obj)
+    return owned
+
+
+def delete_kingdom(kingdom):
+    """Delete a kingdom only when no residents or owned world objects remain."""
+
+    from typeclasses.characters import Character
+
+    residents = list(Character.objects.filter(db_nationality=kingdom.key))
+    if residents:
+        raise ValueError(f"仍有角色屬於此國：{kingdom.key}")
+
+    owned_objects = _collect_kingdom_owned_objects(kingdom.key)
+    if owned_objects:
+        raise ValueError(f"仍有世界物件屬於此國：{kingdom.key}")
+
+    old_name = kingdom.key
+    Kingdom.delete(kingdom)
+    return {
+        "message": f"已刪除國家：{old_name}",
+        "deleted": old_name,
+    }
 
 
 def get_kingdom_status(kingdom):

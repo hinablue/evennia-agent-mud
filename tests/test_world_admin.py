@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 import unittest
 from types import ModuleType
 from unittest.mock import patch
-
-import sys
 
 if "commands.command" not in sys.modules:
     commands_command = ModuleType("commands.command")
@@ -46,6 +45,19 @@ if "world.account_tools" not in sys.modules:
     account_tools.AccountSpecError = AccountSpecError
     account_tools.set_account_role = lambda *args, **kwargs: None
     sys.modules["world.account_tools"] = account_tools
+
+if "world.kingdom" not in sys.modules:
+    kingdom_tools = ModuleType("world.kingdom")
+    kingdom_tools.create_kingdom = lambda *args, **kwargs: None
+    kingdom_tools.delete_kingdom = lambda *args, **kwargs: None
+    kingdom_tools.get_kingdom_by_name = lambda *args, **kwargs: None
+    kingdom_tools.get_kingdom_status = lambda *args, **kwargs: None
+    kingdom_tools.list_kingdoms = lambda *args, **kwargs: []
+    kingdom_tools.rename_kingdom = lambda *args, **kwargs: None
+    kingdom_tools.resolve_caller_kingdom = lambda *args, **kwargs: None
+    kingdom_tools.set_kingdom_entrance = lambda *args, **kwargs: None
+    kingdom_tools.set_kingdom_quota = lambda *args, **kwargs: None
+    sys.modules["world.kingdom"] = kingdom_tools
 
 from commands.world_admin import CmdAgentWorld
 
@@ -136,7 +148,10 @@ class CmdAgentWorldTests(unittest.TestCase):
         cmd.lhs = "hinablue"
         cmd.rhs = "GM"
 
-        with patch("commands.world_admin.set_account_role", return_value={"message": "已設為 GM"}) as setter:
+        with patch(
+            "commands.world_admin.set_account_role",
+            return_value={"message": "已設為 GM"},
+        ) as setter:
             cmd.func()
 
         setter.assert_called_once_with("hinablue", "GM")
@@ -171,6 +186,85 @@ class CmdAgentWorldTests(unittest.TestCase):
             "King 只能使用 @agentworld/addroom、/adddetail、/addscenery、/addexit",
             cmd.caller.messages[-1],
         )
+
+    def test_king_can_use_countries_switch(self):
+        """Kings should be allowed to list their own country summary."""
+
+        cmd = self._make_cmd(permissions=["King"])
+        cmd.switches = ["countries"]
+        fake_kingdom = type("FakeKingdom", (), {"key": "Astra"})()
+
+        with patch(
+            "commands.world_admin.resolve_caller_kingdom", return_value=fake_kingdom
+        ), patch(
+            "commands.world_admin.get_kingdom_status",
+            return_value={
+                "name": "Astra",
+                "king": "Arthur",
+                "entrance_room": "Gate",
+                "quota": 10,
+                "used": 3,
+                "remaining": 7,
+                "nationality_tag": "Astra",
+            },
+        ):
+            cmd.func()
+
+        self.assertIn("Astra", cmd.caller.messages[-1])
+        self.assertIn("Arthur", cmd.caller.messages[-1])
+
+    def test_king_can_use_countryrename_switch(self):
+        """Kings should be allowed to rename their own kingdom via @agentworld."""
+
+        cmd = self._make_cmd(permissions=["King"])
+        cmd.switches = ["countryrename"]
+        cmd.args = "新亞斯特拉"
+        fake_kingdom = type("FakeKingdom", (), {"key": "Astra"})()
+
+        with patch(
+            "commands.world_admin.resolve_caller_kingdom", return_value=fake_kingdom
+        ), patch(
+            "commands.world_admin.rename_kingdom",
+            return_value={"message": "已將國名從 `Astra` 改為 `新亞斯特拉`。"},
+        ) as renamer:
+            cmd.func()
+
+        renamer.assert_called_once_with(fake_kingdom, "新亞斯特拉")
+        self.assertEqual(
+            cmd.caller.messages[-1], "已將國名從 `Astra` 改為 `新亞斯特拉`。"
+        )
+
+    def test_king_cannot_use_countrycreate_switch(self):
+        """Kings should be blocked from country creation."""
+
+        cmd = self._make_cmd(permissions=["King"])
+        cmd.switches = ["countrycreate"]
+        cmd.args = "Arthur=Astra,Gate,10"
+
+        cmd.func()
+
+        self.assertIn("King 只能使用", cmd.caller.messages[-1])
+        self.assertIn("/countryrename", cmd.caller.messages[-1])
+
+    def test_admin_countryquota_routes_to_helper(self):
+        """Staff should be able to update country quota through @agentworld."""
+
+        cmd = self._make_cmd(permissions=["Admin"])
+        cmd.switches = ["countryquota"]
+        cmd.lhs = "Astra"
+        cmd.rhs = "20"
+        fake_kingdom = type("FakeKingdom", (), {"key": "Astra"})()
+
+        with patch(
+            "commands.world_admin.get_kingdom_by_name", return_value=fake_kingdom
+        ), patch(
+            "commands.world_admin.set_kingdom_quota",
+            return_value={"message": "已更新額度"},
+        ) as setter:
+            cmd.func()
+
+        setter.assert_called_once_with(fake_kingdom, "20")
+        self.assertEqual(cmd.caller.messages[-1], "已更新額度")
 
 
 if __name__ == "__main__":

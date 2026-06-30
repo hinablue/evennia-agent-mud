@@ -6,14 +6,13 @@ import importlib
 import sys
 import types
 import unittest
-from unittest.mock import MagicMock, patch
-
 from types import SimpleNamespace
-
+from unittest.mock import MagicMock, patch
 
 # ---------------------------------------------------------------------------
 # Evennia stubs
 # ---------------------------------------------------------------------------
+
 
 def _install_stubs():
     evennia = types.ModuleType("evennia")
@@ -34,7 +33,9 @@ def _install_stubs():
     sys.modules["evennia.objects.models"] = objects_models
 
     scripts_mod = types.ModuleType("evennia.scripts.scripts")
-    scripts_mod.DefaultScript = type("DefaultScript", (), {"delete": lambda self: None, "save": lambda self: None})
+    scripts_mod.DefaultScript = type(
+        "DefaultScript", (), {"delete": lambda self: None, "save": lambda self: None}
+    )
     sys.modules["evennia.scripts.scripts"] = scripts_mod
 
     evennia.DefaultScript = scripts_mod.DefaultScript
@@ -52,7 +53,9 @@ def _install_stubs():
     sys.modules["typeclasses.exits"] = typeclasses_exits
 
     typeclasses_characters = types.ModuleType("typeclasses.characters")
-    typeclasses_characters.Character = type("Character", (), {"objects": SimpleNamespace(filter=lambda **k: [])})
+    typeclasses_characters.Character = type(
+        "Character", (), {"objects": SimpleNamespace(filter=lambda **k: [])}
+    )
     sys.modules["typeclasses.characters"] = typeclasses_characters
 
 
@@ -65,8 +68,10 @@ Kingdom = kingdom_mod.Kingdom
 # Fake helpers
 # ---------------------------------------------------------------------------
 
+
 class FakeDB:
     """Dict-backed .db replacement."""
+
     def __init__(self, **kw):
         object.__setattr__(self, "_store", dict(kw))
 
@@ -79,11 +84,15 @@ class FakeDB:
 
 class FakeTags:
     """Minimal tag handler."""
+
     def __init__(self):
         self._tags = set()
 
     def add(self, key, category=None):
         self._tags.add((key, category))
+
+    def remove(self, key, category=None):
+        self._tags.discard((key, category))
 
     def has(self, key, category=None):
         return (key, category) in self._tags
@@ -134,6 +143,7 @@ def _make_room(key="Throne_Room", room_id=1):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestKingdomClass(unittest.TestCase):
     """Test Kingdom (DefaultScript) instance methods."""
@@ -277,6 +287,130 @@ class TestKingdomTools(unittest.TestCase):
         with patch.object(kingdom_mod, "search_object", return_value=[]):
             result = kingdom_mod.get_kingdom_by_name("NonExistent")
         self.assertIsNone(result)
+
+    def test_list_kingdoms_returns_manager_results(self):
+        first = _make_kingdom(key="Astra")
+        second = _make_kingdom(key="Boreal")
+        fake_manager = SimpleNamespace(all=lambda: [first, second])
+
+        with patch.object(kingdom_mod.Kingdom, "objects", fake_manager, create=True):
+            result = kingdom_mod.list_kingdoms()
+
+        self.assertEqual(result, [first, second])
+
+    def test_rename_kingdom_rejects_empty_name(self):
+        kingdom = _make_kingdom(key="Astra")
+
+        with self.assertRaises(ValueError) as err:
+            kingdom_mod.rename_kingdom(kingdom, "   ")
+
+        self.assertIn("國名不可為空", str(err.exception))
+
+    def test_rename_kingdom_rejects_same_name(self):
+        kingdom = _make_kingdom(key="Astra")
+
+        with self.assertRaises(ValueError) as err:
+            kingdom_mod.rename_kingdom(kingdom, "Astra")
+
+        self.assertIn("新舊國名相同", str(err.exception))
+
+    def test_rename_kingdom_rejects_duplicate_name(self):
+        kingdom = _make_kingdom(key="Astra")
+
+        with patch.object(
+            kingdom_mod,
+            "get_kingdom_by_name",
+            side_effect=lambda name: (
+                _make_kingdom(key="Other") if name == "Boreal" else None
+            ),
+        ):
+            with self.assertRaises(ValueError) as err:
+                kingdom_mod.rename_kingdom(kingdom, "Boreal")
+
+        self.assertIn("國名已存在", str(err.exception))
+
+    def test_rename_kingdom_calls_change_name_and_returns_payload(self):
+        kingdom = _make_kingdom(key="Astra")
+        kingdom.change_name = MagicMock(
+            side_effect=lambda new_name: setattr(kingdom, "key", new_name)
+        )
+
+        with patch.object(kingdom_mod, "get_kingdom_by_name", return_value=None):
+            result = kingdom_mod.rename_kingdom(kingdom, "Boreal")
+
+        kingdom.change_name.assert_called_once_with("Boreal")
+        self.assertEqual(result["old_name"], "Astra")
+        self.assertEqual(result["new_name"], "Boreal")
+
+    def test_set_kingdom_quota_sets_total(self):
+        kingdom = _make_kingdom(room_quota=10)
+
+        result = kingdom_mod.set_kingdom_quota(kingdom, 18)
+
+        self.assertEqual(kingdom.db.room_quota, 18)
+        self.assertEqual(result["old_quota"], 10)
+        self.assertEqual(result["new_quota"], 18)
+
+    def test_set_kingdom_entrance_updates_room_and_king_home(self):
+        kingdom = _make_kingdom(key="Astra")
+        king = _make_char(key="Arthur")
+        room = _make_room(key="Gate")
+        kingdom.db.king = king
+
+        result = kingdom_mod.set_kingdom_entrance(kingdom, room)
+
+        self.assertEqual(kingdom.db.entrance_room, room)
+        self.assertEqual(king.home, room)
+        self.assertEqual(result["entrance_room"], "Gate")
+
+    def test_resolve_caller_kingdom_returns_kingdom(self):
+        kingdom = _make_kingdom(key="Astra")
+        caller = _make_char(key="Arthur", is_king=True)
+        caller.db.kingdom = kingdom
+
+        self.assertEqual(kingdom_mod.resolve_caller_kingdom(caller), kingdom)
+
+    def test_delete_kingdom_rejects_resident_characters(self):
+        kingdom = _make_kingdom(key="Astra")
+        resident = _make_char(key="Citizen")
+
+        with patch(
+            "typeclasses.characters.Character.objects.filter", return_value=[resident]
+        ):
+            with self.assertRaises(ValueError) as err:
+                kingdom_mod.delete_kingdom(kingdom)
+
+        self.assertIn("仍有角色屬於此國", str(err.exception))
+
+    def test_delete_kingdom_rejects_owned_objects(self):
+        kingdom = _make_kingdom(key="Astra")
+        owned_room = _make_room(key="Astra Hall")
+        owned_room.tags.add("kingdom:Astra", category="ownership")
+
+        with patch(
+            "typeclasses.characters.Character.objects.filter", return_value=[]
+        ), patch.object(
+            kingdom_mod, "_collect_kingdom_owned_objects", return_value=[owned_room]
+        ):
+            with self.assertRaises(ValueError) as err:
+                kingdom_mod.delete_kingdom(kingdom)
+
+        self.assertIn("仍有世界物件屬於此國", str(err.exception))
+
+    def test_delete_kingdom_calls_script_delete_when_safe(self):
+        kingdom = _make_kingdom(key="Astra")
+
+        with patch(
+            "typeclasses.characters.Character.objects.filter", return_value=[]
+        ), patch.object(
+            kingdom_mod, "_collect_kingdom_owned_objects", return_value=[]
+        ), patch.object(
+            kingdom_mod.Kingdom, "delete", autospec=True
+        ) as delete_mock:
+            result = kingdom_mod.delete_kingdom(kingdom)
+
+        delete_mock.assert_called_once_with(kingdom)
+        self.assertEqual(result["deleted"], "Astra")
 
 
 if __name__ == "__main__":

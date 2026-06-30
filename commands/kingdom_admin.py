@@ -4,13 +4,9 @@
 """
 
 from commands.command import MuxCommand
-from world.kingdom import (
-    create_kingdom,
-    get_kingdom_by_name,
-    get_kingdom_by_king,
-    add_room_quota,
-    get_kingdom_status,
-)
+from world.kingdom import (create_kingdom, delete_kingdom, get_kingdom_by_name,
+                           get_kingdom_status, list_kingdoms, rename_kingdom,
+                           set_kingdom_entrance, set_kingdom_quota)
 
 
 class CmdKingdomAdmin(MuxCommand):
@@ -65,6 +61,7 @@ class CmdKingdomAdmin(MuxCommand):
         from evennia import search_object
         from evennia.accounts.models import AccountDB
         from evennia.utils.utils import inherits_from
+
         from typeclasses.characters import Character
 
         king_name, kingdom_name, entrance_room_name, quota = self._parse_create_args()
@@ -138,18 +135,16 @@ class CmdKingdomAdmin(MuxCommand):
         )
 
     def _handle_list(self):
-        from world.kingdom import Kingdom
-
-        kingdoms = Kingdom.objects.all()
+        kingdoms = list_kingdoms()
         if not kingdoms:
             self._msg("目前沒有任何國家。")
             return
 
         lines = ["|w國家列表：|n"]
-        for k in kingdoms:
-            status = get_kingdom_status(k)
+        for kingdom in kingdoms:
+            status = get_kingdom_status(kingdom)
             lines.append(
-                f"- {k.key} (King: {status['king']}, 額度: {status['used']}/{status['quota']}, 入口: {status['entrance_room']})"
+                f"- {kingdom.key} (King: {status['king']}, 額度: {status['used']}/{status['quota']}, 入口: {status['entrance_room']})"
             )
         self._msg("\n".join(lines))
 
@@ -176,17 +171,16 @@ class CmdKingdomAdmin(MuxCommand):
             return
         name, quota_str = self.args.split("=", 1)
         name = name.strip()
-        try:
-            new_quota = int(quota_str.strip())
-        except ValueError:
-            self._msg("額度必須是整數。")
-            return
         kingdom = get_kingdom_by_name(name)
         if not kingdom:
             self._msg(f"找不到國家：{name}")
             return
-        total = add_room_quota(kingdom, new_quota - kingdom.db.room_quota)
-        self._msg(f"已更新 {name} 總額度為 {total}（原 {kingdom.db.room_quota}）。")
+        try:
+            result = set_kingdom_quota(kingdom, quota_str.strip())
+        except ValueError as e:
+            self._msg(f"更新額度失敗：{e}")
+            return
+        self._msg(result["message"])
 
     def _handle_delete(self):
         if not self.args:
@@ -196,9 +190,12 @@ class CmdKingdomAdmin(MuxCommand):
         if not kingdom:
             self._msg(f"找不到國家：{self.args.strip()}")
             return
-        name = kingdom.key
-        kingdom.delete()
-        self._msg(f"已刪除國家：{name}")
+        try:
+            result = delete_kingdom(kingdom)
+        except ValueError as e:
+            self._msg(f"刪國失敗：{e}")
+            return
+        self._msg(result["message"])
 
     def _handle_help(self):
         self._msg(
