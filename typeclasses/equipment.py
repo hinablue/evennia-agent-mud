@@ -71,11 +71,18 @@ class Equipment(ObjectParent, DefaultObject):
             "two_handed": False,
             "magic_buffs": [],
             "wear_style": "",
+            "worn": False,
+            "covered_by": None,
+            "clothing_type": None,
             "is_equipment": True,
         }
         for key, value in defaults.items():
             if self.attributes.get(key) is None:
                 self.attributes.add(key, value)
+        if self.attributes.get("clothing_type") is None and self.attributes.get(
+            "equip_slot"
+        ):
+            self.attributes.add("clothing_type", self.attributes.get("equip_slot"))
 
     def get_display_name(self, looker=None, **kwargs):
         """傳回顯示名稱和別名（如果設定）。"""
@@ -83,6 +90,30 @@ class Equipment(ObjectParent, DefaultObject):
         if alias:
             return f"{self.key}（{alias}）"
         return self.key
+
+    def wear(self, wearer, wearstyle=True, quiet=False):
+        """Wear/equip this item through the local Character equipment system."""
+        if not hasattr(wearer, "equip_item"):
+            return False
+        return wearer.equip_item(self, wear_style=wearstyle, quiet=quiet)
+
+    def remove(self, wearer, quiet=False):
+        """Remove/unequip this item through the local Character equipment system."""
+        if not hasattr(wearer, "unequip_item"):
+            return False
+        return wearer.unequip_item(self, quiet=quiet)
+
+    def at_get(self, getter, **kwargs):
+        """Clear stale worn state when the object is picked up."""
+        self.db.worn = False
+        self.db.covered_by = None
+        self.db.wear_style = ""
+
+    def at_pre_move(self, destination, move_type="move", **kwargs):
+        """Prevent moving equipment hidden under another worn item."""
+        if getattr(self.db, "covered_by", None):
+            return False
+        return True
 
     def get_stats_description(self):
         """傳回 stat 修飾符的人類可讀的描述。"""

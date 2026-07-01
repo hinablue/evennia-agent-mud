@@ -11,7 +11,6 @@ from evennia.utils.utils import inherits_from, make_iter
 from typeclasses.llm_npc import DEFAULT_PROMPT_PREFIX
 from typeclasses.npcs import LLMNPC, NPC
 
-
 DEFAULT_NPC_DESC = "這是一名 NPC。"
 DEFAULT_LLMNPC_DESC = "這是一名會回話的 NPC。"
 NPC_COMBAT_DEFAULTS = {
@@ -227,6 +226,10 @@ def _copy_equipment_to_loot_entry(item, chance=1.0):
         "two_handed": bool(getattr(item.db, "two_handed", False)),
         "magic_buffs": magic_buffs,
         "wear_style": getattr(item.db, "wear_style", "") or "",
+        "clothing_type": getattr(item.db, "clothing_type", None)
+        or getattr(item.db, "equip_slot", None),
+        "covered_by": None,
+        "worn": False,
         "chance": float(chance),
     }
 
@@ -244,7 +247,7 @@ def _place_equipment_on_npc(npc, item, slot):
     item.save()
     if hasattr(npc, "find_in_inventory") and not npc.find_in_inventory(item.key):
         npc.add_to_inventory(item)
-    npc.equip_item(item, slot)
+    npc.equip_item(item, slot, quiet=True)
     return item
 
 

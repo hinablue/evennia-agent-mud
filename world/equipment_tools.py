@@ -10,7 +10,6 @@ from evennia.utils.utils import class_from_module, inherits_from, make_iter
 
 from typeclasses.equipment import Equipment
 
-
 DEFAULT_EQUIPMENT_DESC = "這是一件普通的裝備。"
 
 
@@ -101,7 +100,10 @@ def _clone_equipment_attributes(template):
     magic_buffs = list(getattr(template.db, "magic_buffs", []) or [])
     max_durability = getattr(template.db, "max_durability", 100) or 100
     return [
-        ("desc", _clean_text(getattr(template.db, "desc", "")) or DEFAULT_EQUIPMENT_DESC),
+        (
+            "desc",
+            _clean_text(getattr(template.db, "desc", "")) or DEFAULT_EQUIPMENT_DESC,
+        ),
         ("equip_slot", getattr(template.db, "equip_slot", None)),
         ("stats", stats),
         ("max_durability", max_durability),
@@ -109,6 +111,13 @@ def _clone_equipment_attributes(template):
         ("two_handed", bool(getattr(template.db, "two_handed", False))),
         ("magic_buffs", magic_buffs),
         ("wear_style", getattr(template.db, "wear_style", "") or ""),
+        ("worn", False),
+        ("covered_by", None),
+        (
+            "clothing_type",
+            getattr(template.db, "clothing_type", None)
+            or getattr(template.db, "equip_slot", None),
+        ),
         ("is_equipment", True),
     ]
 
@@ -269,6 +278,10 @@ def create_equipment(
             ("durability", max_durability if max_durability is not None else 100),
             ("two_handed", two_handed if two_handed is not None else False),
             ("magic_buffs", []),
+            ("wear_style", ""),
+            ("worn", False),
+            ("covered_by", None),
+            ("clothing_type", slot),
             ("is_equipment", True),
         ],
     )
@@ -321,11 +334,18 @@ def clone_equipment(
         raise EquipmentSpecError(f"同名物件已存在：{clone_key}")
 
     destination = location or (_get_room_or_error(room_name) if room_name else None)
-    clone_home = home or destination or getattr(template, "home", None) or getattr(template, "location", None)
+    clone_home = (
+        home
+        or destination
+        or getattr(template, "home", None)
+        or getattr(template, "location", None)
+    )
     aliases = list(template.aliases.all()) if hasattr(template, "aliases") else []
 
     try:
-        typeclass = class_from_module(getattr(template, "typeclass_path", "typeclasses.equipment.Equipment"))
+        typeclass = class_from_module(
+            getattr(template, "typeclass_path", "typeclasses.equipment.Equipment")
+        )
     except Exception:
         typeclass = Equipment
 

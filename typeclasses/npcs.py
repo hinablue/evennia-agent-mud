@@ -5,7 +5,6 @@ import random
 from .characters import Character
 from .llm_npc import DEFAULT_PROMPT_PREFIX, LocalLLMNPC
 
-
 # 等級屬性倍率表：等級 N 的屬性 = base * (1 + (N-1) * scale)
 LEVEL_SCALING = {
     "hp": 0.15,  # 每級 +15%
@@ -70,7 +69,8 @@ class NPC(Character):
         self.db.npc_always_drops_tokens = True
 
         # Loot 系統
-        self.db.npc_loot_table = []  # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        self.db.npc_loot_table = []
         self.db.npc_always_drops_loot = False
 
         # 逃跑系統
@@ -229,6 +229,7 @@ class NPC(Character):
             two_handed = bool(entry.get("two_handed", False))
             magic_buffs = list(entry.get("magic_buffs", []) or [])
             wear_style = entry.get("wear_style", "") or ""
+            clothing_type = entry.get("clothing_type", slot)
 
             try:
                 typeclass = class_from_module(typeclass_path)
@@ -250,6 +251,9 @@ class NPC(Character):
                     ("two_handed", two_handed),
                     ("magic_buffs", magic_buffs),
                     ("wear_style", wear_style),
+                    ("worn", False),
+                    ("covered_by", None),
+                    ("clothing_type", clothing_type),
                     ("is_equipment", True),
                 ],
             )
@@ -259,8 +263,8 @@ class NPC(Character):
                 location.msg_contents(f"💎 {key} 從 {self.key} 身上掉落在地上。")
 
 
-class LLMNPC(LocalLLMNPC):
-    """LLM 支援的 NPC 具有該遊戲的合理預設值。"""
+class LLMNPC(LocalLLMNPC, NPC):
+    """LLM 支援的 NPC，並沿用 NPC/Character 的本地裝備邏輯。"""
 
     default_description = "這是一名會回話的 NPC。"
 
@@ -286,7 +290,8 @@ class LLMNPC(LocalLLMNPC):
         self.db.npc_always_drops_tokens = True
 
         # Loot 系統
-        self.db.npc_loot_table = []  # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        # 列表: [{"typeclass": "typeclasses.equipment.Equipment", "key": "鐵劍", "chance": 0.3, "level_min": 1}, ...]
+        self.db.npc_loot_table = []
         self.db.npc_always_drops_loot = False
 
         # 逃跑系統

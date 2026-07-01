@@ -16,12 +16,10 @@ from evennia.contrib.base_systems.building_menu import GenericBuildingCmd
 from evennia.contrib.base_systems.ingame_reports import ReportsCmdSet
 from evennia.contrib.game_systems.achievements.achievements import CmdAchieve
 from evennia.contrib.game_systems.barter import CmdsetTrade
-from evennia.contrib.game_systems.clothing import ClothedCharacterCmdSet
 from evennia.contrib.game_systems.containers import ContainerCmdSet
 from evennia.contrib.game_systems.gendersub import SetGender
 from evennia.contrib.game_systems.storage import StorageCmdSet
-from evennia.contrib.grid import (extended_room, mapbuilder, simpledoor,
-                                  slow_exit)
+from evennia.contrib.grid import extended_room, mapbuilder, simpledoor, slow_exit
 from evennia.contrib.grid.ingame_map_display import MapDisplayCmdSet
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 from evennia.contrib.rpg.rpsystem import RPSystemCmdSet
@@ -29,14 +27,21 @@ from evennia.contrib.rpg.rpsystem import RPSystemCmdSet
 from typeclasses.llm_npc import CmdLocalLLMTalk
 
 from .account_admin import CmdAgentAccount
-from .account_character_commands import (CmdCharacterRoster,
-                                         CmdChineseOOC,
-                                         CmdChineseOOCLook,
-                                         CmdLockedCharCreate,
-                                         CmdLockedIC)
+from .account_character_commands import (
+    CmdCharacterRoster,
+    CmdChineseOOC,
+    CmdChineseOOCLook,
+    CmdLockedCharCreate,
+    CmdLockedIC,
+)
 from .combat_admin import CmdAgentCombat
-from .combat_commands import (CmdCast, CmdCombatAttack, CmdCombatFlee,
-                              CmdCombatSkill, CmdPick)
+from .combat_commands import (
+    CmdCast,
+    CmdCombatAttack,
+    CmdCombatFlee,
+    CmdCombatSkill,
+    CmdPick,
+)
 from .combat_socket import CmdSocketGem
 from .equipment_admin import CmdAgentWeapon
 from .kingdom_admin import CmdKingdomAdmin
@@ -44,8 +49,17 @@ from .magic_admin import CmdAgentMagic
 from .npc_admin import CmdAgentNPC
 from .object_admin import CmdAgentObject
 from .player_admin import CmdAgentPlayer
-from .player_commands import (CmdBuy, CmdEquipment, CmdInventory, CmdShop,
-                              CmdStatus)
+from .player_commands import (
+    CmdBuy,
+    CmdCoverEquipment,
+    CmdEquipment,
+    CmdInventory,
+    CmdRemoveEquipment,
+    CmdShop,
+    CmdStatus,
+    CmdUncoverEquipment,
+    CmdWearEquipment,
+)
 from .quest_admin import CmdAgentQuest
 from .room_admin import CmdAgentRoom
 from .world_admin import CmdAgentWorld
@@ -75,7 +89,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(GenericBuildingCmd())
         self.add(CmdAchieve)
         self.add(CmdsetTrade)
-        self.add(ClothedCharacterCmdSet)
         self.add(ContainerCmdSet)
         self.add(SetGender())
         self.add(StorageCmdSet)
@@ -103,24 +116,78 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdStatus())
         self.add(CmdInventory())
         self.add(CmdEquipment())
+        self.add(CmdWearEquipment())
+        self.add(CmdRemoveEquipment())
+        self.add(CmdCoverEquipment())
+        self.add(CmdUncoverEquipment())
         self.add(CmdShop())
         self.add(CmdBuy())
 
         # Remove commands
         for cmdname in (
-            "@open", "force", "@mapbuilder", "@userpassword", "userpassword",
-            "batchcode", "batchcommands", "examine", "mapbuilder", "@roomstate", "sethelp", "unlink",
-            "roomstate", "ban", "boot", "emit", "perm", "unban", "wall",
-            "shutdown", "reset", "py", "evennia",
-            '@alias','@cmdsets','@copy','@cpattr','@create','@desc','@destroy',
-            '@detail','@dig','@edit','@examine','@find','@link','@lock',
-            '@mvattr','@name','@set','@sethelp','@sethome','@spawn','@tag',
-            '@teleport','@tunnel','@typeclass','@unlink','@wipe','@py',
-
-            '@time', '@about', '@objects', '@reload', '@reset', '@scripts',
-            '@server', '@service', '@shutdown', '@tasks', '@tickers',
+            "@open",
+            "force",
+            "@mapbuilder",
+            "@userpassword",
+            "userpassword",
+            "batchcode",
+            "batchcommands",
+            "examine",
+            "mapbuilder",
+            "@roomstate",
+            "sethelp",
+            "unlink",
+            "roomstate",
+            "ban",
+            "boot",
+            "emit",
+            "perm",
+            "unban",
+            "wall",
+            "shutdown",
+            "reset",
+            "py",
+            "evennia",
+            "@alias",
+            "@cmdsets",
+            "@copy",
+            "@cpattr",
+            "@detail",
+            "@dig",
+            "@edit",
+            "@examine",
+            "@find",
+            "@link",
+            "@lock",
+            "@mvattr",
+            "@name",
+            "@set",
+            "@sethelp",
+            "@sethome",
+            "@spawn",
+            "@tag",
+            "@teleport",
+            "@tunnel",
+            "@typeclass",
+            "@unlink",
+            "@wipe",
+            "@py",
+            "@time",
+            "@about",
+            "@objects",
+            "@reset",
+            "@scripts",
+            "@server",
+            "@service",
+            "@shutdown",
+            "@tasks",
+            "@tickers",
+            "characters",
+            "charcreate",
+            "chardelete",
         ):
             self.remove(cmdname)
+
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """這是帳戶始終可用的 cmdset。它是
@@ -143,6 +210,71 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         self.add(CmdLockedCharCreate())
         self.add(CmdCharacterRoster())
 
+        # Remove commands
+        for cmdname in (
+            "@open",
+            "force",
+            "@mapbuilder",
+            "@userpassword",
+            "userpassword",
+            "batchcode",
+            "batchcommands",
+            "examine",
+            "mapbuilder",
+            "@roomstate",
+            "sethelp",
+            "unlink",
+            "roomstate",
+            "ban",
+            "boot",
+            "emit",
+            "perm",
+            "unban",
+            "wall",
+            "shutdown",
+            "reset",
+            "py",
+            "evennia",
+            "@alias",
+            "@cmdsets",
+            "@copy",
+            "@cpattr",
+            "@detail",
+            "@dig",
+            "@edit",
+            "@examine",
+            "@find",
+            "@link",
+            "@lock",
+            "@mvattr",
+            "@name",
+            "@set",
+            "@sethelp",
+            "@sethome",
+            "@spawn",
+            "@tag",
+            "@teleport",
+            "@tunnel",
+            "@typeclass",
+            "@unlink",
+            "@wipe",
+            "@py",
+            "@time",
+            "@about",
+            "@objects",
+            "@reset",
+            "@scripts",
+            "@server",
+            "@service",
+            "@shutdown",
+            "@tasks",
+            "@tickers",
+            "characters",
+            "charcreate",
+            "chardelete",
+        ):
+            self.remove(cmdname)
+
 
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
     """登入前會話可用的命令集。這
@@ -156,6 +288,7 @@ class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
         #
         # 您在下面新增的任何命令都會覆寫預設命令。
         #
+
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
     """登入後，此 cmdset 在會話層級可用。

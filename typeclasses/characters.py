@@ -5,14 +5,13 @@
 被設定為預設創建的“預設”字元類型
 創建命令。"""
 
-from evennia.objects.objects import DefaultCharacter
-from evennia.contrib.game_systems.clothing import ClothedCharacter
+from collections import defaultdict
+
 from evennia.contrib.game_systems.gendersub import GenderCharacter
 from evennia.contrib.rpg.rpsystem import ContribRPCharacter
 
 from commands.combat_commands import CombatCmdSet
 from .objects import ObjectParent
-
 
 # 裝置插槽定義
 # slot_name：（顯示名稱、auto_unequip_on_replaced、is_weapon_slot）
@@ -32,7 +31,83 @@ EQUIPMENT_SLOTS = {
 }
 
 
-class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharacter):
+CLOTHING_TYPE_ORDER = tuple(EQUIPMENT_SLOTS.keys())
+WEARSTYLE_MAXLENGTH = 50
+CLOTHING_OVERALL_LIMIT = 20
+CLOTHING_TYPE_LIMIT = {slot: 1 for slot in EQUIPMENT_SLOTS}
+CLOTHING_TYPE_AUTOCOVER = {
+    "top": [],
+    "bottom": [],
+    "cloak": ["top"],
+    "shoes": [],
+}
+CLOTHING_TYPE_CANT_COVER_WITH = {"ring", "earring"}
+
+
+def _equipment_type(item):
+    """Return the item's clothing/equipment type for ordering and limits."""
+    return getattr(item.db, "clothing_type", None) or getattr(
+        item.db, "equip_slot", None
+    )
+
+
+def _equipment_sort_index(item):
+    """Return a stable display-order index for an equipped item."""
+    item_type = _equipment_type(item)
+    try:
+        return CLOTHING_TYPE_ORDER.index(item_type)
+    except ValueError:
+        return len(CLOTHING_TYPE_ORDER)
+
+
+def order_equipment_list(equipment_list):
+    """Order equipped items according to local equipment slot order."""
+    return sorted([item for item in equipment_list if item], key=_equipment_sort_index)
+
+
+def get_worn_equipment(character, exclude_covered=False):
+    """Return equipped items worn by a character.
+
+    This intentionally reads ``character.db.equipment`` through
+    ``get_all_equipped`` instead of Evennia contents, because agent-mud uses a
+    local inventory/equipment data model.
+    """
+    if not hasattr(character, "get_all_equipped"):
+        return []
+    equipment = character.get_all_equipped()
+    items = []
+    for item in equipment.values():
+        if not item:
+            continue
+        if exclude_covered and getattr(item.db, "covered_by", None):
+            continue
+        if getattr(item.db, "worn", False) or item in equipment.values():
+            items.append(item)
+    return order_equipment_list(items)
+
+
+def equipment_type_count(equipment_list):
+    """Count equipped items by clothing/equipment type."""
+    counts = {}
+    for item in equipment_list:
+        item_type = _equipment_type(item)
+        if item_type:
+            counts[item_type] = counts.get(item_type, 0) + 1
+    return counts
+
+
+def single_equipment_type_count(equipment_list, equipment_type):
+    """Count equipped items of a single clothing/equipment type."""
+    return equipment_type_count(equipment_list).get(equipment_type, 0)
+
+
+# Compatibility aliases for code that still expects clothing.py helper names.
+get_worn_clothes = get_worn_equipment
+clothing_type_count = equipment_type_count
+single_type_count = single_equipment_type_count
+
+
+class Character(ObjectParent, GenderCharacter, ContribRPCharacter):
     """角色只是重新實現了物件的一些方法和鉤子
     代表遊戲中的角色實體。
 
@@ -238,136 +313,234 @@ class Character(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharac
             return
         if self.add_to_inventory(item):
             self.msg(f"📦 {item.get_display_name(self)} 被收進背包。")
-        else:
-            # 下降到房間
-            if self.location:
-                item.location = self.location
-                item.save()
-                self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
+        elif self.location:
+            item.location = self.location
+            item.save()
+            self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
 
-    def equip_item(self, item, slot=None):
-        """裝備一個物品。如果slot為None，則從物品的equip_slot自動偵測。
-        如果成功則回傳 True。"""
+    def _resolve_equipment_slot(self, slot_or_item):
+        """Resolve either a slot name or equipped object to ``(slot, item)``."""
+        equipment = getattr(self.db, "equipment", {}) or {}
+        if isinstance(slot_or_item, str):
+            return slot_or_item, equipment.get(slot_or_item)
+        for slot, equipped in equipment.items():
+            if equipped == slot_or_item:
+                return slot, equipped
+        return None, None
+
+    def _send_equipment_room_message(self, message, quiet=False):
+        """Emit an equipment action message to the room if possible."""
+        if quiet or not getattr(self, "location", None):
+            return
+        try:
+            self.location.msg_contents(message, from_obj=self)
+        except TypeError:
+            self.location.msg_contents(message)
+
+    def equip_item(self, item, slot=None, wear_style=None, quiet=False):
+        """裝備一個 Equipment 物件，並套用本地 clothing 相容狀態。"""
         if not item:
             return False
+        if hasattr(item, "db") and getattr(item.db, "broken", False):
+            self.msg(f"⚠️ {item.get_display_name(self)} 已損壞，無法裝備。")
+            return False
 
-        # 確定槽位
-        if slot is None:
-            slot = getattr(item.db, "equip_slot", None)
-            if not slot:
-                self.msg(
-                    f"⚠️ {item.get_display_name(self)} 無法裝備：沒有指定的裝備欄位。"
-                )
-                return False
-
+        slot = (
+            slot
+            or getattr(item.db, "equip_slot", None)
+            or getattr(item.db, "clothing_type", None)
+        )
+        if not slot:
+            self.msg(f"⚠️ {item.get_display_name(self)} 無法裝備：沒有指定的裝備欄位。")
+            return False
         if slot not in EQUIPMENT_SLOTS:
             self.msg(f"⚠️ 無效的裝備槽位：{slot}")
             return False
 
-        slot_info = EQUIPMENT_SLOTS[slot]
-        is_weapon_slot = slot_info["is_weapon"]
+        if isinstance(wear_style, str):
+            wear_style = wear_style.strip()
+            if len(wear_style) > WEARSTYLE_MAXLENGTH:
+                self.msg(f"⚠️ 穿戴描述請控制在 {WEARSTYLE_MAXLENGTH} 字以內。")
+                return False
+        elif wear_style:
+            wear_style = ""
+        else:
+            wear_style = ""
 
-        # 處理雙手武器衝突
+        slot_info = EQUIPMENT_SLOTS[slot]
         if slot == "two_hand":
-            # 檢查主/副手是否已經拿著東西
             main_hand = self.get_equipped("main_hand")
             off_hand = self.get_equipped("off_hand")
             if main_hand or off_hand:
                 self.msg("⚠️ 你已經在手持武器，必須先卸下才能裝備雙手武器。")
                 return False
-            # 檢查物品是否為雙手物品
             if not getattr(item.db, "two_handed", False):
                 self.msg(f"⚠️ {item.get_display_name(self)} 不是雙手武器。")
                 return False
 
         if slot in ("main_hand", "off_hand"):
-            # 檢查雙手武器衝突
             two_hand = self.get_equipped("two_hand")
             if two_hand:
                 self.msg("⚠️ 你已經在持雙手武器，必須先卸下才能裝備單手武器。")
                 return False
-            # 檢查物品是否為雙手物品
             if getattr(item.db, "two_handed", False):
                 self.msg("⚠️ 雙手武器必須裝備到雙手欄位。")
                 return False
 
-        # 刪除槽中的目前項目
         current_item = self.get_equipped(slot)
-        if current_item:
-            if slot_info["auto_unequip"]:
-                self._unequip_to_inventory(current_item)
-            else:
-                # 頂部/底部不會自動取消裝備 - 新物品只會替換
-                self.msg(f"⚠️ 你的 {slot_info['name']} 已經穿著了。")
+        if current_item and current_item != item:
+            if not slot_info["auto_unequip"]:
+                self.msg(f"⚠️ 你的 {slot_info['name']} 已經穿著了，請先卸下。")
+                return False
+            self._clear_equipment_metadata(current_item)
+            self._unequip_to_inventory(current_item)
 
-        # 如果裝備到主手/副手，則從庫存中移除（如果存在）
-        if is_weapon_slot:
-            self.remove_from_inventory(item)
+        worn_items = [
+            equipped for equipped in get_worn_equipment(self) if equipped != item
+        ]
+        if CLOTHING_OVERALL_LIMIT and len(worn_items) >= CLOTHING_OVERALL_LIMIT:
+            self.msg("⚠️ 你已經穿戴太多裝備了。")
+            return False
+        item_type = getattr(item.db, "clothing_type", None) or slot
+        type_limit = CLOTHING_TYPE_LIMIT.get(item_type)
+        if (
+            type_limit
+            and single_equipment_type_count(worn_items, item_type) >= type_limit
+        ):
+            self.msg(f"⚠️ 你不能再穿戴更多「{item_type}」類型的裝備。")
+            return False
 
-        # 裝備
+        self.remove_from_inventory(item)
         equipment = getattr(self.db, "equipment", {}) or {}
         equipment[slot] = item
         self.db.equipment = equipment
 
-        # 設置磨損標誌以實現服裝系統相容性
-        item.db.worn = True
+        item.db.worn = wear_style or True
+        item.db.wear_style = wear_style
         item.db.equip_slot = slot
+        if not getattr(item.db, "clothing_type", None):
+            item.db.clothing_type = slot
+        item.db.covered_by = None
+        try:
+            item.location = self
+        except Exception:
+            pass
 
-        self.msg(f"✅ 你裝備了 {item.get_display_name(self)}（{slot_info['name']}）。")
+        for covered in get_worn_equipment(self):
+            covered_type = getattr(covered.db, "clothing_type", None) or getattr(
+                covered.db, "equip_slot", None
+            )
+            if covered != item and covered_type in CLOTHING_TYPE_AUTOCOVER.get(
+                item_type, []
+            ):
+                covered.db.covered_by = item
+
+        style_text = f"（{wear_style}）" if wear_style else ""
+        self.msg(
+            f"✅ 你裝備了 {item.get_display_name(self)}{style_text}（{slot_info['name']}）。"
+        )
+        self._send_equipment_room_message(
+            f"{self.get_display_name(self)} 裝備了 {item.get_display_name(self)}{style_text}。",
+            quiet=quiet,
+        )
         return True
 
-    def unequip_item(self, slot):
-        """從插槽中取消裝備物品並移至庫存。"""
-        item = self.get_equipped(slot)
+    def _clear_equipment_metadata(self, item):
+        """Clear local clothing metadata from an unequipped item."""
+        item.db.worn = False
+        item.db.covered_by = None
+        item.db.wear_style = ""
+
+    def unequip_item(self, slot_or_item, quiet=False):
+        """從欄位或物件卸下裝備，並移回背包或房間。"""
+        slot, item = self._resolve_equipment_slot(slot_or_item)
         if not item:
-            slot_info = EQUIPMENT_SLOTS.get(slot, {"name": slot})
+            slot_info = EQUIPMENT_SLOTS.get(slot_or_item, {"name": str(slot_or_item)})
             self.msg(f"⚠️ {slot_info['name']} 欄位沒有裝備任何東西。")
             return False
+        if covered_by := getattr(item.db, "covered_by", None):
+            self.msg(
+                f"⚠️ 你必須先移開 {covered_by.get_display_name(self)}，才能卸下 {item.get_display_name(self)}。"
+            )
+            return False
 
-        slot_info = EQUIPMENT_SLOTS[slot]
+        uncovered = []
+        for equipped in get_worn_equipment(self):
+            if getattr(equipped.db, "covered_by", None) == item:
+                equipped.db.covered_by = None
+                uncovered.append(equipped.get_display_name(self))
 
-        # 嘗試新增到庫存
-        if not self.add_to_inventory(item):
-            # 庫存已滿
-            if self.location:
-                item.location = self.location
-                item.save()
-                self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
+        if not self.add_to_inventory(item) and self.location:
+            item.location = self.location
+            item.save()
+            self.msg(f"📦 背包已滿，{item.get_display_name(self)} 被丟在房間地上。")
 
-        # 清除插槽
         equipment = getattr(self.db, "equipment", {}) or {}
-        equipment[slot] = None
+        if slot in equipment:
+            equipment[slot] = None
         self.db.equipment = equipment
+        self._clear_equipment_metadata(item)
 
-        item.db.worn = False
-        item.db.equip_slot = None
-
-        self.msg(f"✅ 你卸下了 {item.get_display_name(self)}。")
+        reveal_text = f"，露出了{'、'.join(uncovered)}" if uncovered else ""
+        self.msg(f"✅ 你卸下了 {item.get_display_name(self)}{reveal_text}。")
+        self._send_equipment_room_message(
+            f"{self.get_display_name(self)} 卸下了 {item.get_display_name(self)}{reveal_text}。",
+            quiet=quiet,
+        )
         return True
 
-    def get_equipment_description(self):
+    def get_equipment_description(self, exclude_covered=False):
         """取得「look」指令所裝備物品的描述。"""
-        equipment = self.get_all_equipped()
-        if not equipment:
+        worn_items = get_worn_equipment(self, exclude_covered=exclude_covered)
+        if not worn_items:
             return "目前身上沒有穿戴任何裝備。"
 
         lines = []
-        for slot, item in sorted(
-            equipment.items(),
-            key=lambda x: (
-                list(EQUIPMENT_SLOTS.keys()).index(x[0])
-                if x[0] in EQUIPMENT_SLOTS
-                else 999
-            ),
-        ):
-            slot_info = EQUIPMENT_SLOTS.get(slot, {"name": slot, "is_weapon": False})
+        for item in worn_items:
+            slot = getattr(item.db, "equip_slot", None)
+            slot_info = EQUIPMENT_SLOTS.get(
+                slot, {"name": slot or "裝備", "is_weapon": False}
+            )
             slot_name = slot_info["name"]
             item_name = item.get_display_name(self)
-            wear_style = getattr(item.db, "wear_style", "")
+            wear_style = getattr(item.db, "wear_style", "") or ""
             style_str = f"（{wear_style}）" if wear_style else ""
-            lines.append(f"  {slot_name}：{item_name}{style_str}")
-
+            covered_by = getattr(item.db, "covered_by", None)
+            covered_str = (
+                f"（被 {covered_by.get_display_name(self)} 覆蓋）" if covered_by else ""
+            )
+            lines.append(f"  {slot_name}：{item_name}{style_str}{covered_str}")
         return "\n".join(lines)
+
+    def get_display_desc(self, looker, **kwargs):
+        """Return character description with visible equipment appended."""
+        desc = getattr(self.db, "desc", None) or self.default_description
+        equipment_desc = self.get_equipment_description(exclude_covered=True)
+        return f"{desc}\n\n{equipment_desc}" if desc else equipment_desc
+
+    def get_display_things(self, looker, **kwargs):
+        """Return visible carried things while hiding worn equipment."""
+        worn_ids = {getattr(item, "id", id(item)) for item in get_worn_equipment(self)}
+        try:
+            things = self.contents_get(content_type="object")
+            things = self.filter_visible(things, looker, **kwargs)
+        except Exception:
+            things = getattr(self, "contents", []) or []
+
+        grouped_things = defaultdict(list)
+        for thing in things:
+            thing_id = getattr(thing, "id", id(thing))
+            if thing_id in worn_ids or getattr(thing.db, "worn", False):
+                continue
+            grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
+
+        thing_names = []
+        for thingname, thinglist in sorted(grouped_things.items()):
+            nthings = len(thinglist)
+            thing = thinglist[0]
+            singular, plural = thing.get_numbered_name(nthings, looker, key=thingname)
+            thing_names.append(singular if nthings == 1 else plural)
+        return f"|w你看見：|n {'、'.join(thing_names)}" if thing_names else ""
 
     # -------------------------------------------------------------------------
     # 戰鬥/升級

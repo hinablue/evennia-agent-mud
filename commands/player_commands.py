@@ -1,7 +1,76 @@
 """面向玩家的狀態、庫存、裝備和購物指令。"""
 
 from commands.command import MuxCommand
-from evennia.utils import utils
+
+SLOT_DISPLAY_NAMES = {
+    "hat": "帽子",
+    "top": "上身",
+    "bottom": "下身",
+    "cloak": "披風",
+    "shoes": "鞋子",
+    "gloves": "手套",
+    "glasses": "眼鏡",
+    "earring": "耳環",
+    "ring": "戒指",
+    "main_hand": "主手武器",
+    "off_hand": "副手武器",
+    "two_hand": "雙手武器",
+}
+
+
+def _match_item_name(item, query, caller=None):
+    """Return whether an item matches key, display name, alias, or dbref."""
+    query = (query or "").strip().lower()
+    if not item or not query:
+        return False
+    if query == str(getattr(item, "id", "")) or query == f"#{getattr(item, 'id', '')}":
+        return True
+    names = [getattr(item, "key", ""), getattr(item, "name", "")]
+    try:
+        names.append(item.get_display_name(caller))
+    except Exception:
+        pass
+    aliases = getattr(item, "aliases", None)
+    if aliases and hasattr(aliases, "all"):
+        try:
+            names.extend(aliases.all())
+        except Exception:
+            pass
+    elif aliases:
+        try:
+            names.extend(list(aliases))
+        except Exception:
+            pass
+    return any(query == str(name).lower() for name in names if name)
+
+
+def _find_inventory_item(caller, query):
+    """Find an item in the caller's local inventory/contents."""
+    candidates = []
+    if hasattr(caller, "get_inventory"):
+        candidates.extend(caller.get_inventory())
+    candidates.extend(getattr(caller, "contents", []) or [])
+    for item in candidates:
+        if _match_item_name(item, query, caller):
+            return item
+    if hasattr(caller, "search"):
+        try:
+            return caller.search(query, candidates=candidates)
+        except Exception:
+            return None
+    return None
+
+
+def _find_equipped_item(caller, query):
+    """Find an equipped item by slot or item name."""
+    query = (query or "").strip()
+    equipment = caller.get_all_equipped() if hasattr(caller, "get_all_equipped") else {}
+    if query in equipment:
+        return query, equipment.get(query)
+    for slot, item in equipment.items():
+        if _match_item_name(item, query, caller):
+            return slot, item
+    return None, None
 
 
 class CmdStatus(MuxCommand):
@@ -100,7 +169,6 @@ class CmdInventory(MuxCommand):
 
         inventory = caller.get_inventory()
         capacity = caller.get_inventory_capacity()
-        equipped = caller.get_all_equipped()
 
         lines = [f"|w┌─ {caller.key} 的背包 ({len(inventory)}/{capacity}) ─┐|n"]
 
@@ -111,20 +179,7 @@ class CmdInventory(MuxCommand):
                 if not item:
                     continue
                 name = item.get_display_name(caller)
-                # 檢查是否配備
-                equip_info = ""
-                for slot, eq_item in equipped.items():
-                    if eq_item and eq_item.id == item.id:
-                        slot_names = {
-                            "hat": "帽子", "top": "上身", "bottom": "下身",
-                            "cloak": "披風", "shoes": "鞋子", "gloves": "手套",
-                            "glasses": "眼鏡", "earring": "耳環", "ring": "戒指",
-                            "main_hand": "主手", "off_hand": "副手", "two_hand": "雙手",
-                        }
-                        slot_name = slot_names.get(slot, slot)
-                        equip_info = f" |g(已裝備：{slot_name})|n"
-                        break
-                lines.append(f"│ {idx:2d}. {name}{equip_info}")
+                lines.append(f"│ {idx:2d}. {name}")
 
         lines.append(f"└{'─' * 38}┘")
 
@@ -151,33 +206,188 @@ class CmdEquipment(MuxCommand):
 
         equipment = caller.get_all_equipped()
 
-        slot_display = {
-            "hat": "帽子", "top": "上身", "bottom": "下身",
-            "cloak": "披風", "shoes": "鞋子", "gloves": "手套",
-            "glasses": "眼鏡", "earring": "耳環", "ring": "戒指",
-            "main_hand": "主手武器", "off_hand": "副手武器", "two_hand": "雙手武器",
-        }
+        slot_display = SLOT_DISPLAY_NAMES
 
         lines = [f"|w┌─ {caller.key} 的裝備 ─┐|n"]
 
         if not equipment:
             lines.append("│ 目前沒有穿戴任何裝備。")
         else:
-            for slot in ["hat", "top", "bottom", "cloak", "shoes", "gloves",
-                         "glasses", "earring", "ring", "main_hand", "off_hand", "two_hand"]:
+            for slot in [
+                "hat",
+                "top",
+                "bottom",
+                "cloak",
+                "shoes",
+                "gloves",
+                "glasses",
+                "earring",
+                "ring",
+                "main_hand",
+                "off_hand",
+                "two_hand",
+            ]:
                 item = equipment.get(slot)
                 slot_name = slot_display.get(slot, slot)
                 if item:
                     name = item.get_display_name(caller)
                     wear_style = getattr(item.db, "wear_style", "")
                     style_str = f" ({wear_style})" if wear_style else ""
-                    lines.append(f"│ {slot_name:6s}：{name}{style_str}")
+                    covered_by = getattr(item.db, "covered_by", None)
+                    cover_str = (
+                        f" |y(被 {covered_by.get_display_name(caller)} 覆蓋)|n"
+                        if covered_by
+                        else ""
+                    )
+                    lines.append(f"│ {slot_name:6s}：{name}{style_str}{cover_str}")
                 else:
                     lines.append(f"│ {slot_name:6s}：|x空|n")
 
         lines.append(f"└{'─' * 30}┘")
 
         caller.msg("\n".join(lines))
+
+
+class CmdWearEquipment(MuxCommand):
+    """穿戴背包中的裝備。
+
+    用法:
+      wear <裝備> [=] [穿戴描述]
+      穿戴 <裝備> [穿戴描述]
+    """
+
+    key = "wear"
+    aliases = ["穿", "穿戴", "equip", "裝備"]
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        caller = self.caller
+        if not self.args:
+            caller.msg("用法：wear <裝備> [=] [穿戴描述]")
+            return
+        item_name = self.lhs if self.rhs is not None else self.args
+        wear_style = self.rhs or ""
+        item = _find_inventory_item(caller, item_name)
+        if not item and self.rhs is None:
+            parts = self.args.split(maxsplit=1)
+            item = _find_inventory_item(caller, parts[0])
+            if item:
+                item_name = parts[0]
+                wear_style = parts[1] if len(parts) > 1 else ""
+        if not item:
+            caller.msg(f"⚠️ 背包裡找不到：{item_name}")
+            return
+        if not getattr(item.db, "is_equipment", False):
+            caller.msg(f"⚠️ {item.get_display_name(caller)} 不是可以穿戴的裝備。")
+            return
+        caller.equip_item(item, wear_style=wear_style)
+
+
+class CmdRemoveEquipment(MuxCommand):
+    """卸下已穿戴的裝備。"""
+
+    key = "remove"
+    aliases = ["脫下", "卸下", "unequip"]
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        caller = self.caller
+        selection = (self.args or "").strip()
+        if not selection:
+            caller.msg("用法：remove <裝備或欄位>")
+            return
+        slot, item = _find_equipped_item(caller, selection)
+        caller.unequip_item(item or slot or selection)
+
+
+class CmdCoverEquipment(MuxCommand):
+    """用另一件裝備覆蓋已穿戴裝備。"""
+
+    key = "cover"
+    aliases = ["遮住", "覆蓋"]
+    rhs_split = (" with ", "=")
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        caller = self.caller
+        lhs = self.lhs
+        rhs = self.rhs
+        if rhs is None and " with " in (self.args or ""):
+            lhs, rhs = [part.strip() for part in self.args.split(" with ", 1)]
+        if not self.args or not rhs:
+            caller.msg("用法：cover <已穿戴裝備> with <裝備>")
+            return
+        _, target = _find_equipped_item(caller, lhs)
+        if not target:
+            caller.msg(f"⚠️ 你沒有穿戴：{lhs}")
+            return
+        cover_slot, cover_item = _find_equipped_item(caller, rhs)
+        if not cover_item:
+            cover_item = _find_inventory_item(caller, rhs)
+            if cover_item and not caller.equip_item(cover_item):
+                return
+        if not cover_item:
+            caller.msg(f"⚠️ 找不到用來覆蓋的裝備：{rhs}")
+            return
+        if cover_item == target:
+            caller.msg("⚠️ 不能用同一件裝備覆蓋自己。")
+            return
+        cover_type = getattr(cover_item.db, "clothing_type", None) or getattr(
+            cover_item.db, "equip_slot", None
+        )
+        try:
+            from typeclasses.characters import CLOTHING_TYPE_CANT_COVER_WITH
+        except Exception:
+            CLOTHING_TYPE_CANT_COVER_WITH = set()
+        if cover_type in CLOTHING_TYPE_CANT_COVER_WITH:
+            caller.msg(
+                f"⚠️ {cover_item.get_display_name(caller)} 不適合用來覆蓋其他裝備。"
+            )
+            return
+        if getattr(cover_item.db, "covered_by", None):
+            caller.msg(f"⚠️ {cover_item.get_display_name(caller)} 自己已經被覆蓋了。")
+            return
+        if getattr(target.db, "covered_by", None):
+            caller.msg(f"⚠️ {target.get_display_name(caller)} 已經被其他裝備覆蓋了。")
+            return
+        target.db.covered_by = cover_item
+        caller.msg(
+            f"✅ 你用 {cover_item.get_display_name(caller)} 覆蓋了 {target.get_display_name(caller)}。"
+        )
+
+
+class CmdUncoverEquipment(MuxCommand):
+    """揭開被覆蓋的裝備。"""
+
+    key = "uncover"
+    aliases = ["露出", "揭開"]
+    locks = "cmd:pperm(Player)"
+    help_category = "General"
+
+    def func(self):
+        caller = self.caller
+        selection = (self.args or "").strip()
+        if not selection:
+            caller.msg("用法：uncover <已穿戴裝備>")
+            return
+        _, item = _find_equipped_item(caller, selection)
+        if not item:
+            caller.msg(f"⚠️ 你沒有穿戴：{selection}")
+            return
+        cover = getattr(item.db, "covered_by", None)
+        if not cover:
+            caller.msg(f"⚠️ {item.get_display_name(caller)} 沒有被覆蓋。")
+            return
+        if getattr(cover.db, "covered_by", None):
+            caller.msg(
+                f"⚠️ {item.get_display_name(caller)} 被壓在太多層下面，還不能露出。"
+            )
+            return
+        item.db.covered_by = None
+        caller.msg(f"✅ 你露出了 {item.get_display_name(caller)}。")
 
 
 class CmdShop(MuxCommand):

@@ -17,11 +17,8 @@ from zope.interface import implementer
 
 from evennia import logger
 from evennia.commands.command import Command
-from evennia.contrib.game_systems.clothing import ClothedCharacter
-from evennia.contrib.game_systems.gendersub import GenderCharacter
-from evennia.contrib.rpg.rpsystem import ContribRPCharacter
 
-from .objects import ObjectParent
+from .characters import Character
 
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import make_iter
@@ -231,7 +228,9 @@ class OpenAICompatibleLLMClient:
         return self._extract_text(payload)
 
 
-class LocalLLMNPC(ObjectParent, ClothedCharacter, GenderCharacter, ContribRPCharacter):
+class LocalLLMNPC(Character):
+    """LLM NPC base with the same local equipment/clothing model as Character."""
+
     prompt_prefix = None
     response_template = AttributeProperty(
         "$You() $conj(say) (to $You(character)): {response}", autocreate=False
