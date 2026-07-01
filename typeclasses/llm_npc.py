@@ -40,7 +40,7 @@ DEFAULT_LLM_REQUEST_BODY = {
     "chat_template_kwargs": {"enable_thinking": False},
     "options": {"enable_thinking": False},
 }
-DEFAULT_LLM_API_FORMAT = "chat_completions"  # 竣工 |聊天完成 |遺產
+DEFAULT_LLM_API_FORMAT = "chat_completions"
 
 
 @implementer(IBodyProducer)

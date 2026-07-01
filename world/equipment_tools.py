@@ -74,7 +74,7 @@ def _get_equipment_or_error(eq_key):
     if not obj:
         raise EquipmentSpecError(f"找不到裝備：{eq_key}")
     if not inherits_from(obj, "typeclasses.equipment.Equipment"):
-        raise EquipmentSpecError(f"`{eq_key}` 不是 Equipment。")
+        raise EquipmentSpecError(f"`{eq_key}` 不是裝備。")
     return obj
 
 
@@ -188,7 +188,7 @@ def summarize_equipment(eq_key):
         buff_parts = [f"{b['stat']}{b['value']:+d}" for b in buffs]
         lines.append(f"- 魔法 Buff：{', '.join(buff_parts)}")
 
-    lines.append(f"- typeclass：{obj.typeclass_path}")
+    lines.append(f"- 類型：{obj.typeclass_path}")
     return "\n".join(lines)
 
 
@@ -202,7 +202,7 @@ def summarize_equipments(room_name=None):
             continue
         matches.append(obj)
 
-    title = f"Equipment 清單：{room.key}" if room else "Equipment 清單：全世界"
+    title = f"裝備清單：{room.key}" if room else "裝備清單：全世界"
     lines = [title]
     if not matches:
         lines.append("- 目前沒有找到裝備。")

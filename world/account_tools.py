@@ -66,9 +66,9 @@ def summarize_account(account_name):
         else "無"
     )
 
-    lines = [f"Account：{account.key}"]
+    lines = [f"帳號：{account.key}"]
     lines.append(f"- 擁有角色：{char_list}")
-    lines.append(f"- 目前 Puppet：{puppet}")
+    lines.append(f"- 目前控制角色：{puppet}")
     lines.append(f"- 權限：{perms}")
     return "\n".join(lines)
 
@@ -131,7 +131,7 @@ def create_account(account_name, password, email=None):
     return {
         "account": account,
         "message": (
-            f"已建立 Account `{account.key}`{email_note}。"
+            f"已建立帳號 `{account.key}`{email_note}。"
             "這是 live 世界變更。"
         ),
     }
@@ -150,7 +150,7 @@ def set_account_puppet(account_name, char_key):
 
     account.db._last_puppet = char
     account.save()
-    return {"message": f"已將帳號 `{account.key}` 的 puppet 強制切換為 `{char.key}`。"}
+    return {"message": f"已將帳號 `{account.key}` 的控制角色強制切換為 `{char.key}`。"}
 
 
 def normalize_hierarchy_role_name(role_name):
@@ -332,8 +332,8 @@ def delete_account(account_name):
 
     return {
         "message": (
-            f"已刪除 Account `{key}`。原本綁定 {char_count} 個角色；"
-            "若該帳號仍在線上，session 已一併斷線。這是 live 世界變更。"
+            f"已刪除帳號 `{key}`。原本綁定 {char_count} 個角色；"
+            "若該帳號仍在線上，會話已一併斷線。這是 live 世界變更。"
         )
     }
 

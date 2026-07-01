@@ -64,11 +64,11 @@ def summarize_object(obj_key):
     desc = getattr(obj.db, "desc", "無") or "無"
     aliases = list(obj.aliases.all()) if hasattr(obj, "aliases") else []
 
-    lines = [f"Object：{obj.key}"]
+    lines = [f"物件：{obj.key}"]
     lines.append(f"- 位置：{loc_name}")
     lines.append(f"- 描述：{desc}")
-    lines.append(f"- Aliases：{', '.join(aliases) if aliases else '無'}")
-    lines.append(f"- Typeclass：{obj.typeclass_path}")
+    lines.append(f"- 別名：{', '.join(aliases) if aliases else '無'}")
+    lines.append(f"- 類型：{obj.typeclass_path}")
     lines.append(f"- 可拿取：{'是' if getattr(obj.db, 'takeable', True) else '否'}")
     lines.append(f"- 可裝備：{'是' if getattr(obj.db, 'equippable', False) else '否'}")
     return "\n".join(lines)
@@ -113,7 +113,7 @@ def create_object_admin(obj_key, room_name, desc=None, aliases=None):
         attributes=[("desc", desc)],
     )
     obj.save()
-    return {"message": f"已建立物件 `{obj_key}`，目前位於 `{room.key}`。"}
+    return {"message": f"已建立物件 `{obj_key}`，目前所在 `{room.key}`。"}
 
 
 def move_object(obj_key, room_name):
@@ -121,7 +121,7 @@ def move_object(obj_key, room_name):
     room = _get_room_or_error(room_name)
     obj.location = room
     obj.save()
-    return {"message": f"已將 `{obj.key}` 移到 `{room.key}`。"}
+    return {"message": f"已將 `{obj.key}` 移動到 `{room.key}`。"}
 
 
 def set_object_desc(obj_key, desc):

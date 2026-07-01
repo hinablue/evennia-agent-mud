@@ -119,7 +119,7 @@ def _get_player_or_error(char_key):
     if not obj:
         raise PlayerSpecError(f"找不到角色：{char_key}")
     if not _is_player_character(obj):
-        raise PlayerSpecError(f"`{char_key}` 不是玩家角色 Character。")
+        raise PlayerSpecError(f"`{char_key}` 不是玩家角色。")
     return obj
 
 
@@ -187,12 +187,12 @@ def _apply_character_owner_locks(character, owners):
 def summarize_player(char_key):
     obj = _get_player_or_error(char_key)
     owners = _player_accounts(obj)
-    lines = [f"Player：{obj.key}"]
+    lines = [f"玩家：{obj.key}"]
     lines.append(f"- 房間：{_find_room_name_for_obj(obj)}")
     lines.append(
         f"- home：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}"
     )
-    lines.append(f"- aliases：{_format_list(_current_aliases(obj))}")
+    lines.append(f"- 別名：{_format_list(_current_aliases(obj))}")
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
     lines.append(f"- 擁有帳號：{_format_list(account.key for account in owners)}")
     lines.append(f"- typeclass：{obj.typeclass_path}")
@@ -209,7 +209,7 @@ def summarize_players(room_name=None):
             continue
         matches.append(obj)
 
-    title = f"Player 清單：{room.key}" if room else "Player 清單：全世界"
+    title = f"玩家清單：{room.key}" if room else "玩家清單：全世界"
     lines = [title]
     if not matches:
         lines.append("- 目前沒有找到玩家角色。")
@@ -221,7 +221,7 @@ def summarize_players(room_name=None):
     for obj in sorted(matches, key=_sort_key):
         owners = _player_accounts(obj)
         lines.append(
-            f"- {obj.key}｜房間：{_find_room_name_for_obj(obj)}｜home：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}｜擁有帳號：{_format_list(account.key for account in owners)}｜aliases：{_format_list(_current_aliases(obj))}"
+            f"- {obj.key}｜房間：{_find_room_name_for_obj(obj)}｜家：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}｜擁有帳號：{_format_list(account.key for account in owners)}｜別名：{_format_list(_current_aliases(obj))}"
         )
     return "\n".join(lines)
 
@@ -300,7 +300,7 @@ def create_player(
     return {
         "player": character,
         "message": (
-            f"已建立 Player `{char_key}`，目前位於 `{room.key}`{owner_note}{king_note}。"
+            f"已建立玩家 `{char_key}`，目前位於 `{room.key}`{owner_note}{king_note}。"
             f"這是 live 世界變更。{bootstrap_note}"
         ),
     }
@@ -313,7 +313,7 @@ def move_player(char_key, room_name):
     obj.save()
     return {
         "player": obj,
-        "message": f"已將 `{obj.key}` 移到 `{room.key}`。這是 live 世界變更。",
+        "message": f"已將 `{obj.key}` 移動到 `{room.key}`。這是 live 世界變更。",
     }
 
 
@@ -324,7 +324,7 @@ def set_player_home(char_key, room_name):
     obj.save()
     return {
         "player": obj,
-        "message": f"已將 `{obj.key}` 的 home 設為 `{room.key}`。",
+        "message": f"已將 `{obj.key}` 的家設為 `{room.key}`。",
     }
 
 
@@ -354,7 +354,7 @@ def summon_player(char_key, room_name):
     obj.save()
     return {
         "player": obj,
-        "message": f"已將 `{obj.key}` 傳送到 `{room.key}`，home 保持不變。",
+        "message": f"已將 `{obj.key}` 傳送到 `{room.key}`，家保持不變。",
     }
 
 
@@ -375,12 +375,12 @@ def set_player_aliases(char_key, aliases):
     obj = _get_player_or_error(char_key)
     aliases = _normalize_aliases(aliases)
     if not aliases:
-        raise PlayerSpecError("aliases 需要至少一個 alias。")
+        raise PlayerSpecError("aliases 需要至少一個別名。")
     aliases = _set_aliases(obj, aliases)
     obj.save()
     return {
         "player": obj,
-        "message": f"已更新 `{obj.key}` 的 aliases：{_format_list(aliases)}。",
+        "message": f"已更新 `{obj.key}` 的別名：{_format_list(aliases)}。",
     }
 
 
@@ -401,12 +401,12 @@ def remove_player_aliases(char_key, aliases):
     obj = _get_player_or_error(char_key)
     aliases = _normalize_aliases(aliases)
     if not aliases:
-        raise PlayerSpecError("delaliases 需要至少一個 alias。")
+        raise PlayerSpecError("delaliases 需要至少一個別名。")
     kept = _remove_aliases(obj, aliases)
     obj.save()
     return {
         "player": obj,
-        "message": f"已移除指定 aliases；`{obj.key}` 目前 aliases：{_format_list(kept)}。",
+        "message": f"已移除指定別名；`{obj.key}` 目前別名：{_format_list(kept)}。",
     }
 
 
@@ -414,12 +414,12 @@ def send_player_home(char_key):
     obj = _get_player_or_error(char_key)
     home = getattr(obj, "home", None)
     if not home:
-        raise PlayerSpecError(f"`{obj.key}` 目前沒有 home。")
+        raise PlayerSpecError(f"`{obj.key}` 目前沒有家。")
     obj.location = home
     obj.save()
     return {
         "player": obj,
-        "message": f"已將 `{obj.key}` 送回 home `{home.key}`。",
+        "message": f"已將 `{obj.key}` 送回家 `{home.key}`。",
     }
 
 

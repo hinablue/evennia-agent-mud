@@ -51,48 +51,48 @@ class RoomTools:
         for room in sorted(rooms, key=lambda item: item.key):
             pvp = "ON" if RoomTools._room_pvp_enabled(room) else "OFF"
             lines.append(f"- {room.key} (ID: {room.id}, PVP: {pvp})")
-        return "\n".join(lines) if len(lines) > 1 else "No rooms found."
+        return "\n".join(lines) if len(lines) > 1 else "沒有找到房間。"
 
     @staticmethod
     def create_room(name, desc):
         name = RoomTools._clean(name)
         if not name:
-            return "Room name is required."
+            return "需要房間名稱。"
         if RoomTools._find_object(name):
-            return f"Object already exists: {name}."
+            return f"物件已存在：{name}。"
         room = create_object(Room, key=name)
         room.db.desc = RoomTools._clean(desc) or Room.fallback_desc
         room.db.pvp_enabled = False
         room.save()
-        return f"Room '{name}' created successfully."
+        return f"房間 '{name}' 建立成功。"
 
     @staticmethod
     def update_desc(room_name, new_desc):
         room = RoomTools._find_room(room_name)
         if not room:
-            return "Room not found."
+            return "房間不存在。"
         room.db.desc = RoomTools._clean(new_desc) or Room.fallback_desc
         room.save()
-        return f"Description for {room.key} updated."
+        return f"房間 {room.key} 描述更新。"
 
     @staticmethod
     def move_object(obj_name, room_name):
         obj = RoomTools._find_object(obj_name)
         room = RoomTools._find_room(room_name)
         if not obj or not room:
-            return "Object or Room not found."
+            return "物件或房間不存在。"
         obj.location = room
         obj.save()
-        return f"Moved {obj.key} to {room.key}."
+        return f"移動 {obj.key} 到 {room.key}。"
 
     @staticmethod
     def delete_room(room_name):
         room = RoomTools._find_room(room_name)
         if not room:
-            return "Room not found."
+            return "房間不存在。"
         key = room.key
         room.delete()
-        return f"Room {key} deleted."
+        return f"房間 {key} 刪除。"
 
     @staticmethod
     def set_door_state(room_name, direction, state):
@@ -100,9 +100,9 @@ class RoomTools:
         direction = RoomTools._clean(direction)
         state = RoomTools._clean(state)
         if not room:
-            return "Room not found."
+            return "房間不存在。"
         if not direction or not state:
-            return "Direction and state are required."
+            return "需要方向和狀態。"
 
         door = None
         for obj in room.contents:
@@ -121,24 +121,24 @@ class RoomTools:
         door.db.state = state
         door.save()
         return (
-            f"Door {direction} in {room.key} is now {state} (DoorObject ID: {door.id})."
+            f"門 {direction} 在 {room.key} 現在 {state} (DoorObject ID: {door.id})。"
         )
 
     @staticmethod
     def set_pvp_state(room_name, enabled):
         room = RoomTools._find_room(room_name)
         if not room:
-            return "Room not found."
+            return "房間不存在。"
         room.db.pvp_enabled = bool(enabled)
         room.save()
         state = "ON" if room.db.pvp_enabled else "OFF"
-        return f"Room {room.key} PVP is now {state}."
+        return f"房間 {room.key} PVP 現在 {state}。"
 
     @staticmethod
     def summarize_room(room_name):
         room = RoomTools._find_room(room_name)
         if not room:
-            return "Room not found."
+            return "房間不存在。"
         pvp = "ON" if RoomTools._room_pvp_enabled(room) else "OFF"
         desc = getattr(room.db, "desc", Room.fallback_desc) or Room.fallback_desc
-        return f"Room：{room.key}\n- ID：{room.id}\n- PVP：{pvp}\n- 描述：{desc}"
+        return f"房間：{room.key}\n- ID：{room.id}\n- PVP：{pvp}\n- 描述：{desc}"
