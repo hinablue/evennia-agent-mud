@@ -44,6 +44,7 @@ from .combat_commands import (
 )
 from .combat_socket import CmdSocketGem
 from .equipment_admin import CmdAgentWeapon
+from .gem_admin import CmdAgentGem
 from .kingdom_admin import CmdKingdomAdmin
 from .magic_admin import CmdAgentMagic
 from .npc_admin import CmdAgentNPC
@@ -111,6 +112,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAgentQuest())
         self.add(CmdAgentRoom())
         self.add(CmdAgentWeapon())
+        self.add(CmdAgentGem())
         self.add(CmdAgentMagic())
 
         self.add(CmdStatus())

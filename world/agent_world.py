@@ -9,6 +9,7 @@ from evennia import create_object, search_object
 from evennia.objects.models import ObjectDB
 
 from typeclasses.exits import Exit
+from typeclasses.npcs import NPC
 from typeclasses.objects import Object
 from typeclasses.rooms import Room
 
@@ -22,6 +23,22 @@ ROSIE_DESC = (
     "她安靜站在光線較柔的地方，像早就習慣在陌生人靠近前先觀察對方。"
     " 目光很穩，語氣大概也不會太吵。"
 )
+NPC_DEFS = {
+    ROSIE_KEY: {
+        "typeclass": NPC,
+        "room": ROSIE_HOME,
+        "aliases": ROSIE_ALIASES,
+        "desc": ROSIE_DESC,
+        "attributes": {
+            "is_npc": True,
+            "npc_kind": "npc",
+            "npc_attackable": False,
+            "npc_retaliates": False,
+            "npc_can_die": False,
+            "npc_aggro_chance": 0.0,
+        },
+    },
+}
 PLAYER_DESC = "這是剛登入此地的旅人，身上還帶著一點從現實殘留下來的節奏。"
 SCENERY_LOCKS = (
     "get:false();drop:false();call:true();control:perm(Developer) or perm(Admin)"
@@ -1093,27 +1110,60 @@ def _ensure_exit(key, location, destination, aliases=None):
     return exi, created, updated
 
 
-def _ensure_rosie(room_cache):
-    rosie = _find_by_key(ROSIE_KEY)
+def _ensure_npc(key, spec, room_cache):
+    room_name = spec["room"]
+    target_room = room_cache.get(room_name) or _find_room(room_name)
+    if not target_room:
+        raise WorldSpecError(f"NPC `{key}` 的目標房間不存在：{room_name}")
+
+    npc = _find_by_key(key)
+    created = False
     moved = False
     updated = False
-    if rosie:
-        target_room = room_cache[ROSIE_HOME]
-        if rosie.location != target_room:
-            rosie.location = target_room
-            rosie.home = target_room
-            moved = True
-        elif rosie.home != target_room:
-            rosie.home = target_room
-            moved = True
-        if not _matches_desc(rosie, ROSIE_DESC):
-            rosie.db.desc = ROSIE_DESC
+    attributes = dict(spec.get("attributes", {}))
+    attributes.setdefault("desc", spec.get("desc", ""))
+
+    if not npc:
+        npc = create_object(
+            spec.get("typeclass", NPC),
+            key=key,
+            location=target_room,
+            home=target_room,
+            aliases=_normalize_aliases(spec.get("aliases", [])),
+            attributes=list(attributes.items()),
+        )
+        npc.tags.add("gm_continent", category="ownership")
+        created = True
+        return npc, created, moved, updated
+
+    if npc.location != target_room:
+        npc.location = target_room
+        npc.home = target_room
+        moved = True
+    elif npc.home != target_room:
+        npc.home = target_room
+        moved = True
+    if not _matches_desc(npc, spec.get("desc", "")):
+        npc.db.desc = spec.get("desc", "")
+        updated = True
+    if _ensure_aliases(npc, spec.get("aliases", [])):
+        updated = True
+    for attr, value in attributes.items():
+        if getattr(npc.db, attr, None) != value:
+            setattr(npc.db, attr, value)
             updated = True
-        if _ensure_aliases(rosie, ROSIE_ALIASES):
-            updated = True
-        if moved or updated:
-            rosie.save()
-    return bool(rosie), moved, updated
+    if moved or updated:
+        npc.save()
+    return npc, created, moved, updated
+
+
+def _npc_defs_for_scope(scope):
+    scope = set(scope)
+    return {
+        key: spec
+        for key, spec in NPC_DEFS.items()
+        if spec.get("room") in scope or len(scope) == len(ROOM_DEFS)
+    }
 
 
 def _ensure_hina_desc():
@@ -1305,6 +1355,7 @@ def build_agent_world(room_name=None, components=None):
         "objects_updated": 0,
         "exits_created": 0,
         "exits_updated": 0,
+        "npcs_created": 0,
         "npcs_moved": 0,
         "npcs_updated": 0,
         "player_descs_updated": 0,
@@ -1347,10 +1398,13 @@ def build_agent_world(room_name=None, components=None):
             result["exits_updated"] += int(updated)
 
     if "npcs" in chosen:
-        rosie_exists, rosie_moved, rosie_updated = _ensure_rosie(room_cache)
-        if rosie_exists:
-            result["npcs_moved"] += int(rosie_moved)
-            result["npcs_updated"] += int(rosie_updated)
+        for npc_key, npc_spec in _npc_defs_for_scope(scope).items():
+            _npc, npc_created, npc_moved, npc_updated = _ensure_npc(
+                npc_key, npc_spec, room_cache
+            )
+            result["npcs_created"] += int(npc_created)
+            result["npcs_moved"] += int(npc_moved)
+            result["npcs_updated"] += int(npc_updated)
         result["player_descs_updated"] += int(_ensure_hina_desc())
 
     from world.account_tools import ensure_first_player_account_is_gm
@@ -1424,28 +1478,27 @@ def _check_room_exits(scope, issues, stats):
 
 
 def _check_npcs(scope, issues, stats):
-    if ROSIE_HOME not in scope and len(scope) != len(ROOM_DEFS):
-        return
+    for npc_key, npc_spec in _npc_defs_for_scope(scope).items():
+        npc = _find_by_key(npc_key)
+        if not npc:
+            issues.append(f"- 缺少 NPC `{npc_key}`。")
+            stats["npcs_missing"] += 1
+            continue
 
-    rosie = _find_by_key(ROSIE_KEY)
-    if not rosie:
-        issues.append(f"- 缺少 NPC `{ROSIE_KEY}`。")
-        stats["npcs_missing"] += 1
-        return
-
-    target_room = _find_room(ROSIE_HOME)
-    if target_room and rosie.location != target_room:
-        issues.append(
-            f"- `{ROSIE_KEY}` 目前在 `{_find_room_name_for_obj(rosie)}`，預期應在 `{ROSIE_HOME}`。"
-        )
-        stats["npcs_misplaced"] += 1
-    if not _matches_desc(rosie, ROSIE_DESC):
-        issues.append(f"- `{ROSIE_KEY}` 描述與規格不一致。")
-        stats["npc_desc_updates"] += 1
-    missing_aliases = _missing_aliases(rosie, ROSIE_ALIASES)
-    if missing_aliases:
-        issues.append(f"- `{ROSIE_KEY}` 缺少 alias：{_format_list(missing_aliases)}。")
-        stats["npc_aliases_missing"] += len(missing_aliases)
+        target_room_name = npc_spec["room"]
+        target_room = _find_room(target_room_name)
+        if target_room and npc.location != target_room:
+            issues.append(
+                f"- `{npc_key}` 目前在 `{_find_room_name_for_obj(npc)}`，預期應在 `{target_room_name}`。"
+            )
+            stats["npcs_misplaced"] += 1
+        if not _matches_desc(npc, npc_spec.get("desc", "")):
+            issues.append(f"- `{npc_key}` 描述與規格不一致。")
+            stats["npc_desc_updates"] += 1
+        missing_aliases = _missing_aliases(npc, npc_spec.get("aliases", []))
+        if missing_aliases:
+            issues.append(f"- `{npc_key}` 缺少 alias：{_format_list(missing_aliases)}。")
+            stats["npc_aliases_missing"] += len(missing_aliases)
 
 
 def analyze_agent_world(room_name=None, components=None):

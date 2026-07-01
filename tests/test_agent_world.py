@@ -51,13 +51,15 @@ sys.modules["evennia.commands.command"].Command = MagicMock()
 # 4. Mock typeclasses
 sys.modules["typeclasses.exits"] = ModuleType("typeclasses.exits")
 sys.modules["typeclasses.exits"].Exit = MagicMock()
+sys.modules["typeclasses.npcs"] = ModuleType("typeclasses.npcs")
+setattr(sys.modules["typeclasses.npcs"], "NPC", MagicMock())
 sys.modules["typeclasses.objects"] = ModuleType("typeclasses.objects")
 sys.modules["typeclasses.objects"].Object = MagicMock()
 sys.modules["typeclasses.rooms"] = ModuleType("typeclasses.rooms")
 sys.modules["typeclasses.rooms"].Room = MagicMock()
 
 from world import agent_world
-from world.agent_world import ROOM_DEFS, LIMBO_ROOM_KEY
+from world.agent_world import ROOM_DEFS, LIMBO_ROOM_KEY, ROSIE_HOME, ROSIE_KEY
 
 
 class _FakeQuerySet(list):
@@ -67,6 +69,7 @@ class _FakeQuerySet(list):
 
 class TestAgentWorld(unittest.TestCase):
     def setUp(self):
+        evennia.create_object.reset_mock()
         evennia.search_object.reset_mock()
         agent_world.ObjectDB.objects.filter.reset_mock()
 
@@ -108,6 +111,40 @@ class TestAgentWorld(unittest.TestCase):
 
         self.assertIs(result, cached_room)
         evennia.search_object.assert_called_with("迎賓大廳", exact=True)
+
+    def test_rosie_is_promoted_to_npc_defs(self):
+        self.assertIn(ROSIE_KEY, agent_world.NPC_DEFS)
+        spec = agent_world.NPC_DEFS[ROSIE_KEY]
+        self.assertEqual(spec["room"], ROSIE_HOME)
+        self.assertIn("蘿西", spec["aliases"])
+        self.assertFalse(spec["attributes"]["npc_attackable"])
+
+    def test_npc_defs_are_filtered_by_scope(self):
+        self.assertEqual(agent_world._npc_defs_for_scope(["訓練廳"]), {})
+        self.assertIn(ROSIE_KEY, agent_world._npc_defs_for_scope([ROSIE_HOME]))
+
+    def test_ensure_npc_creates_missing_rosie(self):
+        room = MagicMock()
+        npc = MagicMock()
+        evennia.create_object.return_value = npc
+        agent_world.ObjectDB.objects.filter.return_value = _FakeQuerySet()
+        evennia.search_object.return_value = []
+
+        result, created, moved, updated = agent_world._ensure_npc(
+            ROSIE_KEY, agent_world.NPC_DEFS[ROSIE_KEY], {ROSIE_HOME: room}
+        )
+
+        self.assertIs(result, npc)
+        self.assertTrue(created)
+        self.assertFalse(moved)
+        self.assertFalse(updated)
+        evennia.create_object.assert_called_once()
+        kwargs = evennia.create_object.call_args.kwargs
+        self.assertEqual(kwargs["key"], ROSIE_KEY)
+        self.assertIs(kwargs["location"], room)
+        self.assertIs(kwargs["home"], room)
+        self.assertIn("蘿西", kwargs["aliases"])
+        self.assertIn(("is_npc", True), kwargs["attributes"])
 
 
 if __name__ == "__main__":

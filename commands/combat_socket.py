@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from evennia import Command
 
-GEM_DB = {
-    "ruby": {"name": "紅寶石", "stats": {"str": 3, "stamina": 1}},
-    "sapphire": {"name": "藍寶石", "stats": {"intel": 3, "spirit": 1}},
-    "emerald": {"name": "綠寶石", "stats": {"agility": 3, "spd": 1}},
-}
+from world.gem_tools import GemSpecError, gem_ids, get_gem_by_id
 
 STAT_LABELS = {
     "str": "力量",
@@ -14,12 +10,19 @@ STAT_LABELS = {
     "intel": "智力",
     "spirit": "精神",
     "agility": "敏捷",
+    "agi": "敏捷",
     "spd": "速度",
+    "def": "防禦",
+    "atk": "攻擊",
+    "hp": "生命",
+    "mp": "魔力",
+    "max_hp": "生命上限",
+    "max_mp": "魔力上限",
 }
 
 
 class CmdSocketGem(Command):
-    """鑲嵌寶石指令。"""
+    """鑲嵌持久 Gem 物件 reference 的指令。"""
 
     key = "socket"
     aliases = ["鑲嵌", "gem"]
@@ -33,8 +36,10 @@ class CmdSocketGem(Command):
             return
 
         gem_id, slot_num = args[0], args[1]
-        if gem_id not in GEM_DB:
-            caller.msg(f"找不到這種寶石。可用寶石：{', '.join(GEM_DB.keys())}")
+        try:
+            gem = get_gem_by_id(gem_id, require_enabled=True)
+        except GemSpecError:
+            caller.msg(f"找不到這種寶石。可用寶石：{', '.join(gem_ids(enabled_only=True))}")
             return
 
         max_sockets = getattr(caller.db, "max_sockets", 3) or 3
@@ -49,15 +54,16 @@ class CmdSocketGem(Command):
             caller.msg("槽位必須是數字。")
             return
 
-        gem_data = GEM_DB[gem_id]
         sockets = getattr(caller.db, "sockets", None) or {}
         caller.db.sockets = sockets
-        caller.db.sockets[slot_id] = gem_data
+        caller.db.sockets[slot_id] = gem
 
+        gem_name = getattr(gem.db, "display_name", None) or gem.key
+        gem_stats = getattr(gem.db, "stats", {}) or {}
         stats_msg = ", ".join(
-            [f"{STAT_LABELS.get(k, k)} +{v}" for k, v in gem_data["stats"].items()]
-        )
-        caller.msg(f"💎 你將 {gem_data['name']} 鑲嵌到了{slot_label}！")
+            [f"{STAT_LABELS.get(k, k)} +{v}" for k, v in gem_stats.items()]
+        ) or "無"
+        caller.msg(f"💎 你將 {gem_name} 鑲嵌到了{slot_label}！")
         caller.msg(f"屬性提升：{stats_msg}")
 
 

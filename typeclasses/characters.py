@@ -201,9 +201,13 @@ class Character(ObjectParent, GenderCharacter, ContribRPCharacter):
         sockets = getattr(self.db, "sockets", {}) or {}
         for gem in sockets.values():
             if hasattr(gem, "get"):
+                # Legacy socket snapshot: {"name": ..., "stats": {...}}
                 gem_stats = gem.get("stats", {}) or {}
+            elif hasattr(gem, "db"):
+                # Persistent Gem object reference/dbref stored by AttributeHandler.
+                gem_stats = getattr(gem.db, "stats", {}) or {}
             else:
-                gem_stats = getattr(gem, "stats", {})
+                gem_stats = {}
             bonus += gem_stats.get(stat_name, 0)
 
         return base_val + bonus
