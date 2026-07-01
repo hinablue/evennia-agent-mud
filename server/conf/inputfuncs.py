@@ -23,6 +23,60 @@
 
     預設（會話、cmdname、*args、**kwargs）"""
 
+def _mcp_payload(args, kwargs):
+    """Normalize MCP auth input from v1 websocket args/kwargs."""
+
+    payload = args[0] if args and isinstance(args[0], dict) else {}
+    token = kwargs.get("token") or payload.get("token")
+    character = kwargs.get("character") or payload.get("character")
+    return token, character
+
+
+def mcp_auth(session, *args, **kwargs):
+    """Authenticate a websocket session with an MCP bearer token.
+
+    This inputfunc is intentionally not a normal in-game command. The MCP server
+    sends a v1 websocket frame like::
+
+        ["mcp_auth", [{"token": "mcp_xxx"}], {"cmdid": "..."}]
+
+    Evennia resolves the opaque token locally and logs the session in as the
+    bound account, optionally puppeting the bound character.
+    """
+
+    token, character_override = _mcp_payload(args, kwargs)
+    if not token:
+        session.msg(text="|RMCP token login 失敗：缺少 token。|n")
+        return
+
+    from world.mcp_token_tools import MCPTokenError, authenticate_mcp_token
+
+    try:
+        identity = authenticate_mcp_token(token, character=character_override)
+    except MCPTokenError as exc:
+        session.msg(text=f"|RMCP token login 失敗：{exc}|n")
+        return
+
+    session.ndb.mcp_token_id = identity.token_id
+    session.ndb.mcp_scopes = identity.scopes
+    session.sessionhandler.login(session, identity.account)
+
+    if identity.character:
+        try:
+            identity.account.puppet_object(session, identity.character)
+            identity.account.db._last_puppet = identity.character
+        except Exception as exc:  # pragma: no cover - Evennia reports details in logs.
+            session.msg(text=f"|y已登入帳號，但角色切換失敗：{exc}|n")
+            return
+
+    session.msg(
+        text=(
+            f"|gMCP token login 成功：{identity.account.key}"
+            f" / {identity.character.key if identity.character else 'OOC'}|n"
+        )
+    )
+
+
 # def oob_echo(會話, *args, **kwargs):
 #     """
 # 範例迴聲函數。回顯發送給它的 args、kwargs。
