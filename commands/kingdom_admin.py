@@ -41,7 +41,8 @@ class CmdKingdomAdmin(MuxCommand):
         return bool(perms & {"gm", "developer", "admin"})
 
     def _has_king_access(self):
-        return self._has_staff_access() or "King" in self._caller_permissions()
+        perms = {perm.lower() for perm in (self._caller_permissions() or [])}
+        return self._has_staff_access() or "king" in perms
 
     def _ensure_switch_access(self):
         active_switches = set(self.switches)

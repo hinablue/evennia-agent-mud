@@ -6,6 +6,18 @@
 from evennia.accounts.models import AccountDB
 
 
+def _get_kingdom_tag(obj):
+    """Return the first ``kingdom:<name>`` ownership tag key on an object."""
+
+    if not hasattr(obj, "tags"):
+        return ""
+    for tag in obj.tags.all():
+        key = getattr(tag, "key", str(tag))
+        if key.startswith("kingdom:"):
+            return key
+    return ""
+
+
 def is_gm(accessing_obj, accessed_obj, *args, **kwargs):
     """GM（管理員/開發人員）權限檢查。"""
     if not hasattr(accessing_obj, "account"):
@@ -42,9 +54,7 @@ def is_king_of(accessing_obj, accessed_obj, *args, **kwargs):
         char.account.check_permstring("King") and getattr(char.db, "is_king", False)
     ):
         return False
-    kingdom_tag = accessed_obj.tags.get(
-        category="ownership", key__startswith="kingdom:"
-    )
+    kingdom_tag = _get_kingdom_tag(accessed_obj)
     if not kingdom_tag:
         return False
     kingdom_key = kingdom_tag.split(":", 1)[1]
@@ -58,9 +68,7 @@ def is_same_kingdom(accessing_obj, accessed_obj, *args, **kwargs):
     nat = getattr(accessing_obj.db, "nationality", "")
     if not nat:
         return False
-    kingdom_tag = accessed_obj.tags.get(
-        category="ownership", key__startswith="kingdom:"
-    )
+    kingdom_tag = _get_kingdom_tag(accessed_obj)
     if not kingdom_tag:
         return False
     return kingdom_tag.split(":", 1)[1] == nat

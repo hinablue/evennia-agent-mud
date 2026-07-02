@@ -1,6 +1,17 @@
 """Kingdom (國家) script and tools for GM/King/Player hierarchy."""
 
-from evennia import DefaultScript, create_object, search_object
+from evennia import DefaultScript
+try:
+    from evennia import search_script as search_object
+except ImportError:  # unit-test stubs / older compatibility
+    from evennia import search_object
+try:
+    from evennia.utils.create import create_script
+except ImportError:  # unit-test stubs / older compatibility
+    from evennia import create_object
+
+    def create_script(typeclass, key, persistent=True):
+        return create_object(typeclass, key=key)
 from evennia.utils.utils import inherits_from
 
 from typeclasses.exits import Exit
@@ -121,7 +132,7 @@ def create_kingdom(king_char, kingdom_name, entrance_room, room_quota):
     if existing:
         raise ValueError(f"國名已存在：{kingdom_name}")
 
-    kingdom = create_object(Kingdom, key=kingdom_name)
+    kingdom = create_script(typeclass=Kingdom, key=kingdom_name, persistent=True)
     kingdom.set_king(king_char)
     kingdom.set_entrance_room(entrance_room)
     kingdom.db.room_quota = room_quota
@@ -163,6 +174,7 @@ def create_kingdom_channels(kingdom_key, king_char):
         locks=f"listen:is_same_kingdom();send:is_same_kingdom()",
         desc=f"{kingdom_key} 國公共頻道",
     )
+    chan.tags.add(f"kingdom:{kingdom_key}", category="ownership")
     chan.connect(king_char)
     return chan
 

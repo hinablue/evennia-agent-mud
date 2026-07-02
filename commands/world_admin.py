@@ -96,7 +96,8 @@ class CmdAgentWorld(MuxCommand):
     def _has_king_world_access(self):
         """檢查呼叫者是否可以使用 King 允許的 @agentworld 開關。"""
 
-        return self._has_staff_world_access() or "King" in self._caller_permissions()
+        perms = {perm.lower() for perm in (self._caller_permissions() or [])}
+        return self._has_staff_world_access() or "king" in perms
 
     def _ensure_switch_access(self):
         """驗證@agentworld 的每個交換器存取權限。"""
@@ -227,7 +228,7 @@ class CmdAgentWorld(MuxCommand):
             f"- Builder 房間總數：{build['rooms_total']}\n"
             f"- Builder 新增房間：{build['rooms_created']}\n"
             f"- Builder 新增出口：{build['exits_created']}\n"
-            f"- Builder 新增 NPC：{build['npcs_created']}\n"
+            f"- Builder 新增 NPC：{build.get('npcs_created', 0)}\n"
             f"{bootstrap_line}"
             f"- XYZGrid 房間：{xyzgrid['rooms']}\n"
             f"- XYZGrid 出口：{xyzgrid['exits']}\n"
