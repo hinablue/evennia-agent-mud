@@ -227,6 +227,7 @@ XYZGrid 地圖與遷移工具。
 | `equipment` | player_commands.py | 裝備欄位 |
 | `shop` / `buy` | player_commands.py | 商店/購買 |
 | `socket` | combat_socket.py | 鑲嵌寶石 |
+| `emote` / `say` / `sdesc` / `pose` / `recog` / `mask` | rp_commands.py | RPSystem 動作、說話、短描、姿態、辨認、面具；含繁中 alias |
 
 ---
 

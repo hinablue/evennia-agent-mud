@@ -22,9 +22,9 @@ from evennia.contrib.game_systems.storage import StorageCmdSet
 from evennia.contrib.grid import extended_room, mapbuilder, simpledoor, slow_exit
 from evennia.contrib.grid.ingame_map_display import MapDisplayCmdSet
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
-from evennia.contrib.rpg.rpsystem import RPSystemCmdSet
-
 from typeclasses.llm_npc import CmdLocalLLMTalk
+
+from .rp_commands import GameRPSystemCmdSet
 
 from .account_admin import CmdAgentAccount
 from .account_character_commands import (
@@ -93,7 +93,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(ContainerCmdSet)
         self.add(SetGender())
         self.add(StorageCmdSet)
-        self.add(RPSystemCmdSet())
+        self.add(GameRPSystemCmdSet())
 
         self.add(CmdCombatAttack())
         self.add(CmdCombatSkill())

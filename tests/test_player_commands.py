@@ -178,6 +178,7 @@ def _install_evennia_stubs():
     register_module("evennia.utils.utils")
     register_module("evennia.commands")
     register_module("evennia.commands.command", Command=_StubBaseCommand)
+    register_module("evennia.commands.cmdset", CmdSet=_StubBaseCmdSet)
 
     module_attrs = {
         "evennia.contrib.grid.extended_room": {
@@ -224,7 +225,12 @@ def _install_evennia_stubs():
             "StorageCmdSet": type("StorageCmdSet", (), {})
         },
         "evennia.contrib.rpg.rpsystem": {
-            "RPSystemCmdSet": type("RPSystemCmdSet", (), {})
+            "CmdEmote": type("CmdEmote", (_StubBaseCommand,), {"key": "emote"}),
+            "CmdSay": type("CmdSay", (_StubBaseCommand,), {"key": "say"}),
+            "CmdSdesc": type("CmdSdesc", (_StubBaseCommand,), {"key": "sdesc"}),
+            "CmdPose": type("CmdPose", (_StubBaseCommand,), {"key": "pose"}),
+            "CmdRecog": type("CmdRecog", (_StubBaseCommand,), {"key": "recog"}),
+            "CmdMask": type("CmdMask", (_StubBaseCommand,), {"key": "mask"}),
         },
         "commands.account_character_commands": {
             "CmdCharacterRoster": type("CmdCharacterRoster", (), {}),
@@ -243,6 +249,7 @@ def _install_evennia_stubs():
         },
         "commands.combat_socket": {"CmdSocketGem": type("CmdSocketGem", (), {})},
         "commands.equipment_admin": {"CmdAgentWeapon": type("CmdAgentWeapon", (), {})},
+        "commands.gem_admin": {"CmdAgentGem": type("CmdAgentGem", (), {})},
         "commands.kingdom_admin": {"CmdKingdomAdmin": type("CmdKingdomAdmin", (), {})},
         "commands.npc_admin": {"CmdAgentNPC": type("CmdAgentNPC", (), {})},
         "commands.object_admin": {"CmdAgentObject": type("CmdAgentObject", (), {})},
@@ -260,6 +267,7 @@ def _install_evennia_stubs():
 
 _install_evennia_stubs()
 player_commands = importlib.import_module("commands.player_commands")
+rp_commands = importlib.import_module("commands.rp_commands")
 default_cmdsets = importlib.import_module("commands.default_cmdsets")
 
 CmdStatus = player_commands.CmdStatus
@@ -272,6 +280,13 @@ CmdRemoveEquipment = player_commands.CmdRemoveEquipment
 CmdCoverEquipment = player_commands.CmdCoverEquipment
 CmdUncoverEquipment = player_commands.CmdUncoverEquipment
 CharacterCmdSet = default_cmdsets.CharacterCmdSet
+GameRPSystemCmdSet = rp_commands.GameRPSystemCmdSet
+CmdGameEmote = rp_commands.CmdGameEmote
+CmdGameSay = rp_commands.CmdGameSay
+CmdGameSdesc = rp_commands.CmdGameSdesc
+CmdGamePose = rp_commands.CmdGamePose
+CmdGameRecog = rp_commands.CmdGameRecog
+CmdGameMask = rp_commands.CmdGameMask
 
 
 class TestPlayerCommands(unittest.TestCase):
@@ -476,6 +491,50 @@ class TestPlayerCommands(unittest.TestCase):
 
 class TestPlayerCommandRegistration(unittest.TestCase):
     """Verify that player-facing commands are actually registered live."""
+
+    def test_game_rp_commands_expose_chinese_aliases(self):
+        """Game RP commands should provide safe Traditional Chinese aliases."""
+        self.assertIn("動作", CmdGameEmote.aliases)
+        self.assertIn("表情", CmdGameEmote.aliases)
+        self.assertIn("說", CmdGameSay.aliases)
+        self.assertIn("講", CmdGameSay.aliases)
+        self.assertIn("短描", CmdGameSdesc.aliases)
+        self.assertIn("外貌", CmdGameSdesc.aliases)
+        self.assertIn("姿態", CmdGamePose.aliases)
+        self.assertIn("姿勢", CmdGamePose.aliases)
+        self.assertIn("認出", CmdGameRecog.aliases)
+        self.assertIn("記住", CmdGameRecog.aliases)
+        self.assertIn("忘記", CmdGameRecog.aliases)
+        self.assertIn("面具", CmdGameMask.aliases)
+        self.assertIn("偽裝", CmdGameMask.aliases)
+        self.assertIn("卸下面具", CmdGameMask.aliases)
+        self.assertIn("脫下面具", CmdGameMask.aliases)
+
+    def test_game_rp_aliases_preserve_cmdstring_branching(self):
+        """Chinese aliases that branch on cmdstring should normalize safely."""
+        self.assertEqual(CmdGameRecog.normalize_cmdstring("忘記"), "forget")
+        self.assertEqual(CmdGameRecog.normalize_cmdstring("認出"), "認出")
+        self.assertEqual(CmdGameMask.normalize_cmdstring("面具"), "mask")
+        self.assertEqual(CmdGameMask.normalize_cmdstring("偽裝"), "mask")
+        self.assertEqual(CmdGameMask.normalize_cmdstring("卸下面具"), "unmask")
+        self.assertEqual(CmdGameMask.normalize_cmdstring("脫下面具"), "unmask")
+        self.assertEqual(CmdGameMask.normalize_cmdstring("解除偽裝"), "unmask")
+
+    def test_game_rp_cmdset_registers_upstream_rp_commands(self):
+        """GameRPSystemCmdSet should mirror the six contrib RP commands."""
+        cmdset = GameRPSystemCmdSet()
+        cmdset.at_cmdset_creation()
+
+        keys = sorted(cmd.key for cmd in cmdset.commands if getattr(cmd, "key", None))
+        self.assertEqual(keys, ["emote", "mask", "pose", "recog", "say", "sdesc"])
+
+    def test_character_cmdset_uses_game_rp_cmdset(self):
+        """CharacterCmdSet should mount the game-owned RP cmdset wrapper."""
+        cmdset = CharacterCmdSet()
+        cmdset.at_cmdset_creation()
+
+        keys = [getattr(cmd, "key", None) for cmd in cmdset.commands]
+        self.assertIn("agent_mud_rpsystem_cmdset", keys)
 
     def test_character_cmdset_registers_player_commands(self):
         """CharacterCmdSet should include all player-facing commands."""
