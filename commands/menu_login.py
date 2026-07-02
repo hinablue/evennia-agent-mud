@@ -57,7 +57,7 @@ def node_enter_username(caller, raw_text, **kwargs):
     """顯示連線畫面並要求輸入帳號名稱。"""
 
     def _check_input(caller, username, **kwargs):
-        username = username.rstrip("\n")
+        username = username.replace("\x00", "").strip()
 
         if username == "guest" and _GUEST_ENABLED:
             session = caller
@@ -111,7 +111,7 @@ def node_enter_password(caller, raw_string, **kwargs):
     def _check_input(caller, password, **kwargs):
         username = kwargs["username"]
         new_user = kwargs["new_user"]
-        password = password.rstrip("\n")
+        password = password.replace("\x00", "").rstrip("\r\n")
 
         session = caller
         address = session.address

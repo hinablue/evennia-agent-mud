@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from django.conf import settings
+
 from evennia import search_account
 from evennia.utils.search import search_object
 from evennia.accounts.models import AccountDB
-from evennia.utils.utils import make_iter
+from evennia.utils.utils import class_from_module, make_iter
 from evennia.utils import logger
 from world.kingdom import get_kingdom_by_name
 
@@ -116,9 +118,8 @@ def create_account(account_name, password, email=None):
     if not password:
         raise AccountSpecError("create 需要密碼。")
 
-    from evennia.accounts.accounts import DefaultAccount
-
-    account, errors = DefaultAccount.create(
+    account_typeclass = class_from_module(settings.BASE_ACCOUNT_TYPECLASS)
+    account, errors = account_typeclass.create(
         username=account_name,
         password=password,
         email=email or "",

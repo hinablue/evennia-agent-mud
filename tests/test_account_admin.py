@@ -16,6 +16,13 @@ def _install_evennia_stubs():
     evennia.search_account = MagicMock(return_value=[])
     sys.modules["evennia"] = evennia
 
+    django_module = ModuleType("django")
+    django_conf = ModuleType("django.conf")
+    django_conf.settings = SimpleNamespace(BASE_ACCOUNT_TYPECLASS="typeclasses.accounts.Account")
+    django_module.conf = django_conf
+    sys.modules["django"] = django_module
+    sys.modules["django.conf"] = django_conf
+
     accounts_models = ModuleType("evennia.accounts.models")
     accounts_models.AccountDB = SimpleNamespace(objects=SimpleNamespace(all=lambda: []))
 
@@ -32,15 +39,16 @@ def _install_evennia_stubs():
 
     accounts_accounts = ModuleType("evennia.accounts.accounts")
 
-    class DefaultAccount:
-        """Minimal DefaultAccount stub."""
+    class GameAccount:
+        """Minimal game account typeclass stub."""
 
         create = MagicMock(return_value=(None, []))
 
-    accounts_accounts.DefaultAccount = DefaultAccount
+    accounts_accounts.DefaultAccount = GameAccount
     sys.modules["evennia.accounts.accounts"] = accounts_accounts
 
     utils_utils = ModuleType("evennia.utils.utils")
+    utils_utils.class_from_module = MagicMock(return_value=GameAccount)
     utils_utils.make_iter = lambda value: (
         value if isinstance(value, (list, tuple, set)) else [value]
     )
@@ -107,35 +115,30 @@ class AccountToolsTests(unittest.TestCase):
 
         account = SimpleNamespace(key="hinablue", permissions=SimpleNamespace(all=lambda: []))
 
-        default_account = sys.modules["evennia.accounts.accounts"].DefaultAccount
-        with patch.object(
-            default_account,
-            "create",
-            return_value=(account, []),
-        ) as creator:
+        game_account = SimpleNamespace(create=MagicMock(return_value=(account, [])))
+        with patch.object(account_tools, "class_from_module", return_value=game_account) as resolver:
             result = account_tools.create_account(
                 "hinablue",
                 "stardust11",
                 email="hina@example.com",
             )
 
-        creator.assert_called_once_with(
+        resolver.assert_called_once_with("typeclasses.accounts.Account")
+        game_account.create.assert_called_once_with(
             username="hinablue",
             password="stardust11",
             email="hina@example.com",
         )
-        self.assertIn("已建立 Account `hinablue`", result["message"])
+        self.assertIn("已建立帳號 `hinablue`", result["message"])
         self.assertIn("hina@example.com", result["message"])
 
     def test_create_account_surfaces_evennia_validation_errors(self):
         """Evennia validation failures should become AccountSpecError messages."""
 
-        default_account = sys.modules["evennia.accounts.accounts"].DefaultAccount
-        with patch.object(
-            default_account,
-            "create",
-            return_value=(None, ["A user with that username already exists."]),
-        ):
+        game_account = SimpleNamespace(
+            create=MagicMock(return_value=(None, ["A user with that username already exists."]))
+        )
+        with patch.object(account_tools, "class_from_module", return_value=game_account):
             with self.assertRaises(AccountSpecError) as err:
                 account_tools.create_account("hinablue", "stardust11")
 
@@ -244,7 +247,7 @@ class AccountToolsTests(unittest.TestCase):
             result = account_tools.delete_account("hinablue")
 
         account.delete.assert_called_once_with()
-        self.assertIn("已刪除 Account `hinablue`", result["message"])
+        self.assertIn("已刪除帳號 `hinablue`", result["message"])
         self.assertIn("2 個角色", result["message"])
 
     def test_delete_account_rejects_superuser(self):
