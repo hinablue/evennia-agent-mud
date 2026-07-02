@@ -9,7 +9,7 @@ from evennia import create_object, search_object
 from evennia.objects.models import ObjectDB
 
 from typeclasses.exits import Exit
-from typeclasses.npcs import NPC
+from typeclasses.npcs import LLMNPC, NPC
 from typeclasses.objects import Object
 from typeclasses.rooms import Room
 
@@ -25,14 +25,14 @@ ROSIE_DESC = (
 )
 NPC_DEFS = {
     ROSIE_KEY: {
-        "typeclass": NPC,
+        "typeclass": LLMNPC,
         "room": ROSIE_HOME,
         "aliases": ROSIE_ALIASES,
         "desc": ROSIE_DESC,
         "attributes": {
             "is_npc": True,
             "sdesc": "若熙",
-            "npc_kind": "npc",
+            "npc_kind": "llm",
             "npc_attackable": False,
             "npc_retaliates": False,
             "npc_can_die": False,

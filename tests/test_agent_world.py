@@ -53,6 +53,7 @@ sys.modules["typeclasses.exits"] = ModuleType("typeclasses.exits")
 sys.modules["typeclasses.exits"].Exit = MagicMock()
 sys.modules["typeclasses.npcs"] = ModuleType("typeclasses.npcs")
 setattr(sys.modules["typeclasses.npcs"], "NPC", MagicMock())
+setattr(sys.modules["typeclasses.npcs"], "LLMNPC", MagicMock())
 sys.modules["typeclasses.objects"] = ModuleType("typeclasses.objects")
 sys.modules["typeclasses.objects"].Object = MagicMock()
 sys.modules["typeclasses.rooms"] = ModuleType("typeclasses.rooms")
@@ -117,6 +118,7 @@ class TestAgentWorld(unittest.TestCase):
         spec = agent_world.NPC_DEFS[ROSIE_KEY]
         self.assertEqual(spec["room"], ROSIE_HOME)
         self.assertIn("若熙", spec["aliases"])
+        self.assertEqual(spec["attributes"]["npc_kind"], "llm")
         self.assertFalse(spec["attributes"]["npc_attackable"])
 
     def test_npc_defs_are_filtered_by_scope(self):
