@@ -159,6 +159,9 @@ class Character(ObjectParent, GenderCharacter, ContribRPCharacter):
             if self.attributes.get(key) is None:
                 self.attributes.add(key, value)
 
+        # 複寫 sdesc (RPSystem 需要)
+        self.sdesc.add(self.key)
+
     def at_cmdset_get(self, **kwargs):
         """根據目前戰鬥狀態切換僅限戰鬥的命令集。"""
         super().at_cmdset_get(**kwargs)

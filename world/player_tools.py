@@ -190,12 +190,12 @@ def summarize_player(char_key):
     lines = [f"玩家：{obj.key}"]
     lines.append(f"- 房間：{_find_room_name_for_obj(obj)}")
     lines.append(
-        f"- home：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}"
+        f"- 家：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}"
     )
     lines.append(f"- 別名：{_format_list(_current_aliases(obj))}")
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
     lines.append(f"- 擁有帳號：{_format_list(account.key for account in owners)}")
-    lines.append(f"- typeclass：{obj.typeclass_path}")
+    lines.append(f"- 分類：{obj.typeclass_path}")
     return "\n".join(lines)
 
 

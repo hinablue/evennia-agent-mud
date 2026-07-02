@@ -338,7 +338,7 @@ def create_npc(kind, npc_key, room_name, desc=None, aliases=None, prompt_prefix=
     )
     typeclass = LLMNPC if kind == "llm" else NPC
 
-    attributes = [("desc", desc), ("is_npc", True), ("npc_kind", kind), ("sdesc", npc_key)]
+    attributes = [("desc", desc), ("is_npc", True), ("npc_kind", kind)]
     for attr_name, value in NPC_COMBAT_DEFAULTS.items():
         attributes.append((attr_name, value))
     if kind == "llm":
