@@ -144,6 +144,25 @@ def _truncate(text, limit=140):
     return text[: limit - 1] + "…"
 
 
+def _get_sdesc(obj):
+    try:
+        return _clean_text(obj.sdesc.get())
+    except AttributeError:
+        return _clean_text(getattr(obj.db, "_sdesc", "")) or _clean_text(obj.key)
+
+
+def _set_sdesc(obj, sdesc):
+    sdesc = _clean_text(sdesc)
+    if not sdesc:
+        raise NPCSpecError("sdesc 需要新的短描。")
+    try:
+        return obj.sdesc.add(sdesc)
+    except AttributeError as exc:
+        raise NPCSpecError(f"`{obj.key}` 不支援 sdesc。") from exc
+    except Exception as exc:
+        raise NPCSpecError(f"設定 sdesc 失敗：{exc}") from exc
+
+
 def _format_combat_flags(obj):
     return (
         f"可被攻擊：{'是' if getattr(obj.db, 'npc_attackable', True) else '否'}｜"
@@ -262,6 +281,7 @@ def summarize_npc(npc_key):
     lines.append(f"- 類型：{_npc_kind(obj)}")
     lines.append(f"- 房間：{_find_room_name_for_obj(obj)}")
     lines.append(f"- aliases：{_format_list(_current_aliases(obj))}")
+    lines.append(f"- 短描：{_get_sdesc(obj) or '無'}")
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
     lines.append(f"- 等級/重生：{_format_npc_level(obj)}")
     lines.append(f"- 戰鬥旗標：{_format_combat_flags(obj)}")
@@ -382,6 +402,16 @@ def set_npc_desc(npc_key, desc):
     return {
         "npc": obj,
         "message": f"已更新 `{obj.key}` 的描述。",
+    }
+
+
+def set_npc_sdesc(npc_key, sdesc):
+    obj = _get_npc_or_error(npc_key)
+    applied = _set_sdesc(obj, sdesc)
+    obj.save()
+    return {
+        "npc": obj,
+        "message": f"已更新 `{obj.key}` 的短描：{applied}。",
     }
 
 

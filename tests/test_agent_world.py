@@ -116,7 +116,7 @@ class TestAgentWorld(unittest.TestCase):
         self.assertIn(ROSIE_KEY, agent_world.NPC_DEFS)
         spec = agent_world.NPC_DEFS[ROSIE_KEY]
         self.assertEqual(spec["room"], ROSIE_HOME)
-        self.assertIn("蘿西", spec["aliases"])
+        self.assertIn("若熙", spec["aliases"])
         self.assertFalse(spec["attributes"]["npc_attackable"])
 
     def test_npc_defs_are_filtered_by_scope(self):
@@ -143,8 +143,32 @@ class TestAgentWorld(unittest.TestCase):
         self.assertEqual(kwargs["key"], ROSIE_KEY)
         self.assertIs(kwargs["location"], room)
         self.assertIs(kwargs["home"], room)
-        self.assertIn("蘿西", kwargs["aliases"])
+        self.assertIn("若熙", kwargs["aliases"])
         self.assertIn(("is_npc", True), kwargs["attributes"])
+        self.assertNotIn(("sdesc", "若熙"), kwargs["attributes"])
+        npc.sdesc.add.assert_called_once_with("若熙")
+
+    def test_ensure_npc_updates_existing_sdesc(self):
+        room = MagicMock()
+        npc = MagicMock()
+        npc.location = room
+        npc.home = room
+        npc.db.desc = agent_world.NPC_DEFS[ROSIE_KEY]["desc"]
+        npc.sdesc.get.return_value = "舊短描"
+        npc.aliases.all.return_value = agent_world.NPC_DEFS[ROSIE_KEY]["aliases"]
+        agent_world.ObjectDB.objects.filter.return_value = _FakeQuerySet([npc])
+        evennia.search_object.return_value = []
+
+        result, created, moved, updated = agent_world._ensure_npc(
+            ROSIE_KEY, agent_world.NPC_DEFS[ROSIE_KEY], {ROSIE_HOME: room}
+        )
+
+        self.assertIs(result, npc)
+        self.assertFalse(created)
+        self.assertFalse(moved)
+        self.assertTrue(updated)
+        npc.sdesc.add.assert_called_once_with("若熙")
+        npc.save.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -166,6 +166,25 @@ def _truncate(text, limit=160):
     return text[: limit - 1] + "…"
 
 
+def _get_sdesc(obj):
+    try:
+        return _clean_text(obj.sdesc.get())
+    except AttributeError:
+        return _clean_text(getattr(obj.db, "_sdesc", "")) or _clean_text(obj.key)
+
+
+def _set_sdesc(obj, sdesc):
+    sdesc = _clean_text(sdesc)
+    if not sdesc:
+        raise PlayerSpecError("sdesc 需要新的短描。")
+    try:
+        return obj.sdesc.add(sdesc)
+    except AttributeError as exc:
+        raise PlayerSpecError(f"`{obj.key}` 不支援 sdesc。") from exc
+    except Exception as exc:
+        raise PlayerSpecError(f"設定 sdesc 失敗：{exc}") from exc
+
+
 def _apply_character_owner_locks(character, owners):
     owners = list(dict.fromkeys(owner for owner in owners if owner))
     puppet_parts = (
@@ -193,6 +212,7 @@ def summarize_player(char_key):
         f"- 家：{getattr(getattr(obj, 'home', None), 'key', '無') if getattr(obj, 'home', None) else '無'}"
     )
     lines.append(f"- 別名：{_format_list(_current_aliases(obj))}")
+    lines.append(f"- 短描：{_get_sdesc(obj) or '無'}")
     lines.append(f"- 描述：{_clean_text(getattr(obj.db, 'desc', '')) or '無'}")
     lines.append(f"- 擁有帳號：{_format_list(account.key for account in owners)}")
     lines.append(f"- 分類：{obj.typeclass_path}")
@@ -368,6 +388,16 @@ def set_player_desc(char_key, desc):
     return {
         "player": obj,
         "message": f"已更新 `{obj.key}` 的描述。",
+    }
+
+
+def set_player_sdesc(char_key, sdesc):
+    obj = _get_player_or_error(char_key)
+    applied = _set_sdesc(obj, sdesc)
+    obj.save()
+    return {
+        "player": obj,
+        "message": f"已更新 `{obj.key}` 的短描：{applied}。",
     }
 
 

@@ -19,6 +19,7 @@ from world.npc_tools import (
     set_npc_flee,
     set_npc_level,
     set_npc_loot_table,
+    set_npc_sdesc,
     set_npc_skills,
     set_npc_stats,
     set_npc_tokens,
@@ -40,6 +41,7 @@ class CmdAgentNPC(MuxCommand):
       @agentnpc/create llm 檔案員=觀測室|她說話很輕，像怕打擾到房間裡的灰塵。|書記,管理員|你現在正在扮演檔案員...
       @agentnpc/move 檔案員=控制中樞
       @agentnpc/desc 檔案員=新的描述
+      @agentnpc/sdesc 檔案員=一名安靜的檔案員
       @agentnpc/aliases 檔案員=書記,管理員,檔案官
       @agentnpc/flags 守門員=attackable:on,retaliates:off,can_die:on
       @agentnpc/stats 守門員=str=18,def=12,hp=120,mp=20,spd=14
@@ -70,6 +72,7 @@ class CmdAgentNPC(MuxCommand):
         "create",
         "move",
         "desc",
+        "sdesc",
         "aliases",
         "flags",
         "stats",
@@ -106,6 +109,7 @@ class CmdAgentNPC(MuxCommand):
             "  |w@agentnpc/create llm 名稱=房間|描述|alias1,alias2|prompt|n：建立 LLMNPC。\n"
             "  |w@agentnpc/move 名稱=房間|n：移動 NPC。\n"
             "  |w@agentnpc/desc 名稱=描述|n：更新描述。\n"
+            "  |w@agentnpc/sdesc 名稱=短描|n：更新 RPSystem 短描（遊戲中顯示名稱）。\n"
             "  |w@agentnpc/aliases 名稱=alias1,alias2|n：覆寫 aliases。\n"
             "  |w@agentnpc/flags 守門員=attackable:on,retaliates:off,can_die:on|n：設定戰鬥旗標。\n"
             "  |w@agentnpc/stats 守門員=str=18,def=12,hp=120,mp=20,spd=14|n：設定戰鬥數值。\n"
@@ -172,6 +176,14 @@ class CmdAgentNPC(MuxCommand):
         if not npc_key or not desc:
             raise NPCSpecError("desc 格式需要 `名稱=描述`。")
         result = set_npc_desc(npc_key, desc)
+        self._msg(result["message"])
+
+    def _handle_sdesc(self):
+        npc_key = (self.lhs or "").strip()
+        sdesc = (self.rhs or "").strip()
+        if not npc_key or not sdesc:
+            raise NPCSpecError("sdesc 格式需要 `名稱=短描`。")
+        result = set_npc_sdesc(npc_key, sdesc)
         self._msg(result["message"])
 
     def _handle_aliases(self):
@@ -429,6 +441,9 @@ class CmdAgentNPC(MuxCommand):
                 return
             if "desc" in self.switches:
                 self._handle_desc()
+                return
+            if "sdesc" in self.switches:
+                self._handle_sdesc()
                 return
             if "aliases" in self.switches:
                 self._handle_aliases()

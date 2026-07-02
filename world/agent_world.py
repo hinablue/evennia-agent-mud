@@ -994,6 +994,20 @@ def _ensure_aliases(obj, aliases):
     return changed
 
 
+def _ensure_sdesc(obj, sdesc):
+    sdesc = _clean_text(sdesc)
+    if not sdesc:
+        return False
+    try:
+        current = _clean_text(obj.sdesc.get())
+    except AttributeError:
+        current = _clean_text(getattr(obj.db, "_sdesc", "")) or _clean_text(obj.key)
+    if current == sdesc:
+        return False
+    obj.sdesc.add(sdesc)
+    return True
+
+
 def _ensure_room(key, desc):
     room = _find_room(key)
     created = False
@@ -1122,7 +1136,7 @@ def _ensure_npc(key, spec, room_cache):
     moved = False
     updated = False
     attributes = dict(spec.get("attributes", {}))
-    attributes.setdefault("sdesc", spec.get("sdesc", "NPC"))
+    sdesc = spec.get("sdesc", attributes.pop("sdesc", key))
     attributes.setdefault("desc", spec.get("desc", ""))
 
     if not npc:
@@ -1134,6 +1148,7 @@ def _ensure_npc(key, spec, room_cache):
             aliases=_normalize_aliases(spec.get("aliases", [])),
             attributes=list(attributes.items()),
         )
+        _ensure_sdesc(npc, sdesc)
         npc.tags.add("gm_continent", category="ownership")
         created = True
         return npc, created, moved, updated
@@ -1149,6 +1164,8 @@ def _ensure_npc(key, spec, room_cache):
         npc.db.desc = spec.get("desc", "")
         updated = True
     if _ensure_aliases(npc, spec.get("aliases", [])):
+        updated = True
+    if _ensure_sdesc(npc, sdesc):
         updated = True
     for attr, value in attributes.items():
         if getattr(npc.db, attr, None) != value:

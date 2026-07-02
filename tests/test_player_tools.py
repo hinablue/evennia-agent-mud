@@ -116,11 +116,13 @@ class TestPlayerTools(unittest.TestCase):
     def test_summarize_player(self):
         obj = SimpleNamespace(key="Hero", typeclass_path="typeclasses.characters.Character",
                               db=SimpleNamespace(desc="A hero.", nationality=""),
+                              sdesc=SimpleNamespace(get=MagicMock(return_value="A quiet hero")),
                               location=SimpleNamespace(key="Town"), home=SimpleNamespace(key="Start"),
                               aliases=SimpleNamespace(all=lambda: []), account=None)
         _FAKE_OBJS["Hero"] = obj
         result = player.summarize_player("Hero")
         self.assertIn("Hero", result)
+        self.assertIn("A quiet hero", result)
 
     def test_move_player(self):
         dest = SimpleNamespace(key="Dungeon")
@@ -130,6 +132,21 @@ class TestPlayerTools(unittest.TestCase):
         _FAKE_OBJS["Dungeon"] = dest
         player.move_player("Hero", "Dungeon")
         self.assertEqual(obj.location, dest)
+
+    def test_set_player_sdesc_updates_rpsystem_handler(self):
+        sdesc_handler = SimpleNamespace(add=MagicMock(return_value="A masked traveler"))
+        obj = SimpleNamespace(
+            key="Hero",
+            typeclass_path="typeclasses.characters.Character",
+            db=SimpleNamespace(),
+            sdesc=sdesc_handler,
+            save=MagicMock(),
+        )
+        _FAKE_OBJS["Hero"] = obj
+        result = player.set_player_sdesc("Hero", "A masked traveler")
+        sdesc_handler.add.assert_called_once_with("A masked traveler")
+        obj.save.assert_called_once()
+        self.assertIn("A masked traveler", result["message"])
 
     def test_set_player_home(self):
         room = SimpleNamespace(key="HomeRoom")

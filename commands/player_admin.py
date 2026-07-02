@@ -14,6 +14,7 @@ from world.player_tools import (
     set_player_aliases,
     set_player_desc,
     set_player_home,
+    set_player_sdesc,
     summarize_player,
     summarize_players,
     summon_player,
@@ -38,6 +39,7 @@ class CmdAgentPlayer(MuxCommand):
       @agentplayer/summon Hina=控制中樞
       @agentplayer/rename Hina=HinaBlue
       @agentplayer/desc Hina=她的視線總像慢半拍才落下來。
+      @agentplayer/sdesc Hina=一名黑髮旅人
       @agentplayer/aliases Hina=旅人,小藍,觀測者
       @agentplayer/addaliases Hina=夜行者,旅客
       @agentplayer/delaliases Hina=小藍
@@ -64,6 +66,7 @@ class CmdAgentPlayer(MuxCommand):
         "summon",
         "rename",
         "desc",
+        "sdesc",
         "aliases",
         "addaliases",
         "delaliases",
@@ -89,6 +92,7 @@ class CmdAgentPlayer(MuxCommand):
             "  |w@agentplayer/summon 名稱=房間|n：傳送角色但不改 home。\n"
             "  |w@agentplayer/rename 名稱=新名稱|n：重新命名角色。\n"
             "  |w@agentplayer/desc 名稱=描述|n：更新描述。\n"
+            "  |w@agentplayer/sdesc 名稱=短描|n：更新 RPSystem 短描（遊戲中顯示名稱）。\n"
             "  |w@agentplayer/aliases 名稱=alias1,alias2|n：覆寫 aliases。\n"
             "  |w@agentplayer/addaliases 名稱=alias1,alias2|n：追加 aliases。\n"
             "  |w@agentplayer/delaliases 名稱=alias1,alias2|n：移除指定 aliases。\n"
@@ -174,6 +178,14 @@ class CmdAgentPlayer(MuxCommand):
         result = set_player_desc(char_key, desc)
         self._msg(result["message"])
 
+    def _handle_sdesc(self):
+        char_key = (self.lhs or "").strip()
+        sdesc = (self.rhs or "").strip()
+        if not char_key or not sdesc:
+            raise PlayerSpecError("sdesc 格式需要 `名稱=短描`。")
+        result = set_player_sdesc(char_key, sdesc)
+        self._msg(result["message"])
+
     def _handle_aliases(self):
         char_key = (self.lhs or "").strip()
         aliases = [
@@ -253,6 +265,9 @@ class CmdAgentPlayer(MuxCommand):
                 return
             if "desc" in self.switches:
                 self._handle_desc()
+                return
+            if "sdesc" in self.switches:
+                self._handle_sdesc()
                 return
             if "aliases" in self.switches:
                 self._handle_aliases()

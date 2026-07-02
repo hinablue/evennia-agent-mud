@@ -94,6 +94,7 @@ class TestNPCTools(unittest.TestCase):
             key="Guard",
             typeclass_path="typeclasses.npcs.NPC",
             db=SimpleNamespace(desc="A guard.", ai_state="idle"),
+            sdesc=SimpleNamespace(get=MagicMock(return_value="A watchful guard")),
             location=SimpleNamespace(key="Tavern"),
             attributes=SimpleNamespace(get=lambda k, default=None: default),
             aliases=SimpleNamespace(all=lambda: []),
@@ -101,6 +102,7 @@ class TestNPCTools(unittest.TestCase):
         _FAKE_OBJS["Guard"] = obj
         result = npc.summarize_npc("Guard")
         self.assertIn("Guard", result)
+        self.assertIn("A watchful guard", result)
 
     def test_move_npc_updates_location(self):
         target_room = SimpleNamespace(key="Dungeon")
@@ -126,6 +128,21 @@ class TestNPCTools(unittest.TestCase):
         _FAKE_OBJS["Guard"] = obj
         result = npc.set_npc_desc("Guard", "A fierce guard.")
         self.assertEqual(obj.db.desc, "A fierce guard.")
+
+    def test_set_npc_sdesc_updates_rpsystem_handler(self):
+        sdesc_handler = SimpleNamespace(add=MagicMock(return_value="A masked guard"))
+        obj = SimpleNamespace(
+            key="Guard",
+            typeclass_path="typeclasses.npcs.NPC",
+            db=SimpleNamespace(),
+            sdesc=sdesc_handler,
+            save=MagicMock(),
+        )
+        _FAKE_OBJS["Guard"] = obj
+        result = npc.set_npc_sdesc("Guard", "A masked guard")
+        sdesc_handler.add.assert_called_once_with("A masked guard")
+        obj.save.assert_called_once()
+        self.assertIn("A masked guard", result["message"])
 
     def test_delete_npc(self):
         obj = SimpleNamespace(

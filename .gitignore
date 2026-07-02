@@ -62,3 +62,5 @@ logs
 static
 server/conf/settings.py
 server/conf/secret_settings.py
+server/conf/mcp_tokens.json
+server/conf/tokens.json
