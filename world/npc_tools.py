@@ -269,7 +269,7 @@ def summarize_npc(npc_key):
     lines.append(f"- 技能：{_format_list(getattr(obj.db, 'skills', []) or [])}")
     lines.append(f"- 裝備：{_format_list(_equipment_summary_pairs(obj))}")
     lines.append(f"- 掉落表：{_format_list(_loot_summary_pairs(obj))}")
-    lines.append(f"- typeclass：{obj.typeclass_path}")
+    lines.append(f"- 類型：{obj.typeclass_path}")
     if _is_llm_npc(obj):
         lines.append(
             f"- prompt：{_truncate(obj.attributes.get('prompt_prefix', default=DEFAULT_PROMPT_PREFIX), 180)}"
@@ -338,7 +338,7 @@ def create_npc(kind, npc_key, room_name, desc=None, aliases=None, prompt_prefix=
     )
     typeclass = LLMNPC if kind == "llm" else NPC
 
-    attributes = [("desc", desc), ("is_npc", True), ("npc_kind", kind)]
+    attributes = [("desc", desc), ("is_npc", True), ("npc_kind", kind), ("sdesc", npc_key)]
     for attr_name, value in NPC_COMBAT_DEFAULTS.items():
         attributes.append((attr_name, value))
     if kind == "llm":

@@ -17,7 +17,7 @@ LIMBO_ROOM_KEY = "莫比爾站"
 LEGACY_LIMBO_KEYS = ("Limbo", "莫比爾站")
 
 ROSIE_KEY = "rosie"
-ROSIE_ALIASES = ["蘿西", "接待員"]
+ROSIE_ALIASES = ["Rosie", "若熙", "接待員"]
 ROSIE_HOME = "迎賓大廳"
 ROSIE_DESC = (
     "她安靜站在光線較柔的地方，像早就習慣在陌生人靠近前先觀察對方。"
@@ -31,6 +31,7 @@ NPC_DEFS = {
         "desc": ROSIE_DESC,
         "attributes": {
             "is_npc": True,
+            "sdesc": "若熙",
             "npc_kind": "npc",
             "npc_attackable": False,
             "npc_retaliates": False,
@@ -1121,6 +1122,7 @@ def _ensure_npc(key, spec, room_cache):
     moved = False
     updated = False
     attributes = dict(spec.get("attributes", {}))
+    attributes.setdefault("sdesc", spec.get("sdesc", "NPC"))
     attributes.setdefault("desc", spec.get("desc", ""))
 
     if not npc:

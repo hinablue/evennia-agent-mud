@@ -3,12 +3,11 @@
 房間是簡單的容器，沒有自己的位置。"""
 
 from evennia.contrib.grid.extended_room import ExtendedRoom
-from evennia.contrib.rpg.rpsystem import ContribRPRoom
 
 from .objects import ObjectParent
 
 
-class Room(ObjectParent, ExtendedRoom, ContribRPRoom):
+class Room(ObjectParent, ExtendedRoom):
     """房間就像任何物件一樣，只是它們的位置是“無”
     （這是預設的）。他們也使用 basetype_setup() 來
     添加鎖，這樣它們就不會被操縱或拾取。

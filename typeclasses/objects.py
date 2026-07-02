@@ -91,3 +91,12 @@ class Object(ObjectParent, ContribRPObject):
     保持最新狀態。"""
 
     default_description = "你看不出什麼特別之處。"
+
+    def at_object_creation(self):
+        """初始化時調用。"""
+        super().at_object_creation()
+
+        # 表情/辨識資料
+        self.db.pose = ""
+        self.db.pose_default = "在這裡。"
+        self.db._sdesc = ""
